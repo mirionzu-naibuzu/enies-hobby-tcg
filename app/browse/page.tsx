@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
 import { Card, FilterParams } from "@/types/card";
 import { getAllCards, getAllSets } from "@/lib/api";
 import CardItem from "@/components/CardItem";
@@ -11,14 +10,10 @@ import { Search, X, LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-r
 import { useTheme } from "next-themes";
 
 export default function Home() {
-  const searchParams = useSearchParams();
   const [cards, setCards]         = useState<Card[]>([]);
   const [sets, setSets]           = useState<{ set_id: string; set_name: string }[]>([]);
-  const [filters, setFilters]     = useState<FilterParams>(() => {
-    const set = searchParams.get("set");
-    return set ? { setId: set } : {};
-  });
-  const [search, setSearch]       = useState(() => searchParams.get("q") ?? "");
+  const [filters, setFilters]     = useState<FilterParams>({});
+  const [search, setSearch]       = useState("");
   const [view, setView]           = useState<"grid" | "list">("grid");
   const [loading, setLoading]     = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
@@ -58,7 +53,25 @@ export default function Home() {
           getAllSets(),
         ]);
         setCards(fetchedCards);
-        setSets(allSets);
+
+        // getAllSets() omits ST (and sometimes EB) sets.
+        // Supplement by scanning card IDs: "ST01-006" → "ST-01", "EB04-001" → "EB04"
+        const setMap = new Map<string, string>(allSets.map(s => [s.set_id, s.set_name]));
+
+        for (const card of fetchedCards) {
+          const prefix = (card.id ?? "").split("-")[0].toUpperCase(); // "ST01", "OP01", "EB04"
+          if (!prefix) continue;
+
+          // ST cards: reformat "ST01" → "ST-01" to match allDecks set_id format
+          const stMatch = prefix.match(/^ST(\d+)$/);
+          const setId = stMatch ? `ST-${stMatch[1].padStart(2, "0")}` : prefix;
+
+          if (!setMap.has(setId)) {
+            setMap.set(setId, card.set?.name ?? setId);
+          }
+        }
+
+        setSets([...setMap.entries()].map(([set_id, set_name]) => ({ set_id, set_name })));
       } catch (e) {
         console.error(e);
       } finally {
@@ -102,7 +115,10 @@ export default function Home() {
         const normalizedSet = bracketMatch
           ? bracketMatch[1].replace(/-/g, "").toUpperCase()
           : setName.replace(/-/g, "").toUpperCase();
-        if (!normalizedSet.includes(normalizedFilter)) return false;
+        // Fallback: check card ID prefix — catches ST/EB cards whose set.name has no brackets
+        // e.g. filters.setId="ST-01" → normalizedFilter="ST01", c.id="ST01-006" → cardIdNorm="ST01006"
+        const cardIdNorm = (c.id ?? "").replace(/-/g, "").toUpperCase();
+        if (!normalizedSet.includes(normalizedFilter) && !cardIdNorm.startsWith(normalizedFilter)) return false;
       }
       return true;
     }).sort((a, b) => {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTheme } from "next-themes";
 import Sidebar from "@/components/Sidebar";
 import AuthModal from "@/components/AuthModal";
@@ -51,6 +52,8 @@ export default function HomePage() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [stackCards, setStackCards] = useState<Card[]>([]);
   const [previewCards, setPreviewCards] = useState<Card[]>([]);
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
 
   useEffect(() => {
     setMounted(true);
@@ -81,7 +84,15 @@ export default function HomePage() {
       setPreviewCards(shuffle(withImages).slice(0, 6));
     });
 
-    return () => listener.subscription.unsubscribe();
+    // Keyboard navigation for modal
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setSelectedCard(null); setSelectedIndex(-1); }
+      if (e.key === "ArrowRight") setSelectedIndex((prev) => { const next = Math.min(prev + 1, previewCards.length - 1); setSelectedCard(previewCards[next] ?? null); return next; });
+      if (e.key === "ArrowLeft")  setSelectedIndex((prev) => { const next = Math.max(prev - 1, 0); setSelectedCard(previewCards[next] ?? null); return next; });
+    };
+    window.addEventListener("keydown", handleKey);
+
+    return () => { listener.subscription.unsubscribe(); window.removeEventListener("keydown", handleKey); };
   }, []);
 
   const isDark = mounted && theme === "dark";
@@ -162,7 +173,7 @@ export default function HomePage() {
           <div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 22 }}>
               <span style={{ background: "#dc2626", color: "#fff", fontSize: 9, fontWeight: 500, padding: "3px 8px", borderRadius: 3, letterSpacing: "0.07em", textTransform: "uppercase" as const }}>New</span>
-              <span style={{ fontSize: 11, color: c.textTer }}>OP09 · Emperors in the New World just added</span>
+              <span style={{ fontSize: 11, color: c.textTer }}>OP-15 · Adventure on KAMI’s Island just added</span>
             </div>
             <h1 style={{ fontFamily: "'Impact','Arial Narrow',sans-serif", fontSize: 72, lineHeight: 0.95, letterSpacing: "0.01em", color: c.text, marginBottom: 18 }}>
               YOUR<br />COLLECTING<br />STARTS<br />
@@ -307,7 +318,7 @@ export default function HomePage() {
           {CARD_PREVIEWS.map((meta, i) => {
             const real = previewCards[i];
             return (
-              <div key={i} className="strip-card" onClick={() => handleBrowse()} style={{ aspectRatio: "0.72", borderRadius: 8, border: `1px solid ${meta.border}`, background: isDark ? `linear-gradient(135deg, ${meta.darkBg}, #1f2937)` : `linear-gradient(135deg, ${meta.bg}, #f9fafb)`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative", overflow: "hidden" }}>
+              <div key={i} className="strip-card" onClick={() => { setSelectedCard(real ?? null); setSelectedIndex(i); }} style={{ aspectRatio: "0.72", borderRadius: 8, border: `1px solid ${meta.border}`, background: isDark ? `linear-gradient(135deg, ${meta.darkBg}, #1f2937)` : `linear-gradient(135deg, ${meta.bg}, #f9fafb)`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative", overflow: "hidden" }}>
                 <div style={{ width: 7, height: 7, borderRadius: "50%", background: meta.color, border: "1px solid rgba(255,255,255,0.5)", position: "absolute", top: 6, left: 6, zIndex: 2 }} />
                 <div style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: meta.rarityBg, color: meta.rarityColor, position: "absolute", top: 5, right: 5, zIndex: 2 }}>{meta.rarity}</div>
                 {real?.images?.small ? (
@@ -318,7 +329,7 @@ export default function HomePage() {
               </div>
             );
           })}
-          <div onClick={() => handleBrowse()} style={{ aspectRatio: "0.72", borderRadius: 8, border: `1px dashed ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+          <div onClick={() => handleBrowse()} style={{ aspectRatio: "0.72", borderRadius: 8, border: `1px dashed ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "opacity 0.2s" }}>
             <span style={{ fontSize: 10, color: c.textTer }}>+2,406</span>
           </div>
         </div>
@@ -332,6 +343,105 @@ export default function HomePage() {
         </div>
         <span style={{ fontSize: 10, color: c.textTer }}>© 2026</span>
       </div>
+
+
+      {/* Card Detail Modal */}
+      {selectedCard && (
+        <div
+          style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+          onClick={() => { setSelectedCard(null); setSelectedIndex(-1); }}
+        >
+          <div
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, width: "100%", maxWidth: 960 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Prev */}
+            <button
+              onClick={() => { const next = Math.max(selectedIndex - 1, 0); setSelectedIndex(next); setSelectedCard(previewCards[next] ?? null); }}
+              disabled={selectedIndex <= 0}
+              style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: selectedIndex > 0 ? "pointer" : "not-allowed", opacity: selectedIndex <= 0 ? 0.3 : 1, transition: "all 0.2s", boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}
+            >
+              <ChevronLeft style={{ width: 20, height: 20 }} />
+            </button>
+
+            {/* Modal */}
+            <div style={{ flex: 1, background: c.bg, borderRadius: 20, border: `1px solid ${c.border}`, overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.5)" : "0 32px 64px rgba(0,0,0,0.15)" }}>
+              {/* Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: `1px solid ${c.border}`, flexShrink: 0 }}>
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: 22, color: c.text, letterSpacing: "-0.02em" }}>{selectedCard.name}</div>
+                  <div style={{ fontSize: 12, color: c.textTer, fontFamily: "monospace", marginTop: 2 }}>{selectedCard.id}</div>
+                </div>
+                <button onClick={() => { setSelectedCard(null); setSelectedIndex(-1); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
+                  <X style={{ width: 20, height: 20, color: c.textTer }} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
+                {/* Image */}
+                <div style={{ width: "45%", flexShrink: 0, background: isDark ? "#111827" : "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+                  {selectedCard.images?.large ? (
+                    <img src={selectedCard.images.large} alt={selectedCard.name} style={{ width: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 12, boxShadow: isDark ? "0 12px 40px rgba(0,0,0,0.6)" : "0 12px 40px rgba(0,0,0,0.2)" }} />
+                  ) : (
+                    <div style={{ width: 100, height: 100, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, border: `2px dashed ${c.border}`, background: c.bgSec }}>🃏</div>
+                  )}
+                </div>
+
+                {/* Details */}
+                <div style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    {([
+                      ["Type",      selectedCard.type],
+                      ["Rarity",    selectedCard.rarity],
+                      ["Color",     selectedCard.color],
+                      ["Cost",      selectedCard.cost],
+                      ["Power",     selectedCard.power],
+                      ["Counter",   selectedCard.counter],
+                      ["Attribute", selectedCard.attribute?.name],
+                      ["Family",    selectedCard.family],
+                      ["Set",       selectedCard.set?.name],
+                    ] as [string, unknown][]).filter(([, v]) => v != null && v !== "" && v !== "-").map(([label, value]) => (
+                      <div key={label} style={{ background: c.bgSec, borderRadius: 10, padding: "10px 14px", border: `1px solid ${c.border}` }}>
+                        <div style={{ fontSize: 11, color: c.textTer, marginBottom: 3, textTransform: "uppercase" as const, letterSpacing: "0.05em", fontWeight: 700 }}>{label}</div>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: c.text }}>{String(value)}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {selectedCard.ability && (
+                    <div style={{ background: c.bgSec, borderRadius: 10, padding: "12px 14px", border: `1px solid ${c.border}` }}>
+                      <div style={{ fontSize: 11, color: c.textTer, marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: "0.05em", fontWeight: 700 }}>Effect</div>
+                      <div style={{ fontSize: 14, color: c.text, lineHeight: 1.7 }}>{selectedCard.ability}</div>
+                    </div>
+                  )}
+
+                  {selectedCard.trigger && selectedCard.trigger !== "" && (
+                    <div style={{ background: isDark ? "rgba(217,119,6,0.1)" : "rgba(251,191,36,0.08)", borderRadius: 10, padding: "12px 14px", border: `1px solid ${isDark ? "rgba(251,191,36,0.2)" : "rgba(217,119,6,0.2)"}` }}>
+                      <div style={{ fontSize: 11, color: isDark ? "#fbbf24" : "#d97706", marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: "0.05em", fontWeight: 700 }}>Trigger</div>
+                      <div style={{ fontSize: 14, color: c.text, lineHeight: 1.7 }}>{selectedCard.trigger}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer counter */}
+              <div style={{ borderTop: `1px solid ${c.border}`, padding: "10px 24px", textAlign: "center", fontSize: 12, color: c.textTer, flexShrink: 0 }}>
+                {selectedIndex + 1} / {previewCards.length}
+              </div>
+            </div>
+
+            {/* Next */}
+            <button
+              onClick={() => { const next = Math.min(selectedIndex + 1, previewCards.length - 1); setSelectedIndex(next); setSelectedCard(previewCards[next] ?? null); }}
+              disabled={selectedIndex >= previewCards.length - 1}
+              style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: selectedIndex < previewCards.length - 1 ? "pointer" : "not-allowed", opacity: selectedIndex >= previewCards.length - 1 ? 0.3 : 1, transition: "all 0.2s", boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}
+            >
+              <ChevronRight style={{ width: 20, height: 20 }} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {showAuth && <AuthModal initialMode={authMode} onClose={() => setShowAuth(false)} />}
     </div>

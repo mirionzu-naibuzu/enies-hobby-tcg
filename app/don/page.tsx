@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Search, ChevronUp } from "lucide-react";
 
 interface DonCard {
   card_name: string;
@@ -19,9 +19,15 @@ interface DonCard {
 export default function DonCardsPage() {
   const router = useRouter();
   const { theme } = useTheme();
+
   const [mounted, setMounted] = useState(false);
   const [donCards, setDonCards] = useState<DonCard[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState("All");
+
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const isDark = mounted && theme === "dark";
 
@@ -57,17 +63,54 @@ export default function DonCardsPage() {
         setLoading(false);
       }
     }
+
     fetchDonCards();
   }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 500);
+    };
+  
+    window.addEventListener("scroll", handleScroll);
+  
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const filteredCards = useMemo(() => {
+    return donCards.filter((card) => {
+      const matchesSearch =
+        card.card_name.toLowerCase().includes(search.toLowerCase()) ||
+        card.optcg_don_name
+          ?.toLowerCase()
+          .includes(search.toLowerCase());
+
+      const matchesFilter =
+        activeFilter === "All"
+          ? true
+          : activeFilter === "Gold"
+          ? card.card_name.toLowerCase().includes("(gold)")
+          : true;
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [donCards, search, activeFilter]);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
   return (
     <div
       suppressHydrationWarning
       style={{
         minHeight: "100vh",
-        background: isDark ? "#111827" : "#ffffff",
+        background: colors.bg.primary,
         transition: "background-color 0.3s",
-        color: isDark ? "#f3f4f6" : "#111827",
+        color: colors.text.primary,
         marginLeft: 70,
       }}
     >
@@ -85,6 +128,7 @@ export default function DonCardsPage() {
           position: "sticky",
           top: 0,
           zIndex: 20,
+          backdropFilter: "blur(12px)",
         }}
       >
         <button
@@ -101,56 +145,122 @@ export default function DonCardsPage() {
         >
           <ChevronLeft size={24} />
         </button>
+
         <h1 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>
           DON<span style={{ color: "#ef4444" }}>!!</span> Cards
         </h1>
       </header>
 
-      {/* Results bar */}
+      {/* Search + Filters */}
       <div
+        style={{
+          padding: "16px 24px",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 12,
+          alignItems: "center",
+        }}
+      >
+        {/* Search */}
+        <div
+          style={{
+            flex: 1,
+            minWidth: 240,
+            position: "relative",
+          }}
+        >
+          <Search
+            size={18}
+            style={{
+              position: "absolute",
+              left: 14,
+              top: "50%",
+              transform: "translateY(-50%)",
+              color: colors.text.tertiary,
+            }}
+          />
+
+          <input
+            type="text"
+            placeholder="Search DON!! cards..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "12px 16px 12px 42px",
+              borderRadius: 14,
+              border: `1px solid ${colors.border}`,
+              background: colors.bg.secondary,
+              color: colors.text.primary,
+              outline: "none",
+              fontSize: 14,
+            }}
+          />
+        </div>
+
+        {/* Filters */}
+        {["All", "Gold"].map((filter) => {
+          const active = activeFilter === filter;
+
+          return (
+            <button
+              key={filter}
+              onClick={() => setActiveFilter(filter)}
+              style={{
+                padding: "10px 18px",
+                borderRadius: 999,
+                border: "none",
+                cursor: "pointer",
+                fontWeight: 800,
+                fontSize: 14,
+                transition: "all 0.2s",
+
+                background: active
+                  ? filter === "Gold"
+                    ? "linear-gradient(135deg, #facc15, #eab308)"
+                    : "#ef4444"
+                  : isDark
+                  ? "#1f2937"
+                  : "#f3f4f6",
+
+                color: active
+                  ? filter === "Gold"
+                    ? "#111827"
+                    : "#ffffff"
+                  : colors.text.primary,
+
+                boxShadow:
+                  active && filter === "Gold"
+                    ? "0 0 20px rgba(250, 204, 21, 0.35)"
+                    : "none",
+              }}
+            >
+              {filter === "Gold" ? "Gold" : filter}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Grid */}
+      <main
         style={{
           paddingLeft: 24,
           paddingRight: 24,
-          paddingTop: 12,
-          paddingBottom: 12,
-          borderBottom: `1px solid ${colors.border}`,
+          paddingBottom: 64,
         }}
       >
-        <span style={{ fontSize: 14, color: colors.text.tertiary }}>
-          {loading ? "Loading DON!! cards..." : (
-            <>Showing <strong style={{ color: colors.text.primary }}>{donCards.length}</strong> DON!! cards</>
-          )}
-        </span>
-      </div>
-
-      {/* Cards Grid */}
-      <main style={{ paddingLeft: 24, paddingRight: 24, paddingBottom: 64 }}>
         <style>{`
           @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
           }
+
           .skeleton-loader {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite;
           }
         `}</style>
 
         {loading ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, marginTop: 16 }}>
-            {Array.from({ length: 12 }).map((_, i) => (
-              <div
-                key={i}
-                className="skeleton-loader"
-                style={{
-                  borderRadius: 12,
-                  background: colors.bg.tertiary,
-                  border: `1px solid ${colors.border}`,
-                  height: 256,
-                }}
-              />
-            ))}
-          </div>
-        ) : (
           <div
             style={{
               display: "grid",
@@ -159,67 +269,107 @@ export default function DonCardsPage() {
               marginTop: 16,
             }}
           >
-            {donCards.map((card, i) => (
+            {Array.from({ length: 12 }).map((_, i) => (
               <div
                 key={i}
+                className="skeleton-loader"
                 style={{
-                  cursor: "pointer",
-                  borderRadius: 14,
-                  overflow: "hidden",
+                  borderRadius: 16,
                   background: colors.bg.secondary,
                   border: `1px solid ${colors.border}`,
-                  transition: "all 0.2s",
-                  transform: "translateY(0)",
+                  aspectRatio: "2.5 / 3.5",
                 }}
-                onMouseEnter={(e) => {
-                  const element = e.currentTarget as HTMLDivElement;
-                  element.style.transform = "translateY(-4px)";
-                  element.style.boxShadow = isDark
-                    ? "0 20px 25px rgba(0,0,0,0.4)"
-                    : "0 20px 25px rgba(0,0,0,0.1)";
-                }}
-                onMouseLeave={(e) => {
-                  const element = e.currentTarget as HTMLDivElement;
-                  element.style.transform = "translateY(0)";
-                  element.style.boxShadow = "none";
-                }}
-              >
-                {/* Image area */}
+              />
+            ))}
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fill, minmax(220px, 1fr))",
+              gap: 16,
+              marginTop: 16,
+            }}
+          >
+            {filteredCards.map((card, i) => {
+              const isGold = card.card_name
+                .toLowerCase()
+                .includes("(gold)");
+
+              return (
                 <div
+                  key={i}
                   style={{
-                    position: "relative",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    cursor: "pointer",
+                    borderRadius: 18,
                     overflow: "hidden",
-                    background: `linear-gradient(135deg, ${isDark ? "#1f2937" : "#f3f4f6"}, ${colors.bg.tertiary})`,
-                    minHeight: 200,
+                    background: colors.bg.secondary,
+                    border: isGold
+                      ? "1px solid #facc15"
+                      : `1px solid ${colors.border}`,
+                    transition: "all 0.2s ease",
+                    transform: "translateY(0)",
+                    boxShadow: isGold
+                      ? "0 0 20px rgba(250,204,21,0.15)"
+                      : "none",
+                  }}
+                  onMouseEnter={(e) => {
+                    const element =
+                      e.currentTarget as HTMLDivElement;
+
+                    element.style.transform = "translateY(-4px)";
+                    element.style.boxShadow = isGold
+                      ? "0 0 30px rgba(250,204,21,0.35)"
+                      : isDark
+                      ? "0 20px 25px rgba(0,0,0,0.4)"
+                      : "0 20px 25px rgba(0,0,0,0.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    const element =
+                      e.currentTarget as HTMLDivElement;
+
+                    element.style.transform = "translateY(0)";
+                    element.style.boxShadow = isGold
+                      ? "0 0 20px rgba(250,204,21,0.15)"
+                      : "none";
                   }}
                 >
-                  <img
-                    src={card.card_image || "/don-back.png"}
-                    alt={card.card_name}
+                  {/* Image */}
+                  <div
                     style={{
                       width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
+                      aspectRatio: "2.5 / 3.5",
+                      overflow: "hidden",
+                      background: isDark
+                        ? "#0f172a"
+                        : "#e5e7eb",
                     }}
-                    onError={(e) => {
-                      const img = e.currentTarget as HTMLImageElement;
-                      img.src = "/don-back.png";
-                    }}
-                  />
-                </div>
+                  >
+                    <img
+                      src={card.card_image || "/don-back.png"}
+                      alt={card.card_name}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                      onError={(e) => {
+                        const img =
+                          e.currentTarget as HTMLImageElement;
 
-                
-                
-              </div>
-            ))}
+                        img.src = "/don-back.png";
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
-        {!loading && donCards.length === 0 && (
+        {!loading && filteredCards.length === 0 && (
           <div
             style={{
               textAlign: "center",
@@ -228,10 +378,13 @@ export default function DonCardsPage() {
               color: colors.text.tertiary,
             }}
           >
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🎴</div>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>
+              🎴
+            </div>
+
             <div
               style={{
-                fontWeight: 600,
+                fontWeight: 700,
                 fontSize: 18,
                 color: colors.text.primary,
               }}
@@ -241,6 +394,47 @@ export default function DonCardsPage() {
           </div>
         )}
       </main>
-    </div>
+      {showScrollTop && (
+  <button
+    onClick={scrollToTop}
+    style={{
+      position: "fixed",
+      bottom: 24,
+      left: "50%",
+      transform: "translateX(-50%)",
+      width: 52,
+      height: 52,
+      borderRadius: "50%",
+      border: "none",
+      cursor: "pointer",
+      background: isDark ? "#1f2937" : "#ffffff",
+      color: colors.text.primary,
+      boxShadow: isDark
+        ? "0 10px 25px rgba(0,0,0,0.4)"
+        : "0 10px 25px rgba(0,0,0,0.15)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 50,
+      transition: "all 0.2s ease",
+    }}
+    onMouseEnter={(e) => {
+      const element = e.currentTarget;
+
+      element.style.transform =
+        "translateX(-50%) translateY(-3px)";
+    }}
+    onMouseLeave={(e) => {
+      const element = e.currentTarget;
+
+      element.style.transform =
+        "translateX(-50%) translateY(0)";
+    }}
+  >
+    <ChevronUp size={22} />
+  </button>
+)}
+
+</div>
   );
 }
