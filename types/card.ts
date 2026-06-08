@@ -1,6 +1,7 @@
 export type CardColor = "Red" | "Green" | "Blue" | "Purple" | "Black" | "Yellow" | "Multicolor";
 export type CardType = "LEADER" | "CHARACTER" | "EVENT" | "STAGE";
-export type CardRarity = "SEC" | "SR" | "R" | "UC" | "C" | "SP" | "TR" | "P" | "L";
+export type CardRarity = "SEC" | "SR" | "R" | "UC" | "C" | "SP" | "TR" | "P" | "PR" | "L";
+export type CardSetType = "booster" | "starter" | "extra_booster" | "premium_booster" | "limited_product";
 
 export interface Card {
   id: string;
@@ -18,6 +19,7 @@ export interface Card {
   family?: string;
   images: { small: string; large: string };
   set: { name: string };
+  setType?: CardSetType;
 }
 
 export interface CardSet {
@@ -31,4 +33,5 @@ export interface FilterParams {
   type?: string;
   rarity?: string;
   setId?: string;
+  setType?: CardSetType;
 }

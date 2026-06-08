@@ -3,108 +3,64 @@
 import { useState, useEffect } from "react";
 import { FilterParams } from "@/types/card";
 import { useTheme } from "next-themes";
+import { getColors } from "@/lib/themes";
 
 const COLORS   = ["Red", "Green", "Blue", "Purple", "Black", "Yellow"];
 const CARD_TYPES = ["LEADER", "CHARACTER", "EVENT", "STAGE"];
-const RARITIES = ["SEC", "SR", "R", "UC", "C", "SP", "TR", "PR"];
+const RARITIES = ["SEC", "SR", "R", "UC", "C", "SP", "TR", "P"];
 
 const COLOR_DOT: Record<string, string> = {
   Red: "#ef4444", Green: "#22c55e", Blue: "#3b82f6",
   Purple: "#a855f7", Black: "#374151", Yellow: "#eab308",
 };
 
-type SetCategory = "booster" | "starter" | "extra_booster" | "premium_booster";
+type SetCategory = "booster" | "starter" | "extra_booster" | "premium_booster" | "limited_product";
 
 const SET_TYPE_META: Record<SetCategory, { label: string; bg: string; border: string; text: string }> = {
-  booster:      { label: "Booster Pack",   bg: "#1d4ed8", border: "#1d4ed8", text: "#ffffff" },
-  starter:      { label: "Starter Deck",   bg: "#15803d", border: "#15803d", text: "#ffffff" },
-  extra_booster:{ label: "Extra Booster",  bg: "#7c3aed", border: "#7c3aed", text: "#ffffff" },
-  premium_booster:      { label: "Premium Booster",        bg: "#b45309", border: "#b45309", text: "#ffffff" },
+  booster:         { label: "Booster Pack",    bg: "#1d4ed8", border: "#1d4ed8", text: "#ffffff" },
+  starter:         { label: "Starter Deck",    bg: "#15803d", border: "#15803d", text: "#ffffff" },
+  extra_booster:   { label: "Extra Booster",   bg: "#7c3aed", border: "#7c3aed", text: "#ffffff" },
+  premium_booster: { label: "Premium Booster", bg: "#b45309", border: "#b45309", text: "#ffffff" },
+  limited_product: { label: "Limited Product Card", bg: "#be185d", border: "#be185d", text: "#ffffff",},
 };
 
-// Classify a single (non-combined) set ID by its prefix
 function getSetCategory(setId: string): SetCategory | null {
   const id = setId.toUpperCase().replace(/-/g, "");
 
   if (id.startsWith("ST")) return "starter";
   if (id.startsWith("EB")) return "extra_booster";
   if (id.startsWith("PRB")) return "premium_booster";
-
-  // Ignore promo sets
   if (id.startsWith("P")) return null;
 
   return "booster";
 }
 
-// Detect combined IDs like "OP14-EB04" vs structural hyphens like "ST-01".
-// A combined ID has every hyphen-separated part matching letters+digits (e.g. "OP14", "EB04").
-// "ST-01" fails because "01" has no letters.
 function splitSetId(setId: string): string[] {
   const parts = setId.split("-");
   const isCombined = parts.length >= 2 && parts.every(p => /^[A-Za-z]{1,3}\d+$/.test(p));
   return isCombined ? parts : [setId];
 }
 
-// Explode the raw sets array: split combined IDs, deduplicate, assign categories.
-// "OP14-EB04" → { set_id: "OP14", category: "booster" } + { set_id: "EB04", category: "extra_booster" }
-// Second occurrence of "EB04" (from OP15-EB04) is dropped.
 function buildProcessedSets(
   sets: { set_id: string }[]
 ): { set_id: string; category: SetCategory }[] {
-
   const seen = new Set<string>();
-
   const result: { set_id: string; category: SetCategory }[] = [];
 
   for (const s of sets) {
     for (const part of splitSetId(s.set_id)) {
-
-      // normalize for dedupe
       const normalized = part.replace(/-/g, "").toUpperCase();
-
       if (seen.has(normalized)) continue;
-
       seen.add(normalized);
-
-      // display format
-      let displayId = normalized;
-
-      // ST01 -> ST-01
-      if (/^ST\d+$/.test(normalized)) {
-        displayId = normalized.replace(/^ST(\d+)$/, "ST-$1");
-      }
-
-      // PRB01 -> PRB-01
-      else if (/^PRB\d+$/.test(normalized)) {
-        displayId = normalized.replace(/^PRB(\d+)$/, "PRB-$1");
-      }
-
-      // EB04 -> EB-04
-      else if (/^EB\d+$/.test(normalized)) {
-        displayId = normalized.replace(/^EB(\d+)$/, "EB-$1");
-      }
-
-      // OP01 -> OP-01
-      else if (/^OP\d+$/.test(normalized)) {
-        displayId = normalized.replace(/^OP(\d+)$/, "OP-$1");
-      }
-
+      const displayId = normalized.replace(/^([A-Z]+)(\d+)$/, "$1-$2");
       const category = getSetCategory(normalized);
-
       if (!category) continue;
-
-      result.push({
-        set_id: displayId,
-        category,
-      });
+      result.push({ set_id: displayId, category });
     }
   }
 
   return result.sort((a, b) =>
-    a.set_id.localeCompare(b.set_id, undefined, {
-      numeric: true,
-      sensitivity: "base",
-    })
+    a.set_id.localeCompare(b.set_id, undefined, { numeric: true, sensitivity: "base" })
   );
 }
 
@@ -156,42 +112,70 @@ function Chip({
 }
 
 export default function FilterBar({ sets, filters, onChange }: Props) {
-  const [mounted, setMounted] = useState(false);
-  const [activeSetType, setActiveSetType] = useState<SetCategory | null>(null);
+  const [selectedSetType, setSelectedSetType] = useState<SetCategory | null>(null);
   const { theme } = useTheme();
-
+  const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
-  const isDark = mounted && theme === "dark";
+  const tc = getColors(theme, mounted);
+  const isDark = tc.isDark;
 
   const colors = {
-    bg: isDark ? "#111827" : "#ffffff",
-    border: isDark ? "#374151" : "#e5e7eb",
-    label: "#9ca3af",
-    text: isDark ? "#f3f4f6" : "#111827",
+    bg: tc.bg.primary,
+    border: tc.border,
+    label: tc.text.tertiary,
+    text: tc.text.primary,
   };
 
-  // Explode combined set IDs once
   const processedSets = buildProcessedSets(sets);
+  const setIdCategory = filters.setId
+    ? getSetCategory(filters.setId.replace(/-/g, "").toUpperCase())
+    : null;
+  const activeSetType = filters.setType === "limited_product"
+    ? "limited_product"
+    : setIdCategory ?? (selectedSetType === "limited_product" ? null : selectedSetType);
 
-  const visibleSets = activeSetType
-  ? processedSets.filter((s) => s.category === activeSetType)
-  : [];
+  const visibleSets =
+    activeSetType && activeSetType !== "limited_product"
+      ? processedSets.filter((s) => s.category === activeSetType)
+      : [];
 
   const handleSetTypeClick = (type: SetCategory) => {
     if (activeSetType === type) {
-      setActiveSetType(null);
-    } else {
-      setActiveSetType(type);
-      // If the currently selected set belongs to a different category, clear it
-      if (filters.setId && getSetCategory(filters.setId) !== type) {
-        onChange({ ...filters, setId: undefined });
+      setSelectedSetType(null);
+      if (type === "limited_product") {
+        onChange({ ...filters, setId: undefined, setType: undefined });
       }
+      return;
+    }
+
+    setSelectedSetType(type);
+
+    if (type === "limited_product") {
+      onChange({ ...filters, setId: undefined, setType: "limited_product" });
+      return;
+    }
+
+    const nextFilters = {
+      ...filters,
+      setType: undefined,
+      setId: filters.setId && getSetCategory(filters.setId) !== type ? undefined : filters.setId,
+    };
+
+    if (nextFilters.setType !== filters.setType || nextFilters.setId !== filters.setId) {
+      onChange(nextFilters);
     }
   };
 
   const toggleFilter = (key: keyof FilterParams, value: string) =>
     onChange({ ...filters, [key]: filters[key] === value ? undefined : value });
+
+  const toggleSetFilter = (value: string) =>
+    onChange({
+      ...filters,
+      setId: filters.setId === value ? undefined : value,
+      setType: undefined,
+    });
 
   const selectedColors   = filters.colors ?? [];
   const multicolorActive = selectedColors.includes("Multicolor");
@@ -230,7 +214,6 @@ export default function FilterBar({ sets, filters, onChange }: Props) {
         transition: "all 0.3s",
       }}
     >
-
       {/* Set Type row */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: colors.label, textTransform: "uppercase", letterSpacing: "0.05em", width: 32, flexShrink: 0 }}>
@@ -255,45 +238,24 @@ export default function FilterBar({ sets, filters, onChange }: Props) {
         <span style={{ fontSize: 12, fontWeight: 700, color: colors.label, textTransform: "uppercase", letterSpacing: "0.05em", width: 32, flexShrink: 0 }}>
           Set
         </span>
-        <div
-          style={{
-            display: "flex",
-            overflowX: "auto",
-            paddingBottom: 4,
-            minHeight: 40,
-            alignItems: "center",
-          }}
-        >
-        {visibleSets.length === 0 ? (
-            <span
-              style={{
-                fontSize: 12,
-                color: colors.label,
-                fontStyle: "italic",
-              }}
-            >
-              {activeSetType ? "No sets found" : "Select a set type"}
-            </span>
-          ) : (
+        <div style={{ display: "flex", overflowX: "auto", paddingBottom: 4, minHeight: 40, alignItems: "center" }}>
+        {activeSetType === "limited_product" ? (
+          <span style={{ fontSize: 12, color: colors.label, fontStyle: "italic" }}>
+            Showing all Limited Product Cards
+          </span>
+        ) : visibleSets.length === 0 ? (
+          <span style={{ fontSize: 12, color: colors.label, fontStyle: "italic" }}>
+            {activeSetType ? "No sets found" : "Select a set type"}
+          </span>
+        ) : (
             visibleSets.map((s) => (
-              <div
-                key={s.set_id}
-                style={{
-                  width: 72,
-                  height: 32,
-                  flexShrink: 0,
-                }}
-              >
+              <div key={s.set_id} style={{ width: 72, height: 32, flexShrink: 0 }}>
                 <Chip
                   label={s.set_id}
-                  active={filters.setId === s.set_id}
-                  onClick={() => toggleFilter("setId", s.set_id)}
+                  active={filters.setId?.replace(/-/g, "").toUpperCase() === s.set_id.replace(/-/g, "").toUpperCase()}
+                  onClick={() => toggleSetFilter(s.set_id)}
                   isDark={isDark}
-                  accent={
-                    activeSetType
-                      ? SET_TYPE_META[activeSetType]
-                      : SET_TYPE_META[s.category]
-                  }
+                  accent={activeSetType ? SET_TYPE_META[activeSetType] : SET_TYPE_META[s.category]}
                 />
               </div>
             ))
