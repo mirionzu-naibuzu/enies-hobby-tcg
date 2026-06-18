@@ -16,6 +16,7 @@ import {
 import AuthModal from "@/components/AuthModal";
 import { useTheme } from "next-themes";
 import { getColors } from "@/lib/themes";
+import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import { Trash2, Pencil, Check, X, ChevronLeft, ChevronRight, CheckSquare } from "lucide-react";
 
 const getCardKey = (card: Card) => `${card.id ?? ""}||${card.name ?? ""}||${card.set?.name ?? ""}`;
@@ -37,7 +38,7 @@ const sortByCardId = (cards: Card[], setId?: string) => {
 
 const SET_ORDER = [
   "OP-01","OP-02","OP-03","OP-04","OP-05","OP-06","OP-07","OP-08",
-  "OP-09","OP-10","OP-11","OP-12","OP-13","OP-14","OP-15",
+  "OP-09","OP-10","OP-11","OP-12","OP-13","OP-14","OP-15", "OP-16",
   "ST-01","ST-02","ST-03","ST-04","ST-05","ST-06","ST-07","ST-08",
   "ST-09","ST-10","ST-11","ST-12","ST-13","ST-14","ST-15","ST-16",
   "ST-17","ST-18","ST-19","ST-20","ST-21","ST-22","ST-23","ST-24",
@@ -53,7 +54,7 @@ const SET_NAMES: Record<string, string> = {
   "OP-08": "Two Legends", "OP-09": "Emperors in the New World",
   "OP-10": "Royal Blood", "OP-11": "A Fist of Divine Speed",
   "OP-12": "Legacy of the Master", "OP-13": "Alliance Rising",
-  "OP-14": "The Four Emperors", "OP-15": "Adventure on KAMI's Island",
+  "OP-14": "The Four Emperors", "OP-15": "Adventure on KAMI's Island", "OP-16": "The Time of Battle",
   "ST-01": "Straw Hat Crew", "ST-02": "Worst Generation",
   "ST-03": "The Seven Warlords of the Sea", "ST-04": "Animal Kingdom Pirates",
   "ST-05": "One Piece Film Edition", "ST-06": "Absolute Justice",
@@ -80,7 +81,7 @@ const COLOR_DOT: Record<string, string> = {
 };
 const FILTER_COLORS   = ["Red", "Green", "Blue", "Purple", "Black", "Yellow"];
 const FILTER_TYPES    = ["LEADER", "CHARACTER", "EVENT", "STAGE"];
-const FILTER_RARITIES = ["SEC", "SR", "R", "UC", "C", "SP", "TR", "PR"];
+const FILTER_RARITIES = ["SEC", "SR", "R", "UC", "C", "P", "TR"];
 
 const FLIP_STYLE = `
   @keyframes cardFlipIn {
@@ -88,6 +89,64 @@ const FLIP_STYLE = `
     100% { transform: rotateY(0deg); }
   }
 `;
+
+// ── Modal card image with flip-in animation.
+// Pass backSrc to override the default card back (e.g. "/don-back.png" for DON!! cards).
+function ModalCardImage({ src, alt, isLeader, isDark, backSrc: backSrcOverride }: {
+  src: string; alt: string; isLeader: boolean; isDark: boolean; backSrc?: string;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  const [flipped, setFlipped] = useState(false);
+  const [imgSrc, setImgSrc] = useState(src);
+  const backSrc = backSrcOverride ?? (isLeader ? "/card-back-leader.png" : "/card-back.png");
+
+  useEffect(() => {
+    setLoaded(false);
+    setFlipped(false);
+    setImgSrc(src);
+
+    const img = new window.Image();
+    img.src = src;
+    img.onload = () => {
+      setLoaded(true);
+      setTimeout(() => setFlipped(true), 60);
+    };
+    img.onerror = () => {
+      setImgSrc("/card-placeholder.png");
+      setLoaded(true);
+      setTimeout(() => setFlipped(true), 60);
+    };
+  }, [src]);
+
+  return (
+    <div style={{ width: "100%", aspectRatio: "63/88", perspective: "1000px" }}>
+      <div style={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        transformStyle: "preserve-3d",
+        transition: "transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)",
+        transform: flipped ? "rotateY(0deg)" : "rotateY(180deg)",
+        borderRadius: 17,
+        boxShadow: isDark ? "0 12px 40px rgba(0,0,0,0.6)" : "0 12px 40px rgba(0,0,0,0.2)",
+      }}>
+        <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", borderRadius: 17, overflow: "hidden" }}>
+          {loaded && (
+            <img
+              src={imgSrc}
+              alt={alt}
+              style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+              onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }}
+            />
+          )}
+        </div>
+        <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)", borderRadius: 17, overflow: "hidden" }}>
+          <img src={backSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function AuthGate({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: () => void }) {
   const { theme } = useTheme();
@@ -110,7 +169,7 @@ function AuthGate({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: () =
 }
 
 function ProgressBar({ value, total, color = "#111827" }: { value: number; total: number; color?: string }) {
-  const pct = total === 0 ? 0 : Math.round((value / total) * 100);
+  const pct = total === 0 ? 0 : Math.floor((value / total) * 100);
   return (
     <div style={{ height: 2, background: "#e5e7eb", borderRadius: 99, overflow: "hidden", marginTop: 8 }}>
       <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 99, transition: "width 0.4s ease" }} />
@@ -202,13 +261,17 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
           </div>
           <div style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
             <div style={{ width: "45%", flexShrink: 0, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-              <div style={{ aspectRatio: "63/88", overflow: "hidden", borderRadius: 17, boxShadow: isDark ? "0 12px 40px rgba(0,0,0,0.6)" : "0 12px 40px rgba(0,0,0,0.2)" }}>
-                <img src={modalCard.images?.large || "/card-placeholder.png"} alt={modalCard.name} style={{ width: "100%", height: "100%", display: "block" }} onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }} />
-              </div>
+            <ModalCardImage
+  key={modalCard.images?.large ?? modalCard.id}
+  src={modalCard.images?.large || "/card-placeholder.png"}
+  alt={modalCard.name}
+  isLeader={modalCard.type?.toUpperCase() === "LEADER"}
+  isDark={isDark}
+/>
             </div>
             <div style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {([["Type", modalCard.type], ["Rarity", modalCard.rarity], ["Color", modalCard.color], ["Cost", modalCard.cost], ["Power", modalCard.power], ["Counter", modalCard.counter], ["Attribute", modalCard.attribute?.name], ["Family", modalCard.family], ["Set", modalCard.set?.name]] as [string, unknown][]).filter(([, v]) => v != null && v !== "" && v !== "-").map(([label, value]) => (
+                {([["Type", modalCard.type], ["Rarity", modalCard.rarity?.replace(/^PR$/i, "P")], ["Color", modalCard.color], ["Cost", modalCard.cost], ["Power", modalCard.power], ["Counter", modalCard.counter], ["Attribute", modalCard.attribute?.name], ["Family", modalCard.family], ["Set", modalCard.set?.name]] as [string, unknown][]).filter(([, v]) => v != null && v !== "" && v !== "-").map(([label, value]) => (
                   <div key={String(label)} style={{ background: c.bgSec, borderRadius: 10, padding: "10px 14px", border: `1px solid ${c.border}` }}>
                     <div style={{ fontSize: 11, color: c.textTer, marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>{label}</div>
                     <div style={{ fontWeight: 600, fontSize: 14, color: c.text }}>{String(value)}</div>
@@ -259,11 +322,17 @@ function DonCardModal({ card, index, cards, onClose, onNav, c, tc, isDark }: {
             </div>
             <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}><X size={20} color={c.textTer} /></button>
           </div>
+          {/* Body — ModalCardImage with don-back.png */}
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
             <div style={{ width: "100%", maxWidth: 320 }}>
-              <div style={{ aspectRatio: "2.5 / 3.5", width: "100%", borderRadius: 14, overflow: "hidden", boxShadow: isDark ? "0 12px 40px rgba(0,0,0,0.6)" : "0 12px 40px rgba(0,0,0,0.2)" }}>
-                <img src={card.card_image || "/card-placeholder.png"} alt={card.card_name} style={{ width: "100%", height: "100%", display: "block" }} onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }} />
-              </div>
+              <ModalCardImage
+                key={card.card_image}
+                src={card.card_image || "/card-placeholder.png"}
+                alt={card.card_name}
+                isLeader={false}
+                isDark={isDark}
+                backSrc="/don-back.png"
+              />
             </div>
           </div>
           <div style={{ borderTop: `1px solid ${c.border}`, padding: "10px 24px", textAlign: "center", fontSize: 12, color: c.textTer, flexShrink: 0 }}>{index + 1} / {cards.length}</div>
@@ -321,8 +390,11 @@ export default function BinderPage() {
   const [donModalCards, setDonModalCards] = useState<any[]>([]);
 
   const [setViewFilters, setSetViewFilters] = useState<{
-    colors?: string[]; type?: string; rarity?: string; owned?: "owned" | "not_owned";
+    colors?: string[]; type?: string; rarity?: string; spOnly?: boolean; owned?: "owned" | "not_owned";
   }>({});
+
+  //scroll lock
+  useBodyScrollLock(!!modalCard || donModalIndex >= 0);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -501,7 +573,7 @@ export default function BinderPage() {
   if (openSetId) {
     const allSetCards = sortByCardId(cardsBySet[openSetId] ?? [], openSetId);
     const totalSetOwned = allSetCards.filter(c => ownedSet.has(getCardKey(c))).length;
-    const totalSetPct = allSetCards.length === 0 ? 0 : Math.round((totalSetOwned / allSetCards.length) * 100);
+    const totalSetPct = allSetCards.length === 0 ? 0 : Math.floor((totalSetOwned / allSetCards.length) * 100);
     const selectedColors = setViewFilters.colors ?? [];
     const multicolorActive = selectedColors.includes("Multicolor");
 
@@ -511,9 +583,9 @@ export default function BinderPage() {
         else { for (const col of selectedColors) { if (!card.color?.includes(col)) return false; } }
       }
       if (setViewFilters.type && card.type?.toUpperCase() !== setViewFilters.type.toUpperCase()) return false;
+      if (setViewFilters.spOnly && !card.name?.includes("(SP)")) return false;
       if (setViewFilters.rarity) {
-        let nr = card.rarity?.replace(/\s+CARD\s*$/i, "").trim() || card.rarity;
-        if (card.name?.includes("(SP)")) nr = "SP";
+        const nr = card.rarity?.replace(/\s+CARD\s*$/i, "").trim() || card.rarity;
         if (nr !== setViewFilters.rarity) return false;
       }
       if (setViewFilters.owned === "owned" && !ownedSet.has(getCardKey(card))) return false;
@@ -521,7 +593,7 @@ export default function BinderPage() {
       return true;
     });
 
-    const hasActiveFilters = selectedColors.length > 0 || !!setViewFilters.type || !!setViewFilters.rarity || !!setViewFilters.owned;
+    const hasActiveFilters = selectedColors.length > 0 || !!setViewFilters.type || !!setViewFilters.rarity || !!setViewFilters.spOnly || !!setViewFilters.owned;
     const allSetOwned = allSetCards.length > 0 && allSetCards.every(c => ownedSet.has(getCardKey(c)));
 
     const chipStyle = (active: boolean) => ({
@@ -583,8 +655,9 @@ export default function BinderPage() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Rarity</span>
-            <div style={{ display: "flex", gap: 6 }}>
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               {FILTER_RARITIES.map(r => <button key={r} onClick={() => setSetViewFilters(f => ({ ...f, rarity: f.rarity === r ? undefined : r }))} style={chipStyle(setViewFilters.rarity === r)}>{r}</button>)}
+              <button onClick={() => setSetViewFilters(f => ({ ...f, spOnly: !f.spOnly }))} style={chipStyle(!!setViewFilters.spOnly)}>SP</button>
             </div>
           </div>
           {!allSetOwned && (
@@ -822,7 +895,7 @@ export default function BinderPage() {
             <p style={{ fontSize: 13, color: c.textSec }}>{totalOwned} of {totalCards} cards owned</p>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 22, fontWeight: 400, letterSpacing: "-0.02em", color: c.text }}>{totalCards === 0 ? 0 : Math.round((totalOwned / totalCards) * 100)}%</div>
+          <div style={{ fontSize: 22, fontWeight: 400, letterSpacing: "-0.02em", color: c.text }}>{totalCards === 0 ? 0 : Math.floor((totalOwned / totalCards) * 100)}%</div>
             <div style={{ fontSize: 11, color: c.textTer }}>collection complete</div>
           </div>
         </div>
@@ -842,7 +915,7 @@ export default function BinderPage() {
             {availableSets.map((setId) => {
               const setCards = cardsBySet[setId] ?? [];
               const ownedCount = setCards.filter(card => ownedSet.has(getCardKey(card))).length;
-              const pct = setCards.length === 0 ? 0 : Math.round((ownedCount / setCards.length) * 100);
+              const pct = setCards.length === 0 ? 0 : Math.floor((ownedCount / setCards.length) * 100);
               return (
                 <div key={setId} onClick={() => { savedScrollY.current = window.scrollY; setOpenSetId(setId); setOpenBinderId(null); setSetViewFilters({}); window.scrollTo(0, 0); }} style={{ position: "relative", overflow: "hidden", borderRadius: 32, padding: 28, cursor: "pointer", background: isDark ? `radial-gradient(circle at top left, rgba(99,102,241,0.18), transparent 35%), linear-gradient(180deg, ${tc.bg.secondary}, ${tc.bg.primary})` : tc.bg.secondary, border: `1px solid ${tc.border}`, boxShadow: isDark ? "0 10px 40px rgba(0,0,0,0.45)" : "0 10px 30px rgba(0,0,0,0.06)", transition: "all 0.25s ease" }} onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px) scale(1.015)"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0px) scale(1)"; }}>
                   <div style={{ position: "absolute", width: 220, height: 220, borderRadius: "50%", background: `${tc.accent}22`, filter: "blur(80px)", top: -120, right: -80, pointerEvents: "none" }} />
@@ -955,9 +1028,8 @@ export default function BinderPage() {
               <div style={{ fontSize: 14, color: c.textTer }}>Add cards to your wishlist from the browse page.</div>
             </div>
           ) : (
-            <div>
+            <div style={{ padding: "0 32px" }}>
               <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 13, color: c.textTer }}><strong style={{ color: c.text }}>{wishlistCards.length}</strong> card{wishlistCards.length !== 1 ? "s" : ""} on your wishlist</span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 22 }}>
                 {wishlistCards.map((card, i) => {
@@ -976,7 +1048,6 @@ export default function BinderPage() {
                       </div>
                       <div style={{ position: "absolute", top: 8, left: 8, width: 20, height: 20, borderRadius: "50%", background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>★</div>
                       <div style={{ fontSize: 12, fontWeight: 500, color: c.textSec, marginTop: 8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{card.name}</div>
-                      <div style={{ fontSize: 11, color: c.textTer, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{card.set?.name?.match(/\[([^\]]+)\]/)?.[1] ?? card.set?.name ?? ""}</div>
                     </div>
                   );
                 })}
@@ -984,7 +1055,8 @@ export default function BinderPage() {
             </div>
           );
         })()}
-
+      {modalCard && <CardModal modalCard={modalCard} modalIndex={modalIndex} modalCards={modalCards} setModalCard={setModalCard} setModalIndex={setModalIndex} c={c} tc={tc} isDark={isDark} ownedSet={ownedSet} wishlistSet={wishlistSet} onToggleOwned={handleToggleOwned} onToggleWishlist={handleToggleWishlist} />}
+      
       {deleteConfirmId && (
         <div style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setDeleteConfirmId(null)}>
           <div style={{ background: c.bg, borderRadius: 16, padding: 32, width: "100%", maxWidth: 320, boxShadow: isDark ? "0 25px 50px rgba(0,0,0,0.5)" : "0 25px 50px rgba(0,0,0,0.2)", border: `1px solid ${c.border}` }} onClick={(e) => e.stopPropagation()}>

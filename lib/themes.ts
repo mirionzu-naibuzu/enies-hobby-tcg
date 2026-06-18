@@ -120,7 +120,7 @@ export const ALL_THEMES = [
   },
   {
     value: "marineford-dark",
-    name: "Marineford Dark",
+    name: "Marineford",
     preview: { bg: "#0d1b2a", bar: "#2980b9", dark: true },
   },
   {
@@ -130,7 +130,7 @@ export const ALL_THEMES = [
   },
   {
     value: "thrillerbark-dark",
-    name: "Thriller Bark Dark",
+    name: "Thriller Bark",
     preview: { bg: "#0f0a1a", bar: "#7c3aed", dark: true },
   },
   {
@@ -140,7 +140,7 @@ export const ALL_THEMES = [
   },
   {
     value: "alabasta-dark",
-    name: "Alabasta Dark",
+    name: "Alabasta",
     preview: { bg: "#17130c", bar: "#c8850a", dark: true },
   },
   {
@@ -150,7 +150,7 @@ export const ALL_THEMES = [
   },
   {
     value: "fishman-dark",
-    name: "Fishman Dark",
+    name: "Fishman Island",
     preview: { bg: "#030e18", bar: "#0ea5e9", dark: true },
   },
 ];

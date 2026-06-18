@@ -7,7 +7,8 @@ import { getColors } from "@/lib/themes";
 
 const COLORS   = ["Red", "Green", "Blue", "Purple", "Black", "Yellow"];
 const CARD_TYPES = ["LEADER", "CHARACTER", "EVENT", "STAGE"];
-const RARITIES = ["SEC", "SR", "R", "UC", "C", "SP", "TR", "P"];
+const RARITIES = ["SEC", "SR", "R", "UC", "C", "P", "TR"];
+const SP_ACCENT = { bg: "#9d174d", border: "#9d174d", text: "#ffffff" };
 
 const COLOR_DOT: Record<string, string> = {
   Red: "#ef4444", Green: "#22c55e", Blue: "#3b82f6",
@@ -170,6 +171,9 @@ export default function FilterBar({ sets, filters, onChange }: Props) {
   const toggleFilter = (key: keyof FilterParams, value: string) =>
     onChange({ ...filters, [key]: filters[key] === value ? undefined : value });
 
+  const toggleSpOnly = () =>
+    onChange({ ...filters, spOnly: !filters.spOnly });
+
   const toggleSetFilter = (value: string) =>
     onChange({
       ...filters,
@@ -227,7 +231,6 @@ export default function FilterBar({ sets, filters, onChange }: Props) {
               active={activeSetType === type}
               onClick={() => handleSetTypeClick(type)}
               isDark={isDark}
-              accent={SET_TYPE_META[type]}
             />
           ))}
         </div>
@@ -255,7 +258,6 @@ export default function FilterBar({ sets, filters, onChange }: Props) {
                   active={filters.setId?.replace(/-/g, "").toUpperCase() === s.set_id.replace(/-/g, "").toUpperCase()}
                   onClick={() => toggleSetFilter(s.set_id)}
                   isDark={isDark}
-                  accent={activeSetType ? SET_TYPE_META[activeSetType] : SET_TYPE_META[s.category]}
                 />
               </div>
             ))
@@ -320,7 +322,7 @@ export default function FilterBar({ sets, filters, onChange }: Props) {
         {/* Rarity */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: colors.label, textTransform: "uppercase", letterSpacing: "0.05em" }}>Rarity</span>
-          <div style={{ display: "flex", gap: 6 }}>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
             {RARITIES.map((r) => (
               <Chip
                 key={r}
@@ -330,6 +332,12 @@ export default function FilterBar({ sets, filters, onChange }: Props) {
                 isDark={isDark}
               />
             ))}
+            <Chip
+              label="SP"
+              active={!!filters.spOnly}
+              onClick={toggleSpOnly}
+              isDark={isDark}
+            />
           </div>
         </div>
 

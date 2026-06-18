@@ -179,7 +179,7 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
           <div>
             <div style={{ fontWeight: 900, fontSize: 24, color: colors.text.primary }}>
-              Welcome to OPTCG
+              Welcome to Enies Hobby
             </div>
           </div>
           <button

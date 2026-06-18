@@ -18,9 +18,72 @@ import {
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { getColors } from "@/lib/themes";
+import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 function isLimitedProductCard(card: Card) {
   return card.setType === "limited_product";
+}
+
+function ModalCardImage({ src, alt, isLeader, isDark, colors }: {
+  src: string; alt: string; isLeader: boolean; isDark: boolean; colors: any;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  const [flipped, setFlipped] = useState(false);
+  const [imgSrc, setImgSrc] = useState(src);
+  const backSrc = isLeader ? "/card-back-leader.png" : "/card-back.png";
+
+  useEffect(() => {
+    setLoaded(false);
+    setFlipped(false);
+    setImgSrc(src);
+
+    const img = new window.Image();
+    img.src = src;
+    img.onload = () => {
+      setLoaded(true);
+      setTimeout(() => setFlipped(true), 60);
+    };
+    img.onerror = () => {
+      setImgSrc("/card-placeholder.png");
+      setLoaded(true);
+      setTimeout(() => setFlipped(true), 60);
+    };
+  }, [src]);
+
+  return (
+    <div style={{ width: "100%", aspectRatio: "63/88", perspective: "1000px" }}>
+      <div style={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        transformStyle: "preserve-3d",
+        transition: "transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)",
+        transform: flipped ? "rotateY(0deg)" : "rotateY(180deg)",
+        borderRadius: 18,
+        boxShadow: isDark ? "0 12px 40px rgba(0,0,0,0.6)" : "0 12px 40px rgba(0,0,0,0.2)",
+      }}>
+        {/* Front — actual card */}
+        <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", borderRadius: 17, overflow: "hidden" }}>
+        {loaded && (
+            <img
+              src={imgSrc}
+              alt={alt}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", borderRadius: 17 }}
+              onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }}
+            />
+          )}
+        </div>
+        {/* Back — card back, shown while loading */}
+        <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)", borderRadius: 19, overflow: "hidden" }}>
+          <img
+            src={backSrc}
+            alt=""
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", borderRadius: 17 }}
+          />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function Home() {
@@ -80,6 +143,9 @@ export default function Home() {
     setCreatingBinderInline(false);
     setNewBinderNameInline("");
   };
+
+  //scroll lock
+  useBodyScrollLock(selectedIndex >= 0);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -188,12 +254,15 @@ export default function Home() {
         }
       }
       if (filters.type && c.type?.toUpperCase() !== filters.type.toUpperCase()) return false;
+    
+      // ── SP is independent — checked on its own, never inside the rarity block ──
+      if (filters.spOnly && !c.name?.includes("(SP)")) return false;
+    
       if (filters.rarity) {
         if (filters.rarity === "P") {
           if (!/^P-\d+/i.test(c.id ?? "")) return false;
         } else {
-          let normalizedRarity = c.rarity?.replace(/\s+CARD\s*$/i, "").trim() || c.rarity;
-          if (c.name?.includes("(SP)")) normalizedRarity = "SP";
+          const normalizedRarity = c.rarity?.replace(/\s+CARD\s*$/i, "").trim() || c.rarity;
           if (normalizedRarity !== filters.rarity) return false;
         }
       }
@@ -493,7 +562,7 @@ export default function Home() {
           </div>
           <button
             onClick={() => setSortDesc(!sortDesc)}
-            style={{ padding: 6, borderRadius: 6, border: "1px solid", background: sortDesc ? colors.bg.primary : "transparent", color: sortDesc ? colors.text.primary : colors.text.tertiary, cursor: "pointer", fontSize: 14, fontWeight: 600, transition: "all 0.2s" }}
+            style={{ padding: 6, borderRadius: 6, border: "1px solid", background: sortDesc ? colors.bg.tertiary : "transparent", color: sortDesc ? colors.text.tertiary : colors.text.tertiary, cursor: "pointer", fontSize: 14, fontWeight: 600, transition: "all 0.2s" }}
             title={sortDesc ? "Descending" : "Ascending"}
           >
             {sortDesc ? 
@@ -501,13 +570,15 @@ export default function Home() {
              :
             <ArrowUpNarrowWide style={{ width: 16, height: 16 }} />}
           </button>
+          {user && (
           <button
-            onClick={() => enterSelectMode()}
-            title="Select cards"
+            onClick={() => { isSelectMode ? exitSelectMode() : enterSelectMode(); }}
+            title={isSelectMode ? "Exit selection" : "Select cards"}
             style={{ padding: 6, borderRadius: 8, border: `1px solid ${isSelectMode ? colors.text.primary : colors.border}`, background: isSelectMode ? colors.bg.tertiary : "transparent", color: isSelectMode ? colors.text.primary : colors.text.tertiary, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}
-          >
-            <CopyCheck size={16} />
+            >
+              <CopyCheck size={16} />
           </button>
+          )}
         </div>
       </header>
 
@@ -591,38 +662,100 @@ export default function Home() {
             })}
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 896, marginTop: 16 }}>
+          <div style={{ marginTop: 8 }}>
             {filtered.slice(0, visibleCards).map((card, i) => {
               const isOwned = ownedSet.has(getCardKey(card));
               const selectKey = `${getCardKey(card)}||${i}`;
               const isMultiChecked = multiSelected.has(selectKey);
+              const rarityRaw = card.rarity?.replace(/\s+CARD\s*$/i, "").trim().replace(/^PR$/i, "P") ?? "";
+              const rarity = card.name?.includes("(SP)") ? "SP" : rarityRaw;
+
+              const RARITY_COLORS: Record<string, { color: string; bg: string }> = {
+                SEC: { color: "#b45309", bg: isDark ? "rgba(251,191,36,0.15)" : "rgba(254,243,199,0.9)" },
+                SR:  { color: "#7c3aed", bg: isDark ? "rgba(139,92,246,0.15)" : "rgba(237,233,254,0.9)" },
+                R:   { color: "#1d4ed8", bg: isDark ? "rgba(59,130,246,0.15)" : "rgba(219,234,254,0.9)" },
+                UC:  { color: "#065f46", bg: isDark ? "rgba(34,197,94,0.12)" : "rgba(209,250,229,0.9)" },
+                C:   { color: isDark ? "#9ca3af" : "#6b7280", bg: isDark ? "rgba(156,163,175,0.1)" : "rgba(243,244,246,0.9)" },
+                SP:  { color: "#9d174d", bg: isDark ? "rgba(236,72,153,0.15)" : "rgba(252,231,243,0.9)" },
+                TR:  { color: "#0369a1", bg: isDark ? "rgba(14,165,233,0.15)" : "rgba(224,242,254,0.9)" },
+                P:   { color: "#92400e", bg: isDark ? "rgba(217,119,6,0.15)" : "rgba(254,243,199,0.9)" },
+              };
+              const rarityStyle = RARITY_COLORS[rarity] ?? { color: colors.text.tertiary, bg: "transparent" };
+
+              const TYPE_COLORS: Record<string, string> = {
+                LEADER:    isDark ? "#f97316" : "#ea580c",
+                CHARACTER: isDark ? "#60a5fa" : "#2563eb",
+                EVENT:     isDark ? "#a78bfa" : "#7c3aed",
+                STAGE:     isDark ? "#34d399" : "#059669",
+              };
+              const typeColor = TYPE_COLORS[card.type?.toUpperCase() ?? ""] ?? colors.text.tertiary;
+
               return (
                 <div
                   key={`${card.id}-${i}`}
                   onClick={() => { if (isSelectMode) toggleMultiSelect(selectKey); else setSelectedIndex(i); }}
                   onMouseDown={() => { if (!isSelectMode) handleLongPressStart(selectKey); }}
                   onMouseUp={handleLongPressEnd}
-                  onMouseEnter={(e) => { if (!isMultiChecked) { e.currentTarget.style.borderColor = colors.text.primary; e.currentTarget.style.boxShadow = `0 1px 3px ${isDark ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.1)"}`; } }}
-                  onMouseLeave={(e) => { handleLongPressEnd(); if (!isMultiChecked) { e.currentTarget.style.borderColor = colors.border; e.currentTarget.style.boxShadow = "none"; } }}
+                  onMouseLeave={(e) => { handleLongPressEnd(); e.currentTarget.style.background = isMultiChecked ? (isDark ? "rgba(99,102,241,0.1)" : "rgba(99,102,241,0.05)") : "transparent"; }}
                   onTouchStart={() => { if (!isSelectMode) handleLongPressStart(selectKey); }}
                   onTouchEnd={handleLongPressEnd}
-                  style={{ background: isMultiChecked ? (isDark ? "rgba(99,102,241,0.12)" : "rgba(99,102,241,0.06)") : colors.bg.secondary, border: `1px solid ${isMultiChecked ? "#6366f1" : colors.border}`, borderRadius: 12, paddingLeft: 16, paddingRight: 16, paddingTop: 12, paddingBottom: 12, display: "flex", alignItems: "center", gap: 16, cursor: "pointer", transition: "all 0.2s" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = isMultiChecked ? (isDark ? "rgba(99,102,241,0.14)" : "rgba(99,102,241,0.07)") : (isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)"); }}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isSelectMode
+                      ? "28px 110px 1fr 52px 96px 20px"
+                      : "110px 1fr 52px 96px 20px",
+                    alignItems: "center",
+                    paddingLeft: 16,
+                    paddingRight: 16,
+                    paddingTop: 9,
+                    paddingBottom: 9,
+                    borderBottom: `1px solid ${colors.border}`,
+                    cursor: "pointer",
+                    background: isMultiChecked
+                      ? (isDark ? "rgba(99,102,241,0.1)" : "rgba(99,102,241,0.05)")
+                      : "transparent",
+                    transition: "background 0.12s",
+                  }}
                 >
                   {isSelectMode && (
-                    <div style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${isMultiChecked ? "#6366f1" : colors.border}`, background: isMultiChecked ? "#6366f1" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}>
-                      {isMultiChecked && <Check size={11} color="#fff" strokeWidth={3} />}
+                    <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${isMultiChecked ? "#6366f1" : colors.border}`, background: isMultiChecked ? "#6366f1" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}>
+                      {isMultiChecked && <Check size={10} color="#fff" strokeWidth={3} />}
                     </div>
                   )}
-                  <span style={{ fontFamily: "monospace", fontSize: 12, color: colors.text.tertiary, width: 96, flexShrink: 0 }}>{card.id}</span>
-                  <span style={{ fontWeight: 600, fontSize: 14, color: colors.text.primary, flex: 1 }}>{card.name}</span>
-                  <span style={{ fontSize: 12, color: colors.text.tertiary }}>{card.type}</span>
-                  {card.power != null && <span style={{ fontSize: 12, color: colors.text.secondary }}>⚔️ {card.power}</span>}
-                  {card.cost  != null && <span style={{ fontSize: 12, color: colors.text.secondary }}>💎 {card.cost}</span>}
-                  {isOwned && !isSelectMode && (
-                    <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <Check size={10} color="#fff" strokeWidth={3} />
-                    </div>
-                  )}
+
+                  {/* ID */}
+                  <span style={{ fontFamily: "monospace", fontSize: 11, color: colors.text.tertiary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, paddingRight: 12 }}>
+                    {card.id}
+                  </span>
+
+                  {/* Name */}
+                  <span style={{ fontSize: 13, fontWeight: 500, color: colors.text.primary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, paddingRight: 16 }}>
+                    {card.name}
+                  </span>
+
+                  {/* Rarity pill */}
+                  <div>
+                    {rarity ? (
+                      <span style={{ display: "inline-block", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: rarityStyle.bg, color: rarityStyle.color, letterSpacing: "0.04em" }}>
+                        {rarity}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {/* Type */}
+                  <span style={{ fontSize: 11, fontWeight: 500, color: typeColor, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
+                    {card.type ? card.type.charAt(0).toUpperCase() + card.type.slice(1).toLowerCase() : ""}
+                  </span>
+
+                  {/* Owned dot */}
+                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    {isOwned && !isSelectMode && (
+                      <div style={{ width: 16, height: 16, borderRadius: "50%", background: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Check size={9} color="#fff" strokeWidth={3} />
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -631,7 +764,7 @@ export default function Home() {
 
         {!loading && filtered.length === 0 && (
           <div style={{ textAlign: "center", paddingTop: 96, paddingBottom: 96, color: colors.text.tertiary, display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <Image src="/nocard.png" alt="No cards found" width={180} height={180} priority style={{ marginBottom: 20, objectFit: "contain", opacity: isDark ? 0.9 : 1 }} />
+            <Image src="/nocard.png" alt="No cards found" width={120} height={120} priority style={{ marginBottom: 20, objectFit: "contain", opacity: isDark ? 0.9 : 1 }} />
             <div style={{ fontWeight: 700, fontSize: 20, color: colors.text.primary }}>No cards found</div>
             <div style={{ fontSize: 14, marginTop: 6, color: colors.text.tertiary }}>Try adjusting your filters</div>
           </div>
@@ -720,11 +853,18 @@ export default function Home() {
               </div>
 
               <div style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
-                <div style={{ width: "45%", flexShrink: 0, background: tc.bg.primary, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+              <div style={{ width: "45%", flexShrink: 0, background: tc.bg.primary, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
                   {selected.images?.large ? (
-                    <Image src={selected.images.large} alt={selected.name} width={500} height={700} loading="lazy" style={{ width: "100%", height: "auto", objectFit: "contain", borderRadius: 12, boxShadow: isDark ? "0 12px 40px rgba(0,0,0,0.6)" : "0 12px 40px rgba(0,0,0,0.2)" }} />
+                    <ModalCardImage
+                      key={selected.images.large}
+                      src={selected.images.large}
+                      alt={selected.name}
+                      isLeader={selected.type?.toUpperCase() === "LEADER"}
+                      isDark={isDark}
+                      colors={colors}
+                    />
                   ) : (
-                    <img src="/card-placeholder.png" alt="No image available" style={{ height: 460, width: "100%", maxHeight: "100%", objectFit: "contain", border: `1px solid ${colors.border}`, borderRadius: 12, background: "#ffffff" }} onError={(e) => { e.currentTarget.src = "/card-back.png"; }} />
+                    <img src="/card-placeholder.png" alt="No image available" style={{ height: 460, width: "100%", maxHeight: "100%", objectFit: "contain", border: `1px solid ${colors.border}`, borderRadius: 15, background: "#ffffff" }} onError={(e) => { e.currentTarget.src = "/card-back.png"; }} />
                   )}
                 </div>
                 <div style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>

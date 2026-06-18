@@ -34,4 +34,5 @@ export interface FilterParams {
   rarity?: string;
   setId?: string;
   setType?: CardSetType;
+  spOnly?: boolean;
 }

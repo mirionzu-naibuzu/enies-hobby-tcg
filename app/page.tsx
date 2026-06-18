@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { X, ChevronLeft, ChevronRight, Palette } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Palette, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
 import AuthModal from "@/components/AuthModal";
 import { createClient } from "@/lib/supabase";
@@ -10,6 +10,7 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { getAllCards } from "@/lib/api";
 import { Card } from "@/types/card";
 import { getColors, ALL_THEMES } from "@/lib/themes";
+import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 const SETS = [
   "OP-01","OP-02","OP-03","OP-04","OP-05","OP-06","OP-07","OP-08","OP-09","OP-10",
@@ -36,13 +37,109 @@ const RARITIES = [
 ];
 
 const CARD_PREVIEWS = [
-  { color: "#ef4444", bg: "#fff1f2", border: "rgba(239,68,68,0.25)",  darkBg: "#7f1d1d", label: "Monkey D. Luffy", type: "LEADER",    rarity: "SEC", rarityColor: "#991b1b", rarityBg: "#fee2e2", icon: "⚓" },
-  { color: "#3b82f6", bg: "#eff6ff", border: "rgba(59,130,246,0.25)", darkBg: "#0c2340", label: "Roronoa Zoro",    type: "CHARACTER", rarity: "SR",  rarityColor: "#6d28d9", rarityBg: "#ede9fe", icon: "🃏" },
-  { color: "#a855f7", bg: "#faf5ff", border: "rgba(168,85,247,0.25)", darkBg: "#3f0f5c", label: "Nami",            type: "EVENT",     rarity: "R",   rarityColor: "#1d4ed8", rarityBg: "#dbeafe", icon: "⚡" },
-  { color: "#22c55e", bg: "#f0fdf4", border: "rgba(34,197,94,0.25)",  darkBg: "#14532d", label: "Wano",            type: "STAGE",     rarity: "UC",  rarityColor: "#065f46", rarityBg: "#d1fae5", icon: "🏝️" },
-  { color: "#eab308", bg: "#fefce8", border: "rgba(234,179,8,0.25)",  darkBg: "#54381e", label: "Sanji",           type: "CHARACTER", rarity: "C",   rarityColor: "#6b7280", rarityBg: "#f3f4f6", icon: "🃏" },
-  { color: "#374151", bg: "#f9fafb", border: "rgba(55,65,81,0.2)",    darkBg: "#1f2937", label: "Barrier",         type: "EVENT",     rarity: "SR",  rarityColor: "#6d28d9", rarityBg: "#ede9fe", icon: "⚡" },
+  { bg: "#fff1f2", border: "rgba(239,68,68,0.25)",  darkBg: "#7f1d1d", label: "Monkey D. Luffy", type: "LEADER" },
+  { bg: "#eff6ff", border: "rgba(59,130,246,0.25)", darkBg: "#0c2340", label: "Roronoa Zoro",    type: "CHARACTER" },
+  { bg: "#faf5ff", border: "rgba(168,85,247,0.25)", darkBg: "#3f0f5c", label: "Nami",            type: "EVENT" },
+  { bg: "#f0fdf4", border: "rgba(34,197,94,0.25)",  darkBg: "#14532d", label: "Wano",            type: "STAGE" },
+  { bg: "#fefce8", border: "rgba(234,179,8,0.25)",  darkBg: "#54381e", label: "Sanji",           type: "CHARACTER" },
+  { bg: "#f9fafb", border: "rgba(55,65,81,0.2)",    darkBg: "#1f2937", label: "Barrier",         type: "EVENT" },
 ];
+
+const HERO_SEGMENTS: { text: string; break?: boolean; cls?: "highlight" | "dim" }[] = [
+  { text: "YOUR", break: true },
+  { text: "NEXT PULL", break: true },
+  { text: "STARTS", break: true },
+  { text: "HERE", cls: "highlight" },
+  { text: ".", cls: "dim" },
+];
+
+const HERO_TOTAL_LENGTH = HERO_SEGMENTS.reduce((sum, seg) => sum + seg.text.length, 0);
+
+function renderHeroTyping(typedCount: number, accentColor: string) {
+  let remaining = typedCount;
+  return HERO_SEGMENTS.map((seg, idx) => {
+    const take = Math.max(0, Math.min(seg.text.length, remaining));
+    remaining -= take;
+    const visible = seg.text.slice(0, take);
+    const style =
+      seg.cls === "highlight" ? { color: accentColor } :
+      seg.cls === "dim" ? { opacity: 0.25 } :
+      undefined;
+    return (
+      <span key={idx}>
+        <span style={style}>{visible}</span>
+        {seg.break && <br />}
+      </span>
+    );
+  });
+}
+
+// ── Modal card image with flip-in animation (matches browse page) ──
+function ModalCardImage({ src, alt, isLeader, isDark }: {
+  src: string; alt: string; isLeader: boolean; isDark: boolean;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  const [flipped, setFlipped] = useState(false);
+  const [imgSrc, setImgSrc] = useState(src);
+  const backSrc = isLeader ? "/card-back-leader.png" : "/card-back.png";
+
+  useEffect(() => {
+    setLoaded(false);
+    setFlipped(false);
+    setImgSrc(src);
+
+    const img = new window.Image();
+    img.src = src;
+    img.onload = () => {
+      setLoaded(true);
+      setTimeout(() => setFlipped(true), 60);
+    };
+    img.onerror = () => {
+      setImgSrc("/card-placeholder.png");
+      setLoaded(true);
+      setTimeout(() => setFlipped(true), 60);
+    };
+  }, [src]);
+
+  return (
+    <div style={{ width: "100%", aspectRatio: "63/88", perspective: "1000px" }}>
+      <div style={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        transformStyle: "preserve-3d",
+        transition: "transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)",
+        transform: flipped ? "rotateY(0deg)" : "rotateY(180deg)",
+        borderRadius: 17,
+        boxShadow: isDark ? "0 12px 40px rgba(0,0,0,0.6)" : "0 12px 40px rgba(0,0,0,0.2)",
+      }}>
+        <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", borderRadius: 17, overflow: "hidden" }}>
+          {loaded && (
+            <img
+              src={imgSrc}
+              alt={alt}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }}
+            />
+          )}
+        </div>
+        <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)", borderRadius: 17, overflow: "hidden" }}>
+          <img src={backSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function probeImage(url: string, timeoutMs = 4000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    const timer = setTimeout(() => resolve(false), timeoutMs);
+    img.onload = () => { clearTimeout(timer); resolve(true); };
+    img.onerror = () => { clearTimeout(timer); resolve(false); };
+    img.src = url;
+  });
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -59,6 +156,13 @@ export default function HomePage() {
   const [cardCount, setCardCount] = useState<number | null>(null);
   const [selectedRarity, setSelectedRarity] = useState<typeof RARITIES[number] | null>(null);
   const [showThemePicker, setShowThemePicker] = useState(false);
+  const [stackRevealed, setStackRevealed] = useState(false);
+  const [previewRevealed, setPreviewRevealed] = useState(false);
+  const [typedCount, setTypedCount] = useState(0);
+  const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
+
+  //scroll lock
+  useBodyScrollLock(!!selectedCard || !!selectedRarity);
 
   useEffect(() => {
     setMounted(true);
@@ -74,19 +178,57 @@ export default function HomePage() {
         const normalized = c.name?.includes("(SP)") ? "SP" : r;
         return ["SR","SP","SEC"].includes(normalized) && ["LEADER","CHARACTER"].includes(c.type?.toUpperCase() ?? "") && !!c.images?.large;
       });
-      setStackCards(shuffle(highRarity).slice(0, 3) as Card[]);
-      setPreviewCards(shuffle(cards.filter((c) => !!c.images?.small)).slice(0, 6));
+    
+      // Probe a buffer of high-rarity cards, keep the first 3 whose large image actually loads
+      const stackCandidates = shuffle(highRarity).slice(0, 10);
+      const stackAccepted: Card[] = [];
+      let stackSettled = 0;
+      let stackFinished = false;
+    
+      stackCandidates.forEach((card) => {
+        probeImage(card.images!.large!, 4000).then((ok) => {
+          if (stackFinished) return;
+          stackSettled++;
+          if (ok) stackAccepted.push(card);
+          if (stackAccepted.length >= 3 || stackSettled === stackCandidates.length) {
+            stackFinished = true;
+            setStackCards(stackAccepted.slice(0, 3));
+          }
+        });
+      });
+    
+      // Probe a buffer of small-image candidates, keep the first 6 that succeed
+      const candidates = shuffle(cards.filter((c) => !!c.images?.small)).slice(0, 16);
+      const accepted: Card[] = [];
+      let settled = 0;
+      let finished = false;
+    
+      candidates.forEach((card) => {
+        probeImage(card.images!.small!, 2500).then((ok) => {
+          if (finished) return;
+          settled++;
+          if (ok) accepted.push(card);
+          if (accepted.length >= 6 || settled === candidates.length) {
+            finished = true;
+            setPreviewCards(accepted.slice(0, 6));
+          }
+        });
+      });
     });
 
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { setSelectedCard(null); setSelectedIndex(-1); setSelectedRarity(null); setShowThemePicker(false); }
-      if (e.key === "ArrowRight") setSelectedIndex((prev) => { const next = Math.min(prev + 1, previewCards.length - 1); setSelectedCard(previewCards[next] ?? null); return next; });
-      if (e.key === "ArrowLeft")  setSelectedIndex((prev) => { const next = Math.max(prev - 1, 0); setSelectedCard(previewCards[next] ?? null); return next; });
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => { listener.subscription.unsubscribe(); window.removeEventListener("keydown", handleKey); };
+    return () => { listener.subscription.unsubscribe(); };
   }, []);
 
+  useEffect(() => {
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setTypedCount(i);
+      if (i >= HERO_TOTAL_LENGTH) clearInterval(interval);
+    }, 70);
+    return () => clearInterval(interval);
+  }, []);
+  
   const tc = getColors(theme, mounted);
   const isDark = tc.isDark;
 
@@ -103,6 +245,47 @@ export default function HomePage() {
   const openAuth = (mode: "login" | "signup") => { setAuthMode(mode); setShowAuth(true); };
   const handleBrowse = (set?: string) => router.push(set ? `/browse?set=${set}` : "/browse");
 
+  const previewCardsRef = useRef<Card[]>([]);
+  const selectedIndexRef = useRef<number>(-1);
+
+  useEffect(() => { previewCardsRef.current = previewCards; }, [previewCards]);
+  useEffect(() => { selectedIndexRef.current = selectedIndex; }, [selectedIndex]);
+
+  const [cardLoaded, setCardLoaded] = useState<Record<number, boolean>>({});
+
+useEffect(() => {
+  setCardLoaded({});
+}, [stackCards]);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedCard(null);
+        setSelectedIndex(-1);
+        setSelectedRarity(null);
+        setShowThemePicker(false);
+        return;
+      }
+      const idx = selectedIndexRef.current;
+      const cards = previewCardsRef.current;
+      if (idx < 0 || cards.length === 0) return;
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        const next = Math.min(idx + 1, cards.length - 1);
+        setSelectedIndex(next);
+        setSelectedCard(cards[next] ?? null);
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        const next = Math.max(idx - 1, 0);
+        setSelectedIndex(next);
+        setSelectedCard(cards[next] ?? null);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
   return (
     <div
       suppressHydrationWarning
@@ -114,6 +297,9 @@ export default function HomePage() {
         @keyframes floatA { 0%,100%{transform:rotate(-8deg) translateY(0)} 50%{transform:rotate(-8deg) translateY(-10px)} }
         @keyframes floatB { 0%,100%{transform:rotate(2deg)  translateY(0)} 50%{transform:rotate(2deg)  translateY(-7px)}  }
         @keyframes floatC { 0%,100%{transform:rotate(11deg) translateY(0)} 50%{transform:rotate(11deg) translateY(-12px)} }
+        @keyframes cardFlipIn { 0% { transform: rotateY(180deg); } 100% { transform: rotateY(0deg); } }
+        @keyframes blinkCursor { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+        .typing-cursor { display: inline-block; animation: blinkCursor 0.9s steps(1) infinite; margin-left: 2px; }
         .card-a { animation: floatA 4s   ease-in-out infinite; }
         .card-b { animation: floatB 4.6s ease-in-out infinite 0.4s; }
         .card-c { animation: floatC 5.2s ease-in-out infinite 0.8s; }
@@ -194,96 +380,155 @@ export default function HomePage() {
           {mounted && (
             <div style={{ position: "relative" }}>
               <button
-                onClick={() => setShowThemePicker(p => !p)}
-                title="Change theme"
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 8,
-                  background: showThemePicker
-                    ? (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)")
-                    : "transparent",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "all 0.2s",
-                  flexShrink: 0,
+                onClick={() => {
+                  setShowThemePicker(p => {
+                    const next = !p;
+                    if (next) setThemeMode(isDark ? "dark" : "light");
+                    return next;
+                  });
                 }}
               >
                 <Palette style={{ width: 16, height: 16 }} />
               </button>
 
               {showThemePicker && (
-                <>
-                  <div
-                    style={{ position: "fixed", inset: 0, zIndex: 49 }}
-                    onClick={() => setShowThemePicker(false)}
-                  />
-                  <div
-                    className="pop-in"
-                    style={{
-                      position: "absolute",
-                      top: "calc(100% + 10px)",
-                      right: 0,
-                      width: 284,
-                      background: c.bg,
-                      border: `1px solid ${c.border}`,
-                      borderRadius: 14,
-                      padding: 14,
-                      zIndex: 50,
-                      boxShadow: isDark
-                        ? "0 20px 40px rgba(0,0,0,0.6)"
-                        : "0 20px 40px rgba(0,0,0,0.12)",
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div style={{ fontSize: 12, fontWeight: 700, color: c.text, marginBottom: 2 }}>Themes</div>
-                    <div style={{ fontSize: 11, color: c.textSec, marginBottom: 12 }}>Choose your experience</div>
+              <>
+                <div
+                  style={{ position: "fixed", inset: 0, zIndex: 49 }}
+                  onClick={() => setShowThemePicker(false)}
+                />
+                <div
+                  className="pop-in"
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 10px)",
+                    right: 0,
+                    width: 280,
+                    background: c.bg,
+                    border: `1px solid ${c.border}`,
+                    borderRadius: 16,
+                    padding: 16,
+                    zIndex: 50,
+                    boxShadow: isDark
+                      ? "0 16px 36px rgba(0,0,0,0.65), 0 0 0 1px rgba(0,0,0,0.4)"
+                      : "0 16px 36px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.06)",
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Header */}
+                  <div style={{ fontWeight: 700, marginBottom: 2, color: c.text, fontSize: 14 }}>Themes</div>
+                  <div style={{ fontSize: 11, color: c.textSec, marginBottom: 14 }}>Choose a theme for your experience</div>
 
-                    {/* Column labels */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 6 }}>
-                      <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: c.textSec, textAlign: "center" as const }}>Light</div>
-                      <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: c.textSec, textAlign: "center" as const }}>Dark</div>
-                    </div>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
-                      {ALL_THEMES.map((t) => {
-                        const isActive = theme === t.value;
-                        return (
-                          <div
-                            key={t.value}
-                            className="theme-swatch"
-                            onClick={() => setTheme(t.value)}
-                            style={{
-                              borderRadius: 9,
-                              padding: 6,
-                              cursor: "pointer",
-                              border: isActive ? `2px solid ${tc.accent}` : `1px solid ${c.border}`,
-                              transition: "all 0.15s",
-                              background: isActive
-                                ? isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)"
-                                : "transparent",
-                            }}
-                          >
-                            <div style={{ height: 40, borderRadius: 6, background: t.preview.bg, position: "relative", overflow: "hidden", padding: 6 }}>
-                              <div style={{ height: 5, width: "65%", borderRadius: 3, background: t.preview.dark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)", marginBottom: 5 }} />
-                              <div style={{ height: 11, width: 11, borderRadius: 3, background: t.preview.dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)" }} />
-                              <div style={{ position: "absolute", bottom: 5, right: 5, height: 4, width: 22, borderRadius: 4, background: t.preview.bar }} />
-                              {isActive && (
-                                <div style={{ position: "absolute", top: 4, right: 4, width: 12, height: 12, borderRadius: "50%", background: tc.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 7, color: "#fff", fontWeight: 700 }}>✓</div>
-                              )}
-                            </div>
-                            <div style={{ fontSize: 9, textAlign: "center" as const, marginTop: 4, color: isActive ? tc.accent : c.textSec, fontWeight: isActive ? 700 : 400, whiteSpace: "nowrap" as const, overflow: "hidden", textOverflow: "ellipsis" }}>
-                              {t.name}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                  {/* Light / Dark mode switcher pill */}
+                  <div style={{ display: "flex", gap: 4, background: c.bgTer, padding: 4, borderRadius: 8, marginBottom: 12 }}>
+                    <button
+                      onClick={() => setThemeMode("light")}
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        padding: "7px 0",
+                        borderRadius: 6,
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        background: themeMode === "light" ? c.bg : "transparent",
+                        color: themeMode === "light" ? c.text : c.textSec,
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      <Sun size={13} /> Light
+                    </button>
+                    <button
+                      onClick={() => setThemeMode("dark")}
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        padding: "7px 0",
+                        borderRadius: 6,
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        background: themeMode === "dark" ? c.bg : "transparent",
+                        color: themeMode === "dark" ? c.text : c.textSec,
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      <Moon size={13} /> Dark
+                    </button>
                   </div>
-                </>
-              )}
+
+                  {/* Single-column theme list filtered by mode */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {ALL_THEMES.filter((t) => t.preview.dark === (themeMode === "dark")).map((t) => {
+                      const isActive = theme === t.value;
+                      return (
+                        <div
+                          key={t.value}
+                          className="theme-swatch"
+                          onClick={() => setTheme(t.value)}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            padding: 8,
+                            borderRadius: 10,
+                            cursor: "pointer",
+                            border: isActive ? `1.5px solid ${tc.accent}` : `1px solid ${c.border}`,
+                            background: isActive
+                              ? isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)"
+                              : "transparent",
+                            transition: "all 0.2s",
+                          }}
+                        >
+                          {/* Mini preview thumbnail */}
+                          <div style={{
+                            width: 48,
+                            height: 34,
+                            borderRadius: 6,
+                            background: t.preview.bg,
+                            position: "relative",
+                            overflow: "hidden",
+                            flexShrink: 0,
+                            border: `1px solid ${c.border}`,
+                          }}>
+                            <div style={{ position: "absolute", top: 5, left: 5, width: 24, height: 4, borderRadius: 2, background: t.preview.dark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)" }} />
+                            <div style={{ position: "absolute", bottom: 5, right: 5, width: 14, height: 4, borderRadius: 2, background: t.preview.bar }} />
+                          </div>
+
+                          {/* Name */}
+                          <span style={{
+                            flex: 1,
+                            fontSize: 13,
+                            fontWeight: isActive ? 700 : 500,
+                            color: isActive ? tc.accent : c.text,
+                            whiteSpace: "nowrap" as const,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}>
+                            {t.name}
+                          </span>
+
+                          {/* Active checkmark */}
+                          {isActive && (
+                            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" style={{ flexShrink: 0 }}>
+                              <path d="M3 7.5L6.5 11L12 4" stroke={tc.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
             </div>
           )}
 
@@ -324,11 +569,13 @@ export default function HomePage() {
           <div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 22 }}>
               <span style={{ background: tc.accent, color: "#fff", fontSize: 9, fontWeight: 500, padding: "3px 8px", borderRadius: 3, letterSpacing: "0.07em", textTransform: "uppercase" as const }}>New</span>
-              <span style={{ fontSize: 11, color: c.textTer }}>OP-15 · Adventure on KAMI's Island just added</span>
+              <span style={{ fontSize: 11, color: c.textTer }}>OP-16 · The Time of Battle just added</span>
             </div>
             <h1 style={{ fontFamily: "'Impact','Arial Narrow',sans-serif", fontSize: 72, lineHeight: 0.95, letterSpacing: "0.01em", color: c.text, marginBottom: 18 }}>
-              YOUR<br />COLLECTING<br />STARTS<br />
-              <span style={{ color: tc.accent }}>HERE</span><span style={{ opacity: 0.25 }}>.</span>
+              {renderHeroTyping(typedCount, tc.accent)}
+              {typedCount < HERO_TOTAL_LENGTH && (
+                <span className="typing-cursor" style={{ color: tc.accent }}>|</span>
+              )}
             </h1>
             <p style={{ fontSize: 13, color: c.textSec, lineHeight: 1.65, maxWidth: 340, marginBottom: 28 }}>
               Browse, filter, and collect every English One Piece TCG card across all sets — from Romance Dawn to the latest boosters.
@@ -354,33 +601,41 @@ export default function HomePage() {
         {/* Floating card stack */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 28px", overflow: "hidden" }}>
           <div style={{ position: "relative", width: 460, height: 340 }}>
-            {STACK_META.map((meta, i) => {
-              const card = stackCards[i];
-              const rarityRaw = card?.rarity?.replace(/\s+CARD\s*$/i, "").trim() ?? "";
-              const rarityLabel = card?.name?.includes("(SP)") ? "SP" : (rarityRaw || "");
-              const RARITY_COLORS: Record<string, { color: string; bg: string }> = {
-                SEC: { color: "#991b1b", bg: "#fee2e2" }, SR: { color: "#6d28d9", bg: "#ede9fe" }, SP: { color: "#9d174d", bg: "#fce7f3" },
-              };
-              const rarityStyle = RARITY_COLORS[rarityLabel] ?? { color: meta.rarityColor, bg: meta.rarityBg };
-              const COLOR_MAP: Record<string, string> = { Red: "#ef4444", Green: "#22c55e", Blue: "#3b82f6", Purple: "#a855f7", Black: "#374151", Yellow: "#eab308" };
-              const cardColor = card?.color?.split("/")?.[0]?.trim() ?? "";
-              const pipColor = COLOR_MAP[cardColor] ?? meta.color;
-              return (
-                <div key={i} className={meta.cls} style={{ position: "absolute", top: meta.top, left: meta.left, zIndex: meta.z, width: 190, height: 266, borderRadius: 14, border: `1px solid ${c.border}`, overflow: "hidden", boxShadow: isDark ? "0 20px 56px rgba(0,0,0,0.7)" : "0 20px 56px rgba(0,0,0,0.18)" }}>
-                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: pipColor, border: "1.5px solid rgba(255,255,255,0.8)", position: "absolute", top: 10, left: 10, zIndex: 5 }} />
-                  {rarityLabel && (
-                    <div style={{ position: "absolute", top: 9, right: 9, zIndex: 5, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 99, background: rarityStyle.bg, color: rarityStyle.color }}>{rarityLabel}</div>
-                  )}
-                  {card?.images?.large ? (
-                    <img src={card.images.large} alt={card.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                  ) : (
-                    <div style={{ width: "100%", height: "100%", background: isDark ? `linear-gradient(135deg, ${meta.darkBg}, ${tc.bg.secondary})` : `linear-gradient(135deg, ${meta.bg}, ${tc.bg.secondary})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span style={{ fontSize: 42, opacity: 0.35 }}>🃏</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          {STACK_META.map((meta, i) => {
+  const card = stackCards[i];
+  const hasCard = !!card;
+  const shouldFlip = hasCard && !stackRevealed;
+  const fullyShown = hasCard && stackRevealed && !!cardLoaded[i];
+  const backSrc = card?.type?.toUpperCase() === "LEADER" ? "/card-back-leader.png" : "/card-back.png";
+
+  return (
+    <div key={i} className={meta.cls} style={{ position: "absolute", top: meta.top, left: meta.left, zIndex: meta.z, width: 190, height: 266, borderRadius: 14, border: fullyShown ? `1px solid ${c.border}` : "none", overflow: "hidden", boxShadow: isDark ? "0 20px 56px rgba(0,0,0,0.7)" : "0 20px 56px rgba(0,0,0,0.18)", perspective: shouldFlip ? "1000px" : "none" }}>
+      <div
+        style={{ position: "absolute", inset: 0, transformStyle: shouldFlip ? "preserve-3d" : "flat", animationName: shouldFlip ? "cardFlipIn" : "none", animationDuration: "0.5s", animationTimingFunction: "ease", animationFillMode: "forwards", animationDelay: shouldFlip ? `${i * 0.12}s` : "0s" }}
+        onAnimationEnd={hasCard && i === STACK_META.length - 1 ? () => setStackRevealed(true) : undefined}
+      >
+        {(!hasCard || shouldFlip) && (
+          <img
+            src={backSrc}
+            alt=""
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block", backfaceVisibility: shouldFlip ? "hidden" : "visible", WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible", transform: shouldFlip ? "rotateY(180deg)" : "none" }}
+          />
+        )}
+        {hasCard && (
+          <div style={{ position: "absolute", inset: 0, backfaceVisibility: shouldFlip ? "hidden" : "visible", WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible" }}>
+            <img
+              src={card.images?.large || "/card-placeholder.png"}
+              alt={card.name}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              onLoad={() => setCardLoaded((prev) => ({ ...prev, [i]: true }))}
+              onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; setCardLoaded((prev) => ({ ...prev, [i]: true })); }}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+})}
           </div>
         </div>
       </section>
@@ -424,7 +679,7 @@ export default function HomePage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6 }}>
             {RARITIES.map((r) => (
               <div key={r.label} className="rar-cell" onClick={() => setSelectedRarity(r)} style={{ padding: "7px 6px", borderRadius: 8, border: `0.5px solid ${c.border}`, textAlign: "center", cursor: "pointer", transition: "all 0.15s" }}>
-                <span style={{ fontSize: 10, fontWeight: 600, display: "block", color: r.color, marginBottom: 2 }}>{r.label}</span>
+                <span style={{ fontSize: 10, fontWeight: 600, display: "block", color: tc.accent, marginBottom: 2 }}>{r.label}</span>
                 <span style={{ fontSize: 9, color: c.textTer }}>{r.name}</span>
               </div>
             ))}
@@ -439,17 +694,34 @@ export default function HomePage() {
           <span onClick={() => handleBrowse()} style={{ fontSize: 11, color: tc.accent, cursor: "pointer", fontWeight: 500 }}>View all →</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 8 }}>
-          {CARD_PREVIEWS.map((meta, i) => {
+        {CARD_PREVIEWS.map((meta, i) => {
             const real = previewCards[i];
+            const hasReal = !!real;
+            const shouldFlip = hasReal && !previewRevealed;
+            const backSrc = real?.type?.toUpperCase() === "LEADER" ? "/card-back-leader.png" : "/card-back.png";
             return (
-              <div key={i} className="strip-card" onClick={() => { setSelectedCard(real ?? null); setSelectedIndex(i); }} style={{ aspectRatio: "0.72", borderRadius: 8, border: `1px solid ${meta.border}`, background: isDark ? `linear-gradient(135deg, ${meta.darkBg}, ${tc.bg.secondary})` : `linear-gradient(135deg, ${meta.bg}, ${tc.bg.secondary})`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative", overflow: "hidden" }}>
-                <div style={{ width: 7, height: 7, borderRadius: "50%", background: meta.color, border: "1px solid rgba(255,255,255,0.5)", position: "absolute", top: 6, left: 6, zIndex: 2 }} />
-                <div style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: meta.rarityBg, color: meta.rarityColor, position: "absolute", top: 5, right: 5, zIndex: 2 }}>{meta.rarity}</div>
-                {real?.images?.small ? (
-                  <img src={real.images.small} alt={real.name} style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} />
-                ) : (
-                  <span style={{ fontSize: 20 }}>{meta.icon}</span>
-                )}
+              <div key={i} className="strip-card" onClick={() => { setSelectedCard(real ?? null); setSelectedIndex(i); }} style={{ aspectRatio: "0.72", borderRadius: 8, border: `1px solid ${meta.border}`, background: isDark ? `linear-gradient(135deg, ${meta.darkBg}, ${tc.bg.secondary})` : `linear-gradient(135deg, ${meta.bg}, ${tc.bg.secondary})`, cursor: "pointer", position: "relative", overflow: "hidden", perspective: shouldFlip ? "700px" : "none" }}>
+                <div
+                  style={{ position: "absolute", inset: 0, transformStyle: shouldFlip ? "preserve-3d" : "flat", animationName: shouldFlip ? "cardFlipIn" : "none", animationDuration: "0.5s", animationTimingFunction: "ease", animationFillMode: "forwards", animationDelay: shouldFlip ? `${i * 0.05}s` : "0s" }}
+                  onAnimationEnd={hasReal && i === CARD_PREVIEWS.length - 1 ? () => setPreviewRevealed(true) : undefined}
+                >
+                  {(!hasReal || shouldFlip) && (
+                    <img
+                      src={backSrc}
+                      alt=""
+                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", backfaceVisibility: shouldFlip ? "hidden" : "visible", WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible", transform: shouldFlip ? "rotateY(180deg)" : "none" }}
+                      onError={(e) => { e.currentTarget.src = "/card-back.png"; }}
+                    />
+                  )}
+                  {hasReal && (
+                    <img
+                      src={real.images?.small || "/card-placeholder.png"}
+                      alt={real.name}
+                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", backfaceVisibility: shouldFlip ? "hidden" : "visible", WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible" }}
+                      onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }}
+                    />
+                  )}
+                </div>
               </div>
             );
           })}
@@ -463,6 +735,7 @@ export default function HomePage() {
       <div style={{ padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <img
+            onClick={() => router.push("/")}
             src={isDark ? "/logo-dark.png" : "/logo-light.png"}
             alt="Enies Hobby footer logo"
             style={{ height: 30, width: "auto", objectFit: "contain" }}
@@ -497,7 +770,7 @@ export default function HomePage() {
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={() => setSelectedRarity(null)} style={{ flex: 1, padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 500, border: `0.5px solid ${c.border}`, background: "transparent", color: c.text, cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.background = c.bgSec; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>Dismiss</button>
-                <button onClick={() => { setSelectedRarity(null); router.push(`/browse?rarity=${selectedRarity.label}`); }} style={{ flex: 1, padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 500, border: "none", background: selectedRarity.color, color: "#fff", cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.88"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
+                <button onClick={() => { setSelectedRarity(null); router.push(`/browse?rarity=${selectedRarity.label}`); }} style={{ flex: 1, padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 500, border: "none", background: tc.accent, color: "#fff", cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.88"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
                   View {selectedRarity.label} cards →
                 </button>
               </div>
@@ -526,7 +799,13 @@ export default function HomePage() {
               <div style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
                 <div style={{ width: "45%", flexShrink: 0, background: tc.bg.primary, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
                   {selectedCard.images?.large ? (
-                    <img src={selectedCard.images.large} alt={selectedCard.name} style={{ width: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 12, boxShadow: isDark ? "0 12px 40px rgba(0,0,0,0.6)" : "0 12px 40px rgba(0,0,0,0.2)" }} />
+                    <ModalCardImage
+                      key={selectedCard.images.large}
+                      src={selectedCard.images.large}
+                      alt={selectedCard.name}
+                      isLeader={selectedCard.type?.toUpperCase() === "LEADER"}
+                      isDark={isDark}
+                    />
                   ) : (
                     <div style={{ width: 100, height: 100, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, border: `2px dashed ${c.border}`, background: c.bgSec }}>🃏</div>
                   )}

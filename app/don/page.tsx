@@ -12,6 +12,7 @@ import {
   getBinders, addCardToBinder, removeCardFromBinder, getBinderCards, createBinder,
   type Binder,
 } from "@/lib/binder";
+import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 interface DonCard {
   card_name: string;
@@ -42,6 +43,63 @@ const getDonSetName = (optcgName: string) => {
   const match = optcgName.match(/ - (.+)$/);
   return match ? match[1].trim() : "";
 };
+
+// ── Modal card image with flip-in animation (matches browse page) ──
+// DON!! cards always use /don-back.png as the card back
+function ModalCardImage({ src, alt, isDark }: {
+  src: string; alt: string; isDark: boolean;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  const [flipped, setFlipped] = useState(false);
+  const [imgSrc, setImgSrc] = useState(src);
+
+  useEffect(() => {
+    setLoaded(false);
+    setFlipped(false);
+    setImgSrc(src);
+
+    const img = new window.Image();
+    img.src = src;
+    img.onload = () => {
+      setLoaded(true);
+      setTimeout(() => setFlipped(true), 60);
+    };
+    img.onerror = () => {
+      setImgSrc("/card-placeholder.png");
+      setLoaded(true);
+      setTimeout(() => setFlipped(true), 60);
+    };
+  }, [src]);
+
+  return (
+    <div style={{ width: "100%", aspectRatio: "2.5 / 3.5", perspective: "1000px" }}>
+      <div style={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        transformStyle: "preserve-3d",
+        transition: "transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)",
+        transform: flipped ? "rotateY(0deg)" : "rotateY(180deg)",
+        borderRadius: 14,
+        boxShadow: isDark ? "0 12px 40px rgba(0,0,0,0.6)" : "0 12px 40px rgba(0,0,0,0.2)",
+      }}>
+        <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", borderRadius: 14, overflow: "hidden" }}>
+          {loaded && (
+            <img
+              src={imgSrc}
+              alt={alt}
+              style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+              onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }}
+            />
+          )}
+        </div>
+        <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)", borderRadius: 14, overflow: "hidden" }}>
+          <img src="/don-back.png" alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { e.currentTarget.src = "/card-back.png"; }} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function DonCardsPage() {
   const router = useRouter();
@@ -79,6 +137,9 @@ export default function DonCardsPage() {
     border: tc.border,
     accent: tc.accent,
   };
+
+  //scroll lock
+  useBodyScrollLock(selectedIndex >= 0);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -225,14 +286,19 @@ export default function DonCardsPage() {
       {/* SEARCH + FILTERS */}
       <div style={{ padding: "18px 24px", display: "flex", justifyContent: "center", alignItems: "center", borderBottom: `1px solid ${colors.border}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ position: "relative", width: 260 }}>
+        <div style={{ position: "relative", width: 260 }}>
             <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: colors.text.tertiary }} />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search DON!!"
-              style={{ width: "100%", padding: "10px 12px 10px 36px", borderRadius: 12, border: `1px solid ${colors.border}`, background: colors.bg.secondary, color: colors.text.primary, outline: "none", fontSize: 13 }}
+              style={{ width: "100%", padding: "10px 32px 10px 36px", borderRadius: 12, border: `1px solid ${colors.border}`, background: colors.bg.secondary, color: colors.text.primary, outline: "none", fontSize: 13 }}
             />
+            {search && (
+              <button onClick={() => setSearch("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex" }}>
+                <X size={14} color={colors.text.tertiary} />
+              </button>
+            )}
           </div>
           <div
             style={{
@@ -308,6 +374,12 @@ export default function DonCardsPage() {
             {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} className="don-skeleton" style={{ borderRadius: 18, background: colors.bg.tertiary, border: `1px solid ${colors.border}`, aspectRatio: "2.5 / 3.5" }} />
             ))}
+          </div>
+        ) : filteredCards.length === 0 ? (
+          <div style={{ textAlign: "center", paddingTop: 96, paddingBottom: 96, color: colors.text.tertiary, display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <img src="/nocard.png" alt="No cards found" style={{ width: 120, height: 120, objectFit: "contain", marginBottom: 20, opacity: isDark ? 0.9 : 1 }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+            <div style={{ fontWeight: 700, fontSize: 20, color: colors.text.primary }}>No cards found</div>
+            <div style={{ fontSize: 14, marginTop: 6, color: colors.text.tertiary }}>Try a different search</div>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 18, marginTop: 10 }}>
@@ -403,10 +475,11 @@ export default function DonCardsPage() {
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div style={{ padding: "8px 8px 8px" }}>
-                            <div style={{ fontSize: 10, color: colors.text.tertiary, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase" as const, padding: "4px 8px 6px" }}>
-                              My binders
-                            </div>
+                          <div style={{ fontSize: 10, color: colors.text.tertiary, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase" as const, padding: "4px 8px 6px" }}>
+                            My binders
+                          </div>
 
+                          <div style={{ maxHeight: 180, overflowY: "auto" }}>
                             {binders.length === 0 && !creatingBinderInline && (
                               <div style={{ fontSize: 12, color: colors.text.tertiary, padding: "6px 10px" }}>No binders yet.</div>
                             )}
@@ -428,6 +501,7 @@ export default function DonCardsPage() {
                                 </button>
                               );
                             })}
+                          </div>
 
                             {/* Inline new binder */}
                             {creatingBinderInline ? (
@@ -476,19 +550,15 @@ export default function DonCardsPage() {
                 </div>
               </div>
 
-              {/* Body */}
+              {/* Body — ModalCardImage replaces plain <img> */}
               <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-
-                {/* Image */}
-                <div style={{ width: "100%", maxWidth: 340 }}>
-                  <div style={{ aspectRatio: "2.5 / 3.5", width: "100%", maxWidth: 320, borderRadius: 14, overflow: "hidden", boxShadow: isDark ? "0 12px 40px rgba(0,0,0,0.6)" : "0 12px 40px rgba(0,0,0,0.2)" }}>
-                    <img
-                      src={selected.card_image || "/card-placeholder.png"}
-                      alt={selected.card_name}
-                      style={{ width: "100%", height: "100%", display: "block" }}
-                      onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }}
-                    />
-                  </div>
+                <div style={{ width: "100%", maxWidth: 320 }}>
+                  <ModalCardImage
+                    key={selected.card_image}
+                    src={selected.card_image || "/card-placeholder.png"}
+                    alt={selected.card_name}
+                    isDark={isDark}
+                  />
                 </div>
               </div>
 

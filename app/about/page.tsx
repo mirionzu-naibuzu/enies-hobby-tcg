@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { getColors } from "@/lib/themes";
 import Sidebar from "@/components/Sidebar";
-import { Heart, ExternalLink } from "lucide-react";
+import { Heart, ExternalLink, Coffee } from "lucide-react";
 
 const TECH_STACK = [
   { label: "Next.js",      desc: "App Router, SSR, dynamic routes",  color: "#111827", darkColor: "#f3f4f6" },
@@ -212,14 +212,14 @@ export default function AboutPage() {
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <a
-            href="https://ko-fi.com"
+            href="https://ko-fi.com/millionsknives47476"
             target="_blank"
             rel="noopener noreferrer"
             style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "#FF5E5B", color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none", transition: "opacity 0.2s" }}
             onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.88"; }}
             onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
           >
-            ☕ Ko-fi
+            <Coffee size={15}  />Ko-fi
           </a>
           <button
             onClick={() => router.push("/browse")}

@@ -203,7 +203,7 @@ export function getColors(
 const SECTIONS = [
   {
     title: "Fan Project",
-    body: "OPTCG Browser is an unofficial, non-commercial fan project created for personal and community use. It is not affiliated with, endorsed by, sponsored by, or connected to Bandai Co., Ltd., Toei Animation, or Eiichiro Oda in any way.",
+    body: "Enies Hobby TCG is an unofficial, non-commercial fan project created for personal and community use. It is not affiliated with, endorsed by, sponsored by, or connected to Bandai Co., Ltd., Toei Animation, or Eiichiro Oda in any way.",
   },
   {
     title: "Intellectual Property",
@@ -356,7 +356,7 @@ export default function DisclaimerPage() {
               maxWidth: 560,
             }}
           >
-            Please read the following before using OPTCG Browser.
+            Please read the following before using Enies Hobby TCG.
             By using this site you acknowledge and agree to the
             terms below.
           </p>
@@ -460,7 +460,7 @@ export default function DisclaimerPage() {
               One Piece TCG
             </strong>{" "}
             © Bandai Co., Ltd. · One Piece © Eiichiro Oda /
-            Shueisha · OPTCG Browser is an independent fan
+            Shueisha · Enies Hobby TCG is an independent fan
             project with no commercial affiliation.
           </div>
         </div>
