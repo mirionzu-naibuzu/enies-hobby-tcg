@@ -11,15 +11,17 @@ import {
   getUserCards, getBinders, getBinderCards, getBinderCardCounts,
   addUserCard, removeUserCard, createBinder, deleteBinder, renameBinder,
   addCardToBinder, removeCardFromBinder,
+  getCardKey, getDonCardKey,
   type UserCard, type Binder,
 } from "@/lib/binder";
 import AuthModal from "@/components/AuthModal";
 import { useTheme } from "next-themes";
 import { getColors } from "@/lib/themes";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
-import { Trash2, Pencil, Check, X, ChevronLeft, ChevronRight, CheckSquare } from "lucide-react";
-
-const getCardKey = (card: Card) => `${card.id ?? ""}||${card.name ?? ""}||${card.set?.name ?? ""}`;
+import { SET_ORDER, SET_NAMES } from "@/lib/sets";
+import { getAllDonCards } from "@/lib/api";
+import ModalCardImage from "@/components/ModalCardImage";
+import { Trash2, Pencil, Check, X, ChevronLeft, ChevronRight, CheckSquare, SlidersHorizontal } from "lucide-react";
 
 const sortByCardId = (cards: Card[], setId?: string) => {
   const filterId = (setId ?? "").replace(/-/g, "").toUpperCase();
@@ -34,45 +36,6 @@ const sortByCardId = (cards: Card[], setId?: string) => {
     const numB = parseInt((b.id ?? "").split("-")[1] ?? "0");
     return numA - numB;
   });
-};
-
-const SET_ORDER = [
-  "OP-01","OP-02","OP-03","OP-04","OP-05","OP-06","OP-07","OP-08",
-  "OP-09","OP-10","OP-11","OP-12","OP-13","OP-14","OP-15", "OP-16",
-  "ST-01","ST-02","ST-03","ST-04","ST-05","ST-06","ST-07","ST-08",
-  "ST-09","ST-10","ST-11","ST-12","ST-13","ST-14","ST-15","ST-16",
-  "ST-17","ST-18","ST-19","ST-20","ST-21","ST-22","ST-23","ST-24",
-  "ST-25","ST-26","ST-27","ST-28","ST-29","ST-30",
-  "EB-01","EB-02","EB-03","EB-04",
-  "PRB-01","PRB-02",
-];
-
-const SET_NAMES: Record<string, string> = {
-  "OP-01": "Romance Dawn", "OP-02": "Paramount War", "OP-03": "Pillars of Strength",
-  "OP-04": "Kingdoms of Intrigue", "OP-05": "Awakening of the New Era",
-  "OP-06": "Wings of the Captain", "OP-07": "500 Years in the Future",
-  "OP-08": "Two Legends", "OP-09": "Emperors in the New World",
-  "OP-10": "Royal Blood", "OP-11": "A Fist of Divine Speed",
-  "OP-12": "Legacy of the Master", "OP-13": "Alliance Rising",
-  "OP-14": "The Four Emperors", "OP-15": "Adventure on KAMI's Island", "OP-16": "The Time of Battle",
-  "ST-01": "Straw Hat Crew", "ST-02": "Worst Generation",
-  "ST-03": "The Seven Warlords of the Sea", "ST-04": "Animal Kingdom Pirates",
-  "ST-05": "One Piece Film Edition", "ST-06": "Absolute Justice",
-  "ST-07": "Big Mom Pirates", "ST-08": "Monkey D. Luffy",
-  "ST-09": "Yamato", "ST-10": "The Three Captains",
-  "ST-11": "Side Uta", "ST-12": "Zoro & Sanji",
-  "ST-13": "The Three Brothers' Bond", "ST-14": "3D2Y",
-  "ST-15": "Red Edward Newgate", "ST-16": "Green Uta",
-  "ST-17": "Blue Donquixote Doflamingo", "ST-18": "Purple Monkey D. Luffy",
-  "ST-19": "Black Smoker", "ST-20": "Yellow Charlotte Katakuri",
-  "ST-21": "EX · GEAR5", "ST-22": "Ace & Newgate",
-  "ST-23": "Red Shanks", "ST-24": "Green Jewelry Bonney",
-  "ST-25": "Blue Buggy", "ST-26": "Purple/Black Monkey D. Luffy",
-  "ST-27": "Black Marshall D. Teach", "ST-28": "Green/Yellow Yamato",
-  "ST-29": "EGGHEAD", "ST-30": "EX · Luffy & Ace",
-  "EB-01": "Memorial Collection", "EB-02": "Anime 25th Collection",
-  "EB-03": "Pillars of Strength", "EB-04": "Egghead Crisis",
-  "PRB-01": "Premium Booster", "PRB-02": "Premium Booster",
 };
 
 const COLOR_DOT: Record<string, string> = {
@@ -90,71 +53,13 @@ const FLIP_STYLE = `
   }
 `;
 
-// ── Modal card image with flip-in animation.
-// Pass backSrc to override the default card back (e.g. "/don-back.png" for DON!! cards).
-function ModalCardImage({ src, alt, isLeader, isDark, backSrc: backSrcOverride }: {
-  src: string; alt: string; isLeader: boolean; isDark: boolean; backSrc?: string;
-}) {
-  const [loaded, setLoaded] = useState(false);
-  const [flipped, setFlipped] = useState(false);
-  const [imgSrc, setImgSrc] = useState(src);
-  const backSrc = backSrcOverride ?? (isLeader ? "/card-back-leader.png" : "/card-back.png");
-
-  useEffect(() => {
-    setLoaded(false);
-    setFlipped(false);
-    setImgSrc(src);
-
-    const img = new window.Image();
-    img.src = src;
-    img.onload = () => {
-      setLoaded(true);
-      setTimeout(() => setFlipped(true), 60);
-    };
-    img.onerror = () => {
-      setImgSrc("/card-placeholder.png");
-      setLoaded(true);
-      setTimeout(() => setFlipped(true), 60);
-    };
-  }, [src]);
-
-  return (
-    <div style={{ width: "100%", aspectRatio: "63/88", perspective: "1000px" }}>
-      <div style={{
-        position: "relative",
-        width: "100%",
-        height: "100%",
-        transformStyle: "preserve-3d",
-        transition: "transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)",
-        transform: flipped ? "rotateY(0deg)" : "rotateY(180deg)",
-        borderRadius: 17,
-        boxShadow: isDark ? "0 12px 40px rgba(0,0,0,0.6)" : "0 12px 40px rgba(0,0,0,0.2)",
-      }}>
-        <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", borderRadius: 17, overflow: "hidden" }}>
-          {loaded && (
-            <img
-              src={imgSrc}
-              alt={alt}
-              style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
-              onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }}
-            />
-          )}
-        </div>
-        <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)", borderRadius: 17, overflow: "hidden" }}>
-          <img src={backSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function AuthGate({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: () => void }) {
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const tc = getColors(theme, mounted);
   return (
-    <div suppressHydrationWarning style={{ minHeight: "100vh", background: tc.bg.primary, marginLeft: 70, display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div suppressHydrationWarning className="binder-auth-gate" style={{ minHeight: "100vh", background: tc.bg.primary, marginLeft: 70, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ maxWidth: 380, width: "100%", padding: "0 24px", textAlign: "center" }}>
         <div style={{ width: 48, height: 48, borderRadius: 12, border: `0.5px solid ${tc.border}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", fontSize: 22 }}>📁</div>
         <h1 style={{ fontSize: 22, fontWeight: 500, color: tc.text.primary, letterSpacing: "-0.02em", marginBottom: 8 }}>Your binder</h1>
@@ -185,7 +90,7 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
   onToggleOwned: (cardId: string) => void; onToggleWishlist: (cardId: string) => void;
 }) {
   const [showOwnershipPicker, setShowOwnershipPicker] = useState(false);
-  const cardKey = `${modalCard.id ?? ""}||${modalCard.name ?? ""}||${modalCard.set?.name ?? ""}`;
+  const cardKey = getCardKey(modalCard);
   const owned = ownedSet.has(cardKey);
   const wished = wishlistSet.has(cardKey);
 
@@ -214,13 +119,13 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
   }, [modalIndex, modalCards, showOwnershipPicker]);
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => { setModalCard(null); setShowOwnershipPicker(false); }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16, width: "100%", maxWidth: 960 }} onClick={(e) => e.stopPropagation()}>
-        <button onClick={() => { const i = modalIndex - 1; setModalIndex(i); setModalCard(modalCards[i]); setShowOwnershipPicker(false); }} disabled={modalIndex <= 0} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: modalIndex > 0 ? "pointer" : "not-allowed", opacity: modalIndex <= 0 ? 0.3 : 1, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
+    <div className="card-modal-outer" style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => { setModalCard(null); setShowOwnershipPicker(false); }}>
+      <div className="card-modal-nav-row" style={{ display: "flex", alignItems: "center", gap: 16, width: "100%", maxWidth: 960 }} onClick={(e) => e.stopPropagation()}>
+        <button className="card-modal-prev" onClick={() => { const i = modalIndex - 1; setModalIndex(i); setModalCard(modalCards[i]); setShowOwnershipPicker(false); }} disabled={modalIndex <= 0} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: modalIndex > 0 ? "pointer" : "not-allowed", opacity: modalIndex <= 0 ? 0.3 : 1, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
           <ChevronLeft size={20} />
         </button>
-        <div style={{ flex: 1, background: c.bg, borderRadius: 20, border: `1px solid ${c.border}`, overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.5)" : "0 32px 64px rgba(0,0,0,0.15)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: `1px solid ${c.border}`, flexShrink: 0 }}>
+        <div className="card-modal-container" style={{ flex: 1, background: c.bg, borderRadius: 20, border: `1px solid ${c.border}`, overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.5)" : "0 32px 64px rgba(0,0,0,0.15)" }}>
+          <div className="card-modal-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: `1px solid ${c.border}`, flexShrink: 0 }}>
             <div>
               <div style={{ fontWeight: 900, fontSize: 22, color: c.text, letterSpacing: "-0.02em" }}>{modalCard.name}</div>
               <div style={{ fontSize: 12, color: c.textTer, fontFamily: "monospace", marginTop: 2 }}>{modalCard.id}</div>
@@ -259,18 +164,18 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
               <button onClick={() => { setModalCard(null); setShowOwnershipPicker(false); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}><X size={20} color={c.textTer} /></button>
             </div>
           </div>
-          <div style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
-            <div style={{ width: "45%", flexShrink: 0, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-            <ModalCardImage
-  key={modalCard.images?.large ?? modalCard.id}
-  src={modalCard.images?.large || "/card-placeholder.png"}
-  alt={modalCard.name}
-  isLeader={modalCard.type?.toUpperCase() === "LEADER"}
-  isDark={isDark}
-/>
+          <div className="card-modal-body" style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
+            <div className="card-modal-image-pane" style={{ width: "45%", flexShrink: 0, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+              <ModalCardImage
+                key={modalCard.images?.large ?? modalCard.images?.small ?? modalCard.id}
+                src={modalCard.images?.large || modalCard.images?.small || "/card-placeholder.png"}
+                alt={modalCard.name}
+                isLeader={modalCard.type?.toUpperCase() === "LEADER"}
+                isDark={isDark}
+              />
             </div>
-            <div style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="card-modal-details-pane" style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+              <div className="card-modal-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 {([["Type", modalCard.type], ["Rarity", modalCard.rarity?.replace(/^PR$/i, "P")], ["Color", modalCard.color], ["Cost", modalCard.cost], ["Power", modalCard.power], ["Counter", modalCard.counter], ["Attribute", modalCard.attribute?.name], ["Family", modalCard.family], ["Set", modalCard.set?.name]] as [string, unknown][]).filter(([, v]) => v != null && v !== "" && v !== "-").map(([label, value]) => (
                   <div key={String(label)} style={{ background: c.bgSec, borderRadius: 10, padding: "10px 14px", border: `1px solid ${c.border}` }}>
                     <div style={{ fontSize: 11, color: c.textTer, marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>{label}</div>
@@ -282,9 +187,9 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
               {modalCard.trigger && modalCard.trigger !== "" && (<div style={{ background: isDark ? "rgba(217,119,6,0.1)" : "rgba(251,191,36,0.08)", borderRadius: 10, padding: "12px 14px", border: `1px solid ${isDark ? "rgba(251,191,36,0.2)" : "rgba(217,119,6,0.2)"}` }}><div style={{ fontSize: 11, color: isDark ? "#fbbf24" : "#d97706", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Trigger</div><div style={{ fontSize: 14, color: c.text, lineHeight: 1.7 }}>{modalCard.trigger}</div></div>)}
             </div>
           </div>
-          <div style={{ borderTop: `1px solid ${c.border}`, padding: "10px 24px", textAlign: "center", fontSize: 12, color: c.textTer, flexShrink: 0 }}>{modalIndex + 1} / {modalCards.length}</div>
+          <div className="card-modal-footer" style={{ borderTop: `1px solid ${c.border}`, padding: "10px 24px", textAlign: "center", fontSize: 12, color: c.textTer, flexShrink: 0 }}>{modalIndex + 1} / {modalCards.length}</div>
         </div>
-        <button onClick={() => { const i = modalIndex + 1; setModalIndex(i); setModalCard(modalCards[i]); }} disabled={modalIndex >= modalCards.length - 1} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: modalIndex < modalCards.length - 1 ? "pointer" : "not-allowed", opacity: modalIndex >= modalCards.length - 1 ? 0.3 : 1, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
+        <button className="card-modal-next" onClick={() => { const i = modalIndex + 1; setModalIndex(i); setModalCard(modalCards[i]); }} disabled={modalIndex >= modalCards.length - 1} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: modalIndex < modalCards.length - 1 ? "pointer" : "not-allowed", opacity: modalIndex >= modalCards.length - 1 ? 0.3 : 1, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
           <ChevronRight size={20} />
         </button>
       </div>
@@ -325,14 +230,13 @@ function DonCardModal({ card, index, cards, onClose, onNav, c, tc, isDark }: {
           {/* Body — ModalCardImage with don-back.png */}
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
             <div style={{ width: "100%", maxWidth: 320 }}>
-              <ModalCardImage
-                key={card.card_image}
-                src={card.card_image || "/card-placeholder.png"}
-                alt={card.card_name}
-                isLeader={false}
-                isDark={isDark}
-                backSrc="/don-back.png"
-              />
+            <ModalCardImage
+              key={card.card_image || card.card_name || index}
+              src={card.card_image || "/card-placeholder.png"}
+              alt={card.card_name}
+              isDark={isDark}
+              backSrc="/don-back.png"
+            />
             </div>
           </div>
           <div style={{ borderTop: `1px solid ${c.border}`, padding: "10px 24px", textAlign: "center", fontSize: 12, color: c.textTer, flexShrink: 0 }}>{index + 1} / {cards.length}</div>
@@ -392,11 +296,21 @@ export default function BinderPage() {
   const [setViewFilters, setSetViewFilters] = useState<{
     colors?: string[]; type?: string; rarity?: string; spOnly?: boolean; owned?: "owned" | "not_owned";
   }>({});
+  const [binderFiltersOpen, setBinderFiltersOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   //scroll lock
-  useBodyScrollLock(!!modalCard || donModalIndex >= 0);
+  useBodyScrollLock(!!modalCard || donModalIndex >= 0 || binderFiltersOpen);
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1024px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setShowScrollTop(window.scrollY > 400);
@@ -419,7 +333,7 @@ export default function BinderPage() {
       getUserCards(user.id),
       getBinders(user.id),
       getBinderCardCounts(user.id),
-      fetch("https://www.optcgapi.com/api/allDonCards/").then(r => r.json()).catch(() => [])
+      getAllDonCards().catch(() => [])
     ]).then(([cards, uc, b, bc, don]) => {
       setAllCards(cards);
       setAllDonCards(don);
@@ -449,8 +363,8 @@ export default function BinderPage() {
         for (const { id, keys } of results) {
           const regularMatches = allCards.filter(card => keys.includes(getCardKey(card)));
           const donMatches = allDonCards
-            .filter(card => keys.includes(`don||${card.card_name}`))
-            .map(card => ({ ...card, images: { small: card.card_image, large: card.card_image } }));
+            .filter(card => keys.includes(getDonCardKey(card)))
+            .map(card => ({ ...card, images: { small: card.card_image || "/card-placeholder.png", large: card.card_image || "/card-placeholder.png" } }));
           previewMap[id] = [...regularMatches, ...donMatches].slice(0, 4) as Card[];
           countMap[id] = keys.length;
         }
@@ -556,7 +470,7 @@ export default function BinderPage() {
   };
 
   if (loadingUser) return (
-    <div style={{ minHeight: "100vh", background: tc.bg.primary, marginLeft: 70, display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div className="binder-wrapper" style={{ minHeight: "100vh", background: tc.bg.primary, marginLeft: 70, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ fontSize: 13, color: tc.text.tertiary }}>Loading...</div>
     </div>
   );
@@ -593,7 +507,13 @@ export default function BinderPage() {
       return true;
     });
 
-    const hasActiveFilters = selectedColors.length > 0 || !!setViewFilters.type || !!setViewFilters.rarity || !!setViewFilters.spOnly || !!setViewFilters.owned;
+    const activeSetFilterCount = (selectedColors.length > 0 ? 1 : 0) +
+      (setViewFilters.type ? 1 : 0) +
+      (setViewFilters.rarity ? 1 : 0) +
+      (setViewFilters.spOnly ? 1 : 0) +
+      (setViewFilters.owned ? 1 : 0);
+
+    const hasActiveFilters = activeSetFilterCount > 0;
     const allSetOwned = allSetCards.length > 0 && allSetCards.every(c => ownedSet.has(getCardKey(c)));
 
     const chipStyle = (active: boolean) => ({
@@ -606,81 +526,274 @@ export default function BinderPage() {
     });
 
     return (
-      <div suppressHydrationWarning style={{ minHeight: "100vh", background: c.bg, color: c.text, marginLeft: 70 }}>
+      <div suppressHydrationWarning className="binder-wrapper" style={{ minHeight: "100vh", background: c.bg, color: c.text, marginLeft: 70 }}>
         <style>{FLIP_STYLE}</style>
         <Sidebar />
 
-        <div style={{ padding: "20px 32px", borderBottom: `0.5px solid ${c.border}`, display: "flex", alignItems: "center", gap: 16, position: "sticky", top: 0, background: c.bg, zIndex: 20 }}>
-          <button onClick={() => { setOpenSetId(null); window.scrollTo(0, savedScrollY.current); }} style={{ background: "none", border: "none", cursor: "pointer", color: c.textSec, display: "flex", alignItems: "center", gap: 6, fontSize: 13, padding: 0 }}>
-            <ChevronLeft size={16} /> Back
+        <div className="binder-set-header" style={{ padding: "20px 32px", borderBottom: `0.5px solid ${c.border}`, display: "flex", alignItems: "center", gap: 16, position: "sticky", top: 0, background: c.bg, zIndex: 20 }}>
+          <button onClick={() => { setOpenSetId(null); setBinderFiltersOpen(false); window.scrollTo(0, savedScrollY.current); }} title="Back" style={{ background: "none", border: "none", cursor: "pointer", color: c.textSec, display: "flex", alignItems: "center", justifyContent: "center", padding: 4, flexShrink: 0 }}>
+            <ChevronLeft size={20} />
           </button>
-          <div style={{ width: "0.5px", height: 16, background: c.border }} />
-          <div>
+          <div style={{ width: "0.5px", height: 16, background: c.border, flexShrink: 0 }} />
+          <div style={{ minWidth: 0, overflow: "hidden" }}>
             <span style={{ fontSize: 15, fontWeight: 600, color: c.text }}>{openSetId} · {SET_NAMES[openSetId] ?? openSetId}</span>
             <span style={{ fontSize: 13, color: c.textTer, marginLeft: 10 }}>{totalSetOwned} / {allSetCards.length} · {totalSetPct}%</span>
           </div>
-          <div style={{ flex: 1, maxWidth: 200, marginLeft: "auto" }}>
+          <div className="binder-set-progress-wrap" style={{ flex: 1, maxWidth: 200, marginLeft: "auto" }}>
             <ProgressBar value={totalSetOwned} total={allSetCards.length} color={tc.text.primary} />
           </div>
         </div>
 
-        <div style={{ background: c.bg, borderBottom: `1px solid ${c.border}`, paddingLeft: 32, paddingRight: 32, paddingTop: 12, paddingBottom: 12, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Color</span>
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              {[...FILTER_COLORS, "Multicolor"].map((color) => {
-                const isMulti = color === "Multicolor";
-                const active = isMulti ? multicolorActive : selectedColors.includes(color);
-                const dimmed = !active && selectedColors.length > 0;
-                return (
-                  <button key={color} title={color}
-                    onClick={() => {
-                      if (isMulti) { setSetViewFilters(f => ({ ...f, colors: multicolorActive ? [] : ["Multicolor"] })); return; }
-                      if (multicolorActive) { setSetViewFilters(f => ({ ...f, colors: [color] })); return; }
-                      const cur = selectedColors;
-                      if (cur.includes(color)) setSetViewFilters(f => ({ ...f, colors: cur.filter(c => c !== color) }));
-                      else { const next = cur.length >= 2 ? [cur[1], color] : [...cur, color]; setSetViewFilters(f => ({ ...f, colors: next })); }
+        {/* Desktop FilterBar in Set view — only rendered on desktop screens */}
+        {!isMobile && (
+          <div className="desktop-filterbar">
+            <div style={{ background: c.bg, borderBottom: `1px solid ${c.border}`, paddingLeft: 24, paddingRight: 24, paddingTop: 12, paddingBottom: 12, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16 }}>
+              {/* Color */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Color</span>
+                <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                  {[...FILTER_COLORS, "Multicolor"].map((color) => {
+                    const isMulti = color === "Multicolor";
+                    const active = isMulti ? multicolorActive : selectedColors.includes(color);
+                    const dimmed = !active && selectedColors.length > 0;
+                    return (
+                      <button key={color} title={color}
+                        onClick={() => {
+                          if (isMulti) { setSetViewFilters(f => ({ ...f, colors: multicolorActive ? [] : ["Multicolor"] })); return; }
+                          if (multicolorActive) { setSetViewFilters(f => ({ ...f, colors: [color] })); return; }
+                          const cur = selectedColors;
+                          if (cur.includes(color)) setSetViewFilters(f => ({ ...f, colors: cur.filter(c => c !== color) }));
+                          else { const next = cur.length >= 2 ? [cur[1], color] : [...cur, color]; setSetViewFilters(f => ({ ...f, colors: next })); }
+                        }}
+                        style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, border: "none", cursor: "pointer", background: isMulti ? "conic-gradient(from 180deg, #ef4444, #facc15, #22c55e, #3b82f6, #a855f7, #000000, #ef4444)" : COLOR_DOT[color], outline: active ? `3px solid ${isMulti ? "#808080" : COLOR_DOT[color]}` : "none", outlineOffset: 2, opacity: dimmed ? 0.35 : 1, transform: active ? "scale(1.15)" : "scale(1)", transition: "all 0.2s" }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Type */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Type</span>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {FILTER_TYPES.map(t => <button key={t} onClick={() => setSetViewFilters(f => ({ ...f, type: f.type === t ? undefined : t }))} style={chipStyle(setViewFilters.type === t)}>{t}</button>)}
+                </div>
+              </div>
+              {/* Rarity */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Rarity</span>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  {FILTER_RARITIES.map(r => <button key={r} onClick={() => setSetViewFilters(f => ({ ...f, rarity: f.rarity === r ? undefined : r }))} style={chipStyle(setViewFilters.rarity === r)}>{r}</button>)}
+                  <button onClick={() => setSetViewFilters(f => ({ ...f, spOnly: !f.spOnly }))} style={chipStyle(!!setViewFilters.spOnly)}>SP</button>
+                </div>
+              </div>
+              {/* Show */}
+              {!allSetOwned && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Show</span>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => setSetViewFilters(f => ({ ...f, owned: f.owned === "owned" ? undefined : "owned" }))} style={{ ...chipStyle(setViewFilters.owned === "owned"), border: `1px solid ${setViewFilters.owned === "owned" ? "#16a34a" : c.border}`, background: setViewFilters.owned === "owned" ? "#16a34a" : "transparent", color: setViewFilters.owned === "owned" ? "#fff" : c.textTer }}>Owned</button>
+                    <button onClick={() => setSetViewFilters(f => ({ ...f, owned: f.owned === "not_owned" ? undefined : "not_owned" }))} style={{ ...chipStyle(setViewFilters.owned === "not_owned"), border: `1px solid ${setViewFilters.owned === "not_owned" ? (isDark ? "#f3f4f6" : "#111827") : c.border}`, background: setViewFilters.owned === "not_owned" ? (isDark ? "#f3f4f6" : "#111827") : "transparent", color: setViewFilters.owned === "not_owned" ? (isDark ? "#111827" : "#fff") : c.textTer }}>Not owned</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Floating Slide-Down Filter Drawer in Set view */}
+        {isMobile && binderFiltersOpen && (
+          <>
+            <div
+              className="filter-drawer-backdrop"
+              onClick={() => setBinderFiltersOpen(false)}
+              style={{
+                position: "fixed",
+                top: 112,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: "rgba(0, 0, 0, 0.45)",
+                backdropFilter: "blur(2px)",
+                WebkitBackdropFilter: "blur(2px)",
+                zIndex: 25,
+              }}
+            />
+            <div
+              className="binder-mobile-drawer"
+              style={{
+                position: "fixed",
+                top: 112,
+                left: 0,
+                right: 0,
+                zIndex: 30,
+                background: c.bg,
+                borderBottom: `1px solid ${c.border}`,
+                boxShadow: "0 16px 36px rgba(0, 0, 0, 0.35)",
+                maxHeight: "calc(80vh - 112px)",
+                overflowY: "auto",
+                WebkitOverflowScrolling: "touch",
+              }}
+            >
+              <div style={{ padding: "14px 16px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16 }}>
+                {/* Color */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Color</span>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                    {[...FILTER_COLORS, "Multicolor"].map((color) => {
+                      const isMulti = color === "Multicolor";
+                      const active = isMulti ? multicolorActive : selectedColors.includes(color);
+                      const dimmed = !active && selectedColors.length > 0;
+                      return (
+                        <button key={color} title={color}
+                          onClick={() => {
+                            if (isMulti) { setSetViewFilters(f => ({ ...f, colors: multicolorActive ? [] : ["Multicolor"] })); return; }
+                            if (multicolorActive) { setSetViewFilters(f => ({ ...f, colors: [color] })); return; }
+                            const cur = selectedColors;
+                            if (cur.includes(color)) setSetViewFilters(f => ({ ...f, colors: cur.filter(c => c !== color) }));
+                            else { const next = cur.length >= 2 ? [cur[1], color] : [...cur, color]; setSetViewFilters(f => ({ ...f, colors: next })); }
+                          }}
+                          style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, border: "none", cursor: "pointer", background: isMulti ? "conic-gradient(from 180deg, #ef4444, #facc15, #22c55e, #3b82f6, #a855f7, #000000, #ef4444)" : COLOR_DOT[color], outline: active ? `3px solid ${isMulti ? "#808080" : COLOR_DOT[color]}` : "none", outlineOffset: 2, opacity: dimmed ? 0.35 : 1, transform: active ? "scale(1.15)" : "scale(1)", transition: "all 0.2s" }}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+                {/* Type */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Type</span>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {FILTER_TYPES.map(t => <button key={t} onClick={() => setSetViewFilters(f => ({ ...f, type: f.type === t ? undefined : t }))} style={chipStyle(setViewFilters.type === t)}>{t}</button>)}
+                  </div>
+                </div>
+                {/* Rarity */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Rarity</span>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                    {FILTER_RARITIES.map(r => <button key={r} onClick={() => setSetViewFilters(f => ({ ...f, rarity: f.rarity === r ? undefined : r }))} style={chipStyle(setViewFilters.rarity === r)}>{r}</button>)}
+                    <button onClick={() => setSetViewFilters(f => ({ ...f, spOnly: !f.spOnly }))} style={chipStyle(!!setViewFilters.spOnly)}>SP</button>
+                  </div>
+                </div>
+                {/* Show */}
+                {!allSetOwned && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Show</span>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      <button onClick={() => setSetViewFilters(f => ({ ...f, owned: f.owned === "owned" ? undefined : "owned" }))} style={{ ...chipStyle(setViewFilters.owned === "owned"), border: `1px solid ${setViewFilters.owned === "owned" ? "#16a34a" : c.border}`, background: setViewFilters.owned === "owned" ? "#16a34a" : "transparent", color: setViewFilters.owned === "owned" ? "#fff" : c.textTer }}>Owned</button>
+                      <button onClick={() => setSetViewFilters(f => ({ ...f, owned: f.owned === "not_owned" ? undefined : "not_owned" }))} style={{ ...chipStyle(setViewFilters.owned === "not_owned"), border: `1px solid ${setViewFilters.owned === "not_owned" ? (isDark ? "#f3f4f6" : "#111827") : c.border}`, background: setViewFilters.owned === "not_owned" ? (isDark ? "#f3f4f6" : "#111827") : "transparent", color: setViewFilters.owned === "not_owned" ? (isDark ? "#111827" : "#fff") : c.textTer }}>Not owned</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div
+                style={{
+                  padding: "8px 16px 14px",
+                  background: c.bg,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                {hasActiveFilters ? (
+                  <button
+                    onClick={() => setSetViewFilters({})}
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: c.textTer,
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "4px 8px",
                     }}
-                    style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, border: "none", cursor: "pointer", background: isMulti ? "conic-gradient(from 180deg, #ef4444, #facc15, #22c55e, #3b82f6, #a855f7, #000000, #ef4444)" : COLOR_DOT[color], outline: active ? `3px solid ${isMulti ? "#808080" : COLOR_DOT[color]}` : "none", outlineOffset: 2, opacity: dimmed ? 0.35 : 1, transform: active ? "scale(1.15)" : "scale(1)", transition: "all 0.2s" }}
-                  />
-                );
-              })}
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Type</span>
-            <div style={{ display: "flex", gap: 6 }}>
-              {FILTER_TYPES.map(t => <button key={t} onClick={() => setSetViewFilters(f => ({ ...f, type: f.type === t ? undefined : t }))} style={chipStyle(setViewFilters.type === t)}>{t}</button>)}
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Rarity</span>
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              {FILTER_RARITIES.map(r => <button key={r} onClick={() => setSetViewFilters(f => ({ ...f, rarity: f.rarity === r ? undefined : r }))} style={chipStyle(setViewFilters.rarity === r)}>{r}</button>)}
-              <button onClick={() => setSetViewFilters(f => ({ ...f, spOnly: !f.spOnly }))} style={chipStyle(!!setViewFilters.spOnly)}>SP</button>
-            </div>
-          </div>
-          {!allSetOwned && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Show</span>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => setSetViewFilters(f => ({ ...f, owned: f.owned === "owned" ? undefined : "owned" }))} style={{ ...chipStyle(setViewFilters.owned === "owned"), border: `1px solid ${setViewFilters.owned === "owned" ? "#16a34a" : c.border}`, background: setViewFilters.owned === "owned" ? "#16a34a" : "transparent", color: setViewFilters.owned === "owned" ? "#fff" : c.textTer }}>Owned</button>
-                <button onClick={() => setSetViewFilters(f => ({ ...f, owned: f.owned === "not_owned" ? undefined : "not_owned" }))} style={{ ...chipStyle(setViewFilters.owned === "not_owned"), border: `1px solid ${setViewFilters.owned === "not_owned" ? (isDark ? "#f3f4f6" : "#111827") : c.border}`, background: setViewFilters.owned === "not_owned" ? (isDark ? "#f3f4f6" : "#111827") : "transparent", color: setViewFilters.owned === "not_owned" ? (isDark ? "#111827" : "#fff") : c.textTer }}>Not owned</button>
+                  >
+                    Reset all
+                  </button>
+                ) : <div />}
+                <button
+                  onClick={() => setBinderFiltersOpen(false)}
+                  style={{
+                    padding: "6px 18px",
+                    borderRadius: 8,
+                    background: c.text,
+                    color: c.bg,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  Done
+                </button>
               </div>
             </div>
-          )}
-        </div>
+          </>
+        )}
 
         <div style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 12, paddingBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `1px solid ${c.border}` }}>
           <span style={{ fontSize: 14, color: c.textTer }}>Showing <strong style={{ color: c.text }}>{setCards.length}</strong> cards</span>
-          {hasActiveFilters && (
-            <button onClick={() => setSetViewFilters({})} style={{ fontSize: 12, color: tc.accent, fontWeight: 600, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.7"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
-              <X style={{ width: 12, height: 12 }} /> Clear filters
-            </button>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {hasActiveFilters && (
+              <button onClick={() => setSetViewFilters({})} style={{ fontSize: 12, color: tc.accent, fontWeight: 600, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.7"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
+                <X style={{ width: 12, height: 12 }} /> Clear filters
+              </button>
+            )}
+            {isMobile && (
+              <button
+                className="binder-filter-toggle"
+                onClick={() => setBinderFiltersOpen(prev => !prev)}
+                title={binderFiltersOpen ? "Hide filters" : "Show filters"}
+                style={{
+                  position: "relative",
+                  padding: 6,
+                  borderRadius: 8,
+                  border: `1px solid ${
+                    binderFiltersOpen || activeSetFilterCount > 0
+                      ? c.text
+                      : c.border
+                  }`,
+                  background: binderFiltersOpen || activeSetFilterCount > 0
+                    ? c.bgSec
+                    : "transparent",
+                  color: binderFiltersOpen || activeSetFilterCount > 0
+                    ? c.text
+                    : c.textTer,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  transition: "all 0.2s",
+                }}
+              >
+                <SlidersHorizontal size={16} />
+                {activeSetFilterCount > 0 && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: -4,
+                      right: -4,
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      background: tc.accent,
+                      color: "#fff",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+                    }}
+                  >
+                    {activeSetFilterCount}
+                  </span>
+                )}
+              </button>
+            )}
+          </div>
         </div>
 
-        <div style={{ padding: "32px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 22 }}>
+        <div className="binder-card-grid" style={{ padding: "32px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 22 }}>
           {setCards.map((card, i) => {
             const reactKey = `${getCardKey(card)}||${i}`;
             const cardKey = getCardKey(card);
@@ -702,15 +815,14 @@ export default function BinderPage() {
                     </div>
                   )}
                   <div style={{ backfaceVisibility: shouldFlip ? "hidden" : "visible", WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible" }}>
-                    <div onClick={() => { setModalCards(setCards); setModalIndex(i); setModalCard(setCards[i]); }} style={{ borderRadius: 16, overflow: "hidden", border: `1px solid ${owned ? (isDark ? "#4ade80" : "#16a34a") : c.border}`, background: c.bgSec, boxShadow: owned ? "0 10px 30px rgba(34,197,94,0.15)" : "0 10px 25px rgba(0,0,0,0.25)", transition: "all 0.25s ease", opacity: owned ? 1 : 0.55, cursor: "pointer" }}>
-                      <div style={{ aspectRatio: "63/88", overflow: "hidden" }}>
-                        <img src={card.images?.small || "/card-placeholder.png"} alt={card.name} style={{ width: "100%", height: "100%", display: "block" }} onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }} />
+                    <div onClick={() => { setModalCards(setCards); setModalIndex(i); setModalCard(setCards[i]); }} style={{ borderRadius: 14, overflow: "hidden", border: `1px solid ${owned ? (isDark ? "#4ade80" : "#16a34a") : c.border}`, background: c.bgSec, boxShadow: owned ? "0 10px 30px rgba(34,197,94,0.15)" : "0 10px 25px rgba(0,0,0,0.25)", transition: "all 0.25s ease", opacity: owned ? 1 : 0.55, cursor: "pointer" }}>
+                      <div style={{ aspectRatio: "5 / 7", overflow: "hidden" }}>
+                        <img src={card.images?.small || "/card-placeholder.png"} alt={card.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }} />
                       </div>
                     </div>
                     {wished && !owned && (i >= 18 || flipDone) && (
                       <div style={{ position: "absolute", top: 8, left: 8, width: 20, height: 20, borderRadius: "50%", background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>★</div>
                     )}
-                    <div style={{ fontSize: 12, fontWeight: 500, color: c.textSec, marginTop: 8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{card.name}</div>
                   </div>
                 </div>
               </div>
@@ -739,36 +851,36 @@ export default function BinderPage() {
     const binderCardSet = new Set(openBinderCards);
     const regularBinderCards = allCards.filter(card => binderCardSet.has(getCardKey(card)));
     const donBinderCards = allDonCards
-      .filter(card => binderCardSet.has(`don||${card.card_name}`))
-      .map(card => ({ ...card, images: { small: card.card_image, large: card.card_image }, id: card.card_name, name: card.card_name, set: { name: "DON!!" } }));
+      .filter(card => binderCardSet.has(getDonCardKey(card)))
+      .map(card => ({ ...card, images: { small: card.card_image || "/card-placeholder.png", large: card.card_image || "/card-placeholder.png" }, id: card.card_name, name: card.card_name, set: { name: "DON!!" } }));
     const binderCardList = [...sortByCardId(regularBinderCards), ...donBinderCards] as Card[];
 
     return (
-      <div suppressHydrationWarning style={{ minHeight: "100vh", background: c.bg, color: c.text, marginLeft: 70 }}>
+      <div suppressHydrationWarning className="binder-wrapper" style={{ minHeight: "100vh", background: c.bg, color: c.text, marginLeft: 70 }}>
         <style>{FLIP_STYLE}</style>
         <Sidebar />
 
-        <div style={{ padding: "20px 32px", borderBottom: `0.5px solid ${c.border}`, display: "flex", alignItems: "center", gap: 16, position: "sticky", top: 0, background: c.bg, zIndex: 20 }}>
-          <button onClick={() => { setOpenBinderId(null); window.scrollTo(0, savedScrollY.current); }} style={{ background: "none", border: "none", cursor: "pointer", color: c.textSec, display: "flex", alignItems: "center", gap: 6, fontSize: 13, padding: 0 }}>
-            <ChevronLeft size={16} /> Back
+        <div className="binder-custom-header" style={{ padding: "16px 28px", borderBottom: `0.5px solid ${c.border}`, display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, background: c.bg, zIndex: 20 }}>
+          <button onClick={() => { setOpenBinderId(null); window.scrollTo(0, savedScrollY.current); }} title="Back" style={{ background: "none", border: "none", cursor: "pointer", color: c.textSec, display: "flex", alignItems: "center", justifyContent: "center", padding: 4, flexShrink: 0 }}>
+            <ChevronLeft size={20} />
           </button>
-          <div style={{ width: "0.5px", height: 16, background: c.border }} />
-          <div style={{ display: "flex", flexDirection: "row", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-0.06em", color: c.text }}>{binder?.name}</span>
-            <span style={{ fontSize: 13, color: c.textTer }}>{openBinderCards.length} cards</span>
+          <div style={{ width: "0.5px", height: 16, background: c.border, flexShrink: 0 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, overflow: "hidden", flex: "1 1 auto" }}>
+            <span style={{ fontSize: isMobile ? 16 : 20, fontWeight: 700, letterSpacing: "-0.02em", color: c.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{binder?.name}</span>
+            <span style={{ fontSize: 13, color: c.textTer, whiteSpace: "nowrap", flexShrink: 0 }}>· {openBinderCards.length} {openBinderCards.length === 1 ? "card" : "cards"}</span>
           </div>
-          <div style={{ flex: 1 }} />
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
             {selectionMode && selectedCardKeys.size > 0 && (
-              <button title={`Remove ${selectedCardKeys.size} cards`} onClick={() => setBulkDeleteConfirm(true)} style={{ width: 36, height: 36, borderRadius: 8, border: "none", cursor: "pointer", background: "#ef4444", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", transition: "opacity 0.2s" }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
+              <button title={`Remove ${selectedCardKeys.size} cards`} onClick={() => setBulkDeleteConfirm(true)} style={{ width: 34, height: 34, borderRadius: 8, border: "none", cursor: "pointer", background: "#ef4444", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", transition: "opacity 0.2s" }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
                 <Trash2 size={15} />
               </button>
             )}
-            <button title={selectionMode ? "Cancel selection" : "Select cards"} onClick={() => { setSelectionMode(p => !p); setSelectedCardKeys(new Set()); }} style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${selectionMode ? tc.accent : c.border}`, cursor: "pointer", background: selectionMode ? `${tc.accent}18` : "transparent", color: selectionMode ? tc.accent : c.textTer, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+            <button title={selectionMode ? "Cancel selection" : "Select cards"} onClick={() => { setSelectionMode(p => !p); setSelectedCardKeys(new Set()); }} style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${selectionMode ? tc.accent : c.border}`, cursor: "pointer", background: selectionMode ? `${tc.accent}18` : "transparent", color: selectionMode ? tc.accent : c.textTer, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
               <CheckSquare size={15} />
             </button>
-            <button title="Browse cards" onClick={() => router.push("/browse")} style={{ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", background: tc.accent, color: "#fff", fontSize: 13, fontWeight: 600, transition: "opacity 0.2s" }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
-              Browse cards →
+            <button title="Browse cards" onClick={() => router.push("/browse")} style={{ padding: isMobile ? "7px 12px" : "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", background: tc.accent, color: "#fff", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", transition: "opacity 0.2s" }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
+              <span>{isMobile ? "Browse" : "Browse cards"}</span>
+              <span style={{ fontSize: 13 }}>→</span>
             </button>
           </div>
         </div>
@@ -776,10 +888,10 @@ export default function BinderPage() {
         {loadingBinderCards ? (
           <div style={{ padding: "32px" }} />
         ) : (
-          <div style={{ padding: "32px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 22 }}>
+          <div className="binder-card-grid" style={{ padding: "32px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 22 }}>
             {binderCardList.map((card, i) => {
               const isDonCard = card.set?.name === "DON!!";
-              const cardKey = isDonCard ? `don||${(card as any).card_name}` : getCardKey(card);
+              const cardKey = isDonCard ? getDonCardKey(card as any) : getCardKey(card);
               const isSelected = selectedCardKeys.has(cardKey);
               const shouldFlip = animatedFlipKey < flipKey && i < 18;
               const isLastFlip = i === Math.min(17, binderCardList.length - 1);
@@ -809,9 +921,9 @@ export default function BinderPage() {
                         }
                       }}
                     >
-                      <div style={{ borderRadius: 16, overflow: "hidden", border: `1px solid ${isSelected ? tc.accent : c.border}`, background: c.bgSec, boxShadow: isSelected ? `0 0 0 2px ${tc.accent}` : "0 10px 25px rgba(0,0,0,0.25)", transition: "all 0.2s ease", opacity: selectionMode && !isSelected ? 0.5 : 1, cursor: selectionMode ? "pointer" : "default" }}>
-                        <div style={{ aspectRatio: "63/88", overflow: "hidden" }}>
-                          <img src={card.images?.small || "/card-placeholder.png"} alt={card.name} style={{ width: "100%", height: "100%", display: "block" }} onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }} />
+                      <div style={{ borderRadius: 14, overflow: "hidden", border: `1px solid ${isSelected ? tc.accent : c.border}`, background: c.bgSec, boxShadow: isSelected ? `0 0 0 2px ${tc.accent}` : "0 10px 25px rgba(0,0,0,0.25)", transition: "all 0.2s ease", opacity: selectionMode && !isSelected ? 0.5 : 1, cursor: selectionMode ? "pointer" : "default" }}>
+                        <div style={{ aspectRatio: "5 / 7", overflow: "hidden" }}>
+                          <img src={card.images?.small || "/card-placeholder.png"} alt={card.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }} />
                         </div>
                       </div>
                       {selectionMode ? (
@@ -823,7 +935,6 @@ export default function BinderPage() {
                           <X size={11} color="#fff" />
                         </button>
                       )}
-                      <div style={{ fontSize: 12, fontWeight: 500, color: c.textSec, marginTop: 8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{card.name}</div>
                     </div>
                   </div>
                 </div>
@@ -885,7 +996,7 @@ export default function BinderPage() {
   const totalCards = allCards.length;
 
   return (
-    <div suppressHydrationWarning style={{ minHeight: "100vh", background: c.bg, color: c.text, marginLeft: 70 }}>
+    <div suppressHydrationWarning className="binder-wrapper" style={{ minHeight: "100vh", background: c.bg, color: c.text, marginLeft: 70 }}>
       <Sidebar />
 
       <div style={{ padding: "32px 32px 0" }}>
@@ -900,7 +1011,7 @@ export default function BinderPage() {
           </div>
         </div>
         <ProgressBar value={totalOwned} total={totalCards} color={tc.text.primary} />
-        <div style={{ display: "flex", gap: 0, marginTop: 28, borderBottom: `0.5px solid ${c.border}` }}>
+        <div className="binder-tabs" style={{ display: "flex", gap: 0, marginTop: 28, borderBottom: `0.5px solid ${c.border}` }}>
           {(["sets", "custom", "wishlist"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)} style={{ padding: "8px 0", marginRight: 24, fontSize: 13, fontWeight: 500, background: "none", border: "none", cursor: "pointer", color: tab === t ? c.text : c.textTer, borderBottom: tab === t ? `1.5px solid ${c.text}` : "1.5px solid transparent", transition: "all 0.15s" }}>
               {t === "sets" ? "Set binders" : t === "custom" ? "My binders" : "My wishlist"}
@@ -909,37 +1020,37 @@ export default function BinderPage() {
         </div>
       </div>
 
-      <div style={{ padding: "24px 32px" }}>
+      <div className="binder-content-wrap" style={{ padding: "24px 32px" }}>
         {tab === "sets" && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 28 }}>
+          <div className="binder-sets-grid" style={{ display: "grid", gap: 24 }}>
             {availableSets.map((setId) => {
               const setCards = cardsBySet[setId] ?? [];
               const ownedCount = setCards.filter(card => ownedSet.has(getCardKey(card))).length;
               const pct = setCards.length === 0 ? 0 : Math.floor((ownedCount / setCards.length) * 100);
               return (
-                <div key={setId} onClick={() => { savedScrollY.current = window.scrollY; setOpenSetId(setId); setOpenBinderId(null); setSetViewFilters({}); window.scrollTo(0, 0); }} style={{ position: "relative", overflow: "hidden", borderRadius: 32, padding: 28, cursor: "pointer", background: isDark ? `radial-gradient(circle at top left, rgba(99,102,241,0.18), transparent 35%), linear-gradient(180deg, ${tc.bg.secondary}, ${tc.bg.primary})` : tc.bg.secondary, border: `1px solid ${tc.border}`, boxShadow: isDark ? "0 10px 40px rgba(0,0,0,0.45)" : "0 10px 30px rgba(0,0,0,0.06)", transition: "all 0.25s ease" }} onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px) scale(1.015)"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0px) scale(1)"; }}>
+                <div key={setId} className="binder-deck-card" onClick={() => { savedScrollY.current = window.scrollY; setOpenSetId(setId); setOpenBinderId(null); setSetViewFilters({}); window.scrollTo(0, 0); }} style={{ position: "relative", overflow: "hidden", borderRadius: 24, padding: "26px 26px", cursor: "pointer", background: isDark ? `radial-gradient(circle at top left, rgba(99,102,241,0.18), transparent 35%), linear-gradient(180deg, ${tc.bg.secondary}, ${tc.bg.primary})` : tc.bg.secondary, border: `1px solid ${tc.border}`, boxShadow: isDark ? "0 10px 40px rgba(0,0,0,0.45)" : "0 10px 30px rgba(0,0,0,0.06)", transition: "all 0.25s ease" }} onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px) scale(1.015)"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0px) scale(1)"; }}>
                   <div style={{ position: "absolute", width: 220, height: 220, borderRadius: "50%", background: `${tc.accent}22`, filter: "blur(80px)", top: -120, right: -80, pointerEvents: "none" }} />
-                  <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.18em", color: c.textTer, marginBottom: 16, fontWeight: 600 }}>{setId}</div>
-                  <div style={{ fontSize: 34, lineHeight: 0.95, fontWeight: 800, letterSpacing: "-0.06em", color: c.text, marginBottom: 28, maxWidth: 220 }}>{SET_NAMES[setId] ?? setId}</div>
-                  <div style={{ position: "relative", height: 150, marginBottom: 30 }}>
+                  <div className="binder-set-code" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.18em", color: c.textTer, marginBottom: 8, fontWeight: 600 }}>{setId}</div>
+                  <div className="binder-set-title" style={{ fontSize: 26, lineHeight: 1.15, fontWeight: 800, letterSpacing: "-0.03em", color: c.text, marginBottom: 20, maxWidth: "100%" }}>{SET_NAMES[setId] ?? setId}</div>
+                  <div className="binder-mini-cards-wrap" style={{ position: "relative", height: 140, marginBottom: 24 }}>
                     {setCards.slice(0, 4).map((card, i) => (
-                      <div key={i} style={{ position: "absolute", left: `${i * 52}px`, top: i % 2 === 0 ? 0 : 10, width: 92, height: 132, borderRadius: 14, overflow: "hidden", background: tc.bg.tertiary, border: `1px solid ${tc.border}`, transform: `rotate(${i % 2 === 0 ? "-5deg" : "5deg"})`, boxShadow: "0 18px 40px rgba(0,0,0,0.45)" }}>
+                      <div key={i} className="binder-mini-card" style={{ position: "absolute", left: `${i * 48}px`, top: i % 2 === 0 ? 0 : 8, width: 86, height: 122, borderRadius: 12, overflow: "hidden", background: tc.bg.tertiary, border: `1px solid ${tc.border}`, transform: `rotate(${i % 2 === 0 ? "-5deg" : "5deg"})`, boxShadow: "0 16px 36px rgba(0,0,0,0.4)" }}>
                         {card.images?.small && <img src={card.images.small} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
                       </div>
                     ))}
                   </div>
                   <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 12 }}>
+                    <div className="binder-stats-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10 }}>
                       <div>
-                        <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.04em", color: c.text }}>{pct}%</div>
-                        <div style={{ fontSize: 13, color: c.textTer, marginTop: 2 }}>collection complete</div>
+                        <div className="binder-pct-text" style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.04em", color: c.text }}>{pct}%</div>
+                        <div className="binder-stat-subtext" style={{ fontSize: 12, color: c.textTer, marginTop: 2 }}>collection complete</div>
                       </div>
                       <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 16, fontWeight: 600, color: c.text }}>{ownedCount} / {setCards.length}</div>
-                        <div style={{ fontSize: 12, color: c.textTer, marginTop: 2 }}>cards collected</div>
+                        <div className="binder-count-text" style={{ fontSize: 14, fontWeight: 600, color: c.text }}>{ownedCount} / {setCards.length}</div>
+                        <div className="binder-stat-subtext" style={{ fontSize: 12, color: c.textTer, marginTop: 2 }}>cards collected</div>
                       </div>
                     </div>
-                    <div style={{ position: "relative", height: 10, borderRadius: 999, overflow: "hidden", background: isDark ? "rgba(255,255,255,0.06)" : tc.bg.tertiary }}>
+                    <div className="binder-progress-bar" style={{ position: "relative", height: 6, borderRadius: 999, overflow: "hidden", background: isDark ? "rgba(255,255,255,0.06)" : tc.bg.tertiary }}>
                       <div style={{ width: `${pct}%`, height: "100%", borderRadius: 999, background: pct === 100 ? "linear-gradient(90deg,#22c55e,#4ade80)" : `linear-gradient(90deg,${tc.accent},${tc.accent}aa)`, boxShadow: pct === 100 ? "0 0 20px rgba(34,197,94,0.5)" : `0 0 24px ${tc.accent}66`, transition: "all 0.4s ease" }} />
                     </div>
                   </div>
@@ -965,20 +1076,20 @@ export default function BinderPage() {
               )}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 28 }}>
+            <div className="binder-sets-grid" style={{ display: "grid", gap: 24 }}>
               {binders.map((binder) => {
                 const binderCards = binderPreviewCards[binder.id] ?? [];
                 return (
-                  <div key={binder.id} onClick={() => { if (renamingId !== binder.id) { savedScrollY.current = window.scrollY; setOpenBinderId(binder.id); window.scrollTo(0, 0); } }} style={{ position: "relative", overflow: "hidden", borderRadius: 32, padding: 28, cursor: "pointer", background: isDark ? `radial-gradient(circle at top right, ${tc.accent}22, transparent 35%), linear-gradient(180deg, ${tc.bg.secondary}, ${tc.bg.primary})` : tc.bg.secondary, border: `1px solid ${tc.border}`, boxShadow: "0 10px 40px rgba(0,0,0,0.35)", transition: "all 0.25s ease" }} onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px) scale(1.015)"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0px) scale(1)"; }}>
+                  <div key={binder.id} className="binder-deck-card" onClick={() => { if (renamingId !== binder.id) { savedScrollY.current = window.scrollY; setOpenBinderId(binder.id); window.scrollTo(0, 0); } }} style={{ position: "relative", overflow: "hidden", borderRadius: 24, padding: "26px 26px", cursor: "pointer", background: isDark ? `radial-gradient(circle at top right, ${tc.accent}22, transparent 35%), linear-gradient(180deg, ${tc.bg.secondary}, ${tc.bg.primary})` : tc.bg.secondary, border: `1px solid ${tc.border}`, boxShadow: "0 10px 40px rgba(0,0,0,0.35)", transition: "all 0.25s ease" }} onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px) scale(1.015)"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0px) scale(1)"; }}>
                     <div style={{ position: "absolute", width: 240, height: 240, borderRadius: "50%", background: `${tc.accent}22`, filter: "blur(90px)", top: -120, right: -80, pointerEvents: "none" }} />
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
                       <div>
                         {renamingId === binder.id ? (
-                          <input autoFocus value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter") handleRenameBinder(binder.id); if (e.key === "Escape") setRenamingId(null); }} onClick={(e) => e.stopPropagation()} style={{ background: "transparent", border: "none", outline: "none", fontSize: 28, fontWeight: 800, letterSpacing: "-0.05em", color: c.text, fontFamily: "inherit" }} />
+                          <input autoFocus value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter") handleRenameBinder(binder.id); if (e.key === "Escape") setRenamingId(null); }} onClick={(e) => e.stopPropagation()} style={{ background: "transparent", border: "none", outline: "none", fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em", color: c.text, fontFamily: "inherit" }} />
                         ) : (
                           <>
-                            <div style={{ fontSize: 12, letterSpacing: "0.16em", textTransform: "uppercase", color: c.textTer, marginBottom: 10 }}>Custom Binder</div>
-                            <div style={{ fontSize: 32, lineHeight: 0.95, fontWeight: 800, letterSpacing: "-0.06em", color: c.text, maxWidth: 220 }}>{binder.name}</div>
+                            <div className="binder-set-code" style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: c.textTer, marginBottom: 8, fontWeight: 600 }}>Custom Binder</div>
+                            <div className="binder-set-title" style={{ fontSize: 26, lineHeight: 1.15, fontWeight: 800, letterSpacing: "-0.03em", color: c.text, maxWidth: "100%" }}>{binder.name}</div>
                           </>
                         )}
                       </div>
@@ -987,21 +1098,21 @@ export default function BinderPage() {
                         <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(binder.id); }} style={{ width: 34, height: 34, borderRadius: 999, border: "none", background: "rgba(239,68,68,0.12)", color: "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={14} /></button>
                       </div>
                     </div>
-                    <div style={{ position: "relative", height: 150, marginBottom: 30 }}>
+                    <div className="binder-mini-cards-wrap" style={{ position: "relative", height: 140, marginBottom: 24 }}>
                       {binderCards.length > 0 ? binderCards.map((card, i) => (
-                        <div key={i} style={{ position: "absolute", left: `${i * 54}px`, top: i % 2 === 0 ? 0 : 10, width: 92, height: 132, borderRadius: 14, overflow: "hidden", background: tc.bg.tertiary, border: `1px solid ${tc.border}`, transform: `rotate(${i % 2 === 0 ? "-5deg" : "5deg"})`, boxShadow: "0 18px 40px rgba(0,0,0,0.45)" }}>
+                        <div key={i} className="binder-mini-card" style={{ position: "absolute", left: `${i * 48}px`, top: i % 2 === 0 ? 0 : 8, width: 86, height: 122, borderRadius: 12, overflow: "hidden", background: tc.bg.tertiary, border: `1px solid ${tc.border}`, transform: `rotate(${i % 2 === 0 ? "-5deg" : "5deg"})`, boxShadow: "0 16px 36px rgba(0,0,0,0.4)" }}>
                           {card.images?.small && <img src={card.images.small} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
                         </div>
                       )) : (
-                        <div style={{ height: "100%", borderRadius: 22, border: `1px dashed ${tc.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.textTer, fontSize: 14 }}>No cards yet</div>
+                        <div style={{ height: "100%", borderRadius: 16, border: `1px dashed ${tc.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.textTer, fontSize: 14 }}>No cards yet</div>
                       )}
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                    <div className="binder-stats-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                       <div>
-                        <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.04em", color: c.text }}>{binderCounts[binder.id] ?? 0}</div>
-                        <div style={{ fontSize: 13, color: c.textTer, marginTop: 2 }}>cards collected</div>
+                        <div className="binder-pct-text" style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.04em", color: c.text }}>{binderCounts[binder.id] ?? 0}</div>
+                        <div className="binder-stat-subtext" style={{ fontSize: 12, color: c.textTer, marginTop: 2 }}>cards collected</div>
                       </div>
-                      <div style={{ fontSize: 13, color: c.textTer }}>Open Binder →</div>
+                      <div className="binder-stat-subtext" style={{ fontSize: 12, color: c.textTer }}>Open Binder →</div>
                     </div>
                   </div>
                 );
@@ -1028,26 +1139,25 @@ export default function BinderPage() {
               <div style={{ fontSize: 14, color: c.textTer }}>Add cards to your wishlist from the browse page.</div>
             </div>
           ) : (
-            <div style={{ padding: "0 32px" }}>
+            <div className="binder-wishlist-wrap" style={{ padding: "0 32px" }}>
               <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 22 }}>
+              <div className="binder-card-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 22 }}>
                 {wishlistCards.map((card, i) => {
                   const cardKey = getCardKey(card);
                   return (
                     <div key={`${cardKey}||${i}`} style={{ position: "relative" }}>
                       <div
                         onClick={() => { setModalCards(wishlistCards); setModalIndex(i); setModalCard(card); }}
-                        style={{ borderRadius: 16, overflow: "hidden", border: `1px solid #f59e0b`, background: c.bgSec, boxShadow: "0 10px 25px rgba(245,158,11,0.15)", cursor: "pointer", transition: "all 0.2s ease" }}
+                        style={{ borderRadius: 14, overflow: "hidden", border: `1px solid #f59e0b`, background: c.bgSec, boxShadow: "0 10px 25px rgba(245,158,11,0.15)", cursor: "pointer", transition: "all 0.2s ease" }}
                         onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 16px 32px rgba(245,158,11,0.25)"; }}
                         onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 10px 25px rgba(245,158,11,0.15)"; }}
                       >
-                        <div style={{ aspectRatio: "63/88", overflow: "hidden" }}>
-                          <img src={card.images?.small || "/card-placeholder.png"} alt={card.name} style={{ width: "100%", height: "100%", display: "block" }} onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }} />
+                        <div style={{ aspectRatio: "5 / 7", overflow: "hidden" }}>
+                          <img src={card.images?.small || "/card-placeholder.png"} alt={card.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }} />
                         </div>
                       </div>
                       <div style={{ position: "absolute", top: 8, left: 8, width: 20, height: 20, borderRadius: "50%", background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>★</div>
-                      <div style={{ fontSize: 12, fontWeight: 500, color: c.textSec, marginTop: 8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{card.name}</div>
                     </div>
                   );
                 })}

@@ -16,8 +16,6 @@ const COLOR_STYLES: Record<string, { bg: string; border: string; dot: string; da
   Multicolor: { bg: "#fff7ed", border: "#fdba74", dot: "#f97316", darkBg: "#5a2d0c" },
 };
 
-
-
 interface Props {
   card: Card;
   onClick: (card: Card) => void;
@@ -25,6 +23,7 @@ interface Props {
 
 function CardItem({ card, onClick }: Props) {
   const [mounted, setMounted] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const { theme } = useTheme();
 
   useEffect(() => {
@@ -37,7 +36,6 @@ function CardItem({ card, onClick }: Props) {
   const cardColors = card.color?.split("/") ?? ["Black"];
   const primaryColor = cardColors[0].trim();
   const colorStyle = COLOR_STYLES[primaryColor] ?? COLOR_STYLES.Black;
-  const normalizedRarity = card.name?.includes("(SP)") ? "SP" : card.rarity === "SP" ? "SP" : card.rarity;
 
   const bgGradient = isDark
     ? `linear-gradient(135deg, ${colorStyle.darkBg}, ${tc.bg.secondary})`
@@ -73,37 +71,28 @@ function CardItem({ card, onClick }: Props) {
         style={{
           position: "relative",
           width: "100%",
-          aspectRatio: "5 / 7", // 🔥 FIX
+          aspectRatio: "5 / 7",
           overflow: "hidden",
           background: bgGradient,
         }}
       >
-        {/* Rarity badge */}
-        <div
-          style={{
-            position: "absolute",
-            top: 8,
-            right: 8,
-            fontSize: 12,
-            fontWeight: 700,
-            padding: "2px 8px",
-            borderRadius: 9999,
-            zIndex: 10,
-          }}
-        >
-        </div>
-
         {/* Image */}
         <img
           src={card.images?.small || "/card-placeholder.png"}
           alt={card.name}
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setImageLoaded(true)}
           style={{
             width: "100%",
-            height: "100%", 
+            height: "100%",
             objectFit: "cover",
+            opacity: imageLoaded ? 1 : 0,
+            transition: "opacity 0.25s ease-in-out",
           }}
           onError={(e) => {
             e.currentTarget.src = "/card-placeholder.png";
+            setImageLoaded(true);
           }}
         />
       </div>

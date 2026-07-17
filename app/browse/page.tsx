@@ -6,84 +6,24 @@ import { getAllCards, getAllSets } from "@/lib/api";
 import CardItem from "@/components/CardItem";
 const FilterBar = dynamic(() => import("@/components/FilterBar"));
 const Sidebar = dynamic(() => import("@/components/Sidebar"));
-import { Search, X, LayoutGrid, List, ChevronLeft, ChevronRight, BookmarkPlus, Check, BookOpen, ArrowDownWideNarrow, ArrowUpNarrowWide, CheckSquare, Plus, CopyCheck } from "lucide-react";
+import { Search, X, LayoutGrid, List, ChevronLeft, ChevronRight, BookmarkPlus, Check, BookOpen, ArrowDownWideNarrow, ArrowUpNarrowWide, CheckSquare, Plus, CopyCheck, SlidersHorizontal } from "lucide-react";
 import { useTheme } from "next-themes";
 import { createClient } from "@/lib/supabase";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
   getUserCards, getBinders, addUserCard, removeUserCard,
   addCardToBinder, removeCardFromBinder, getBinderCards, createBinder,
+  getCardKey,
   type UserCard, type Binder,
 } from "@/lib/binder";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { getColors } from "@/lib/themes";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
+import ModalCardImage from "@/components/ModalCardImage";
 
 function isLimitedProductCard(card: Card) {
   return card.setType === "limited_product";
-}
-
-function ModalCardImage({ src, alt, isLeader, isDark, colors }: {
-  src: string; alt: string; isLeader: boolean; isDark: boolean; colors: any;
-}) {
-  const [loaded, setLoaded] = useState(false);
-  const [flipped, setFlipped] = useState(false);
-  const [imgSrc, setImgSrc] = useState(src);
-  const backSrc = isLeader ? "/card-back-leader.png" : "/card-back.png";
-
-  useEffect(() => {
-    setLoaded(false);
-    setFlipped(false);
-    setImgSrc(src);
-
-    const img = new window.Image();
-    img.src = src;
-    img.onload = () => {
-      setLoaded(true);
-      setTimeout(() => setFlipped(true), 60);
-    };
-    img.onerror = () => {
-      setImgSrc("/card-placeholder.png");
-      setLoaded(true);
-      setTimeout(() => setFlipped(true), 60);
-    };
-  }, [src]);
-
-  return (
-    <div style={{ width: "100%", aspectRatio: "63/88", perspective: "1000px" }}>
-      <div style={{
-        position: "relative",
-        width: "100%",
-        height: "100%",
-        transformStyle: "preserve-3d",
-        transition: "transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)",
-        transform: flipped ? "rotateY(0deg)" : "rotateY(180deg)",
-        borderRadius: 18,
-        boxShadow: isDark ? "0 12px 40px rgba(0,0,0,0.6)" : "0 12px 40px rgba(0,0,0,0.2)",
-      }}>
-        {/* Front — actual card */}
-        <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", borderRadius: 17, overflow: "hidden" }}>
-        {loaded && (
-            <img
-              src={imgSrc}
-              alt={alt}
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", borderRadius: 17 }}
-              onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }}
-            />
-          )}
-        </div>
-        {/* Back — card back, shown while loading */}
-        <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)", borderRadius: 19, overflow: "hidden" }}>
-          <img
-            src={backSrc}
-            alt=""
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", borderRadius: 17 }}
-          />
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export default function Home() {
@@ -101,6 +41,9 @@ export default function Home() {
   const [filterKey, setFilterKey] = useState(0);
   const [animatedKey, setAnimatedKey] = useState(-1);
   const [visibleCards, setVisibleCards] = useState(40);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isNarrow, setIsNarrow] = useState(false);
 
   // ── AUTH + BINDER STATE ──
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -113,6 +56,7 @@ export default function Home() {
   const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
   const [showMultiBinderPicker, setShowMultiBinderPicker] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   // ── INLINE BINDER CREATION STATE ──
   const [creatingBinderInline, setCreatingBinderInline] = useState(false);
@@ -122,7 +66,6 @@ export default function Home() {
 
   const tc = getColors(theme, mounted);
   const isDark = tc.isDark;
-  const getCardKey = (card: Card) => `${card.id ?? ""}||${card.name ?? ""}||${card.set?.name ?? ""}`;
 
   const colors = {
     bg: {
@@ -144,10 +87,43 @@ export default function Home() {
     setNewBinderNameInline("");
   };
 
+  const handleModalTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY };
+  };
+  
+  const handleModalTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start || showBinderPicker || isSelectMode) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return; // not a clean horizontal swipe
+    if (dx < 0 && selectedIndex < filtered.length - 1) setSelectedIndex(selectedIndex + 1);
+    else if (dx > 0 && selectedIndex > 0) setSelectedIndex(selectedIndex - 1);
+  };
+
   //scroll lock
-  useBodyScrollLock(selectedIndex >= 0);
+  useBodyScrollLock(selectedIndex >= 0 || mobileFiltersOpen);
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1024px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 540px)");
+    setIsNarrow(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsNarrow(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -482,9 +458,14 @@ export default function Home() {
   const allSelectKeys = filtered.map((c, i) => `${getCardKey(c)}||${i}`);
   const allSelected = allSelectKeys.length > 0 && allSelectKeys.every(k => multiSelected.has(k));
 
-  const hasFilters = search || filters.colors?.length || Object.entries(filters)
-    .filter(([k]) => k !== "colors")
-    .some(([, v]) => Boolean(v));
+  const activeFilterCount = (filters.colors?.length ? 1 : 0) +
+    (filters.setId ? 1 : 0) +
+    (filters.setType ? 1 : 0) +
+    (filters.type ? 1 : 0) +
+    (filters.rarity ? 1 : 0) +
+    (filters.spOnly ? 1 : 0);
+
+  const hasFilters = search || activeFilterCount > 0;
 
   const isAnimating = animatedKey < filterKey;
 
@@ -529,78 +510,401 @@ export default function Home() {
   return (
     <div
       suppressHydrationWarning
-      style={{ minHeight: "100vh", background: colors.bg.primary, transition: "background-color 0.3s", color: colors.text.primary, marginLeft: 70, paddingTop: 57 }}
+      className="browse-wrapper"
+      style={{
+        minHeight: "100vh",
+        background: colors.bg.primary,
+        transition: "background-color 0.3s",
+        color: colors.text.primary,
+        marginLeft: 70,
+        paddingTop: 57,
+      }}
     >
       <Sidebar />
 
       {/* ── FIXED HEADER ── */}
-      <header style={{ background: colors.bg.secondary, borderBottom: `1px solid ${colors.border}`, padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "center", position: "fixed", top: 0, left: 70, right: 0, zIndex: 20, transition: "all 0.3s" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "center", maxWidth: 800 }}>
-          <div style={{ position: "relative", width: 320 }}>
-            <Search style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: colors.text.tertiary }} />
+      <header
+        className="browse-header"
+        style={{
+          background: colors.bg.secondary,
+          borderBottom: `1px solid ${colors.border}`,
+          padding: "12px 24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "fixed",
+          top: 0,
+          left: 70,
+          right: 0,
+          zIndex: 20,
+          transition: "all 0.3s",
+        }}
+      >
+        <div
+          className="browse-search-container"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flex: 1,
+            justifyContent: "center",
+            maxWidth: 800,
+          }}
+        >
+          <div className="browse-search-input-wrap" style={{ position: "relative", width: 320 }}>
+            <Search
+              style={{
+                position: "absolute",
+                left: 12,
+                top: "50%",
+                transform: "translateY(-50%)",
+                width: 16,
+                height: 16,
+                color: colors.text.tertiary,
+              }}
+            />
             <input
+              className="browse-search-input"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search card"
-              style={{ width: "100%", paddingLeft: 36, paddingRight: 16, paddingTop: 8, paddingBottom: 8, fontSize: 14, border: `1px solid ${colors.border}`, borderRadius: 8, background: colors.bg.primary, color: colors.text.primary, outline: "none", transition: "all 0.2s" }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = colors.text.primary; e.currentTarget.style.boxShadow = `0 0 0 3px ${isDark ? "rgba(243,244,246,0.1)" : "rgba(17,24,39,0.1)"}`; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = colors.border; e.currentTarget.style.boxShadow = "none"; }}
+              style={{
+                width: "100%",
+                paddingLeft: 36,
+                paddingRight: 16,
+                paddingTop: 8,
+                paddingBottom: 8,
+                fontSize: 14,
+                border: `1px solid ${colors.border}`,
+                borderRadius: 8,
+                background: colors.bg.primary,
+                color: colors.text.primary,
+                outline: "none",
+                transition: "all 0.2s",
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = colors.text.primary;
+                e.currentTarget.style.boxShadow = `0 0 0 3px ${
+                  isDark ? "rgba(243,244,246,0.1)" : "rgba(17,24,39,0.1)"
+                }`;
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = colors.border;
+                e.currentTarget.style.boxShadow = "none";
+              }}
             />
             {search && (
-              <button onClick={() => setSearch("")} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 4 }}>
-                <X style={{ width: 14, height: 14, color: colors.text.tertiary }} />
+              <button
+                onClick={() => setSearch("")}
+                style={{
+                  position: "absolute",
+                  right: 12,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 4,
+                }}
+              >
+                <X
+                  style={{ width: 14, height: 14, color: colors.text.tertiary }}
+                />
               </button>
             )}
           </div>
-          <div style={{ display: "flex", gap: 4, background: colors.bg.tertiary, padding: 4, borderRadius: 8, flexShrink: 0 }}>
-            <button onClick={() => setView("grid")} style={{ padding: 6, borderRadius: 6, background: view === "grid" ? colors.bg.primary : "transparent", border: "none", cursor: "pointer", color: view === "grid" ? colors.text.primary : colors.text.tertiary, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 4,
+              background: colors.bg.tertiary,
+              padding: 4,
+              borderRadius: 8,
+              flexShrink: 0,
+            }}
+          >
+            <button
+              onClick={() => setView("grid")}
+              style={{
+                padding: 6,
+                borderRadius: 6,
+                background: view === "grid" ? colors.bg.primary : "transparent",
+                border: "none",
+                cursor: "pointer",
+                color:
+                  view === "grid" ? colors.text.primary : colors.text.tertiary,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.2s",
+              }}
+            >
               <LayoutGrid style={{ width: 16, height: 16 }} />
             </button>
-            <button onClick={() => setView("list")} style={{ padding: 6, borderRadius: 6, background: view === "list" ? colors.bg.primary : "transparent", border: "none", cursor: "pointer", color: view === "list" ? colors.text.primary : colors.text.tertiary, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+            <button
+              onClick={() => setView("list")}
+              style={{
+                padding: 6,
+                borderRadius: 6,
+                background: view === "list" ? colors.bg.primary : "transparent",
+                border: "none",
+                cursor: "pointer",
+                color:
+                  view === "list" ? colors.text.primary : colors.text.tertiary,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.2s",
+              }}
+            >
               <List style={{ width: 16, height: 16 }} />
             </button>
           </div>
           <button
             onClick={() => setSortDesc(!sortDesc)}
-            style={{ padding: 6, borderRadius: 6, border: "1px solid", background: sortDesc ? colors.bg.tertiary : "transparent", color: sortDesc ? colors.text.tertiary : colors.text.tertiary, cursor: "pointer", fontSize: 14, fontWeight: 600, transition: "all 0.2s" }}
+            style={{
+              padding: 6,
+              borderRadius: 6,
+              border: "1px solid",
+              background: sortDesc ? colors.bg.tertiary : "transparent",
+              color: sortDesc ? colors.text.tertiary : colors.text.tertiary,
+              cursor: "pointer",
+              fontSize: 14,
+              fontWeight: 600,
+              transition: "all 0.2s",
+            }}
             title={sortDesc ? "Descending" : "Ascending"}
           >
-            {sortDesc ? 
-            <ArrowDownWideNarrow style={{ width: 16, height: 16 }} />
-             :
-            <ArrowUpNarrowWide style={{ width: 16, height: 16 }} />}
+            {sortDesc ? (
+              <ArrowDownWideNarrow style={{ width: 16, height: 16 }} />
+            ) : (
+              <ArrowUpNarrowWide style={{ width: 16, height: 16 }} />
+            )}
           </button>
           {user && (
-          <button
-            onClick={() => { isSelectMode ? exitSelectMode() : enterSelectMode(); }}
-            title={isSelectMode ? "Exit selection" : "Select cards"}
-            style={{ padding: 6, borderRadius: 8, border: `1px solid ${isSelectMode ? colors.text.primary : colors.border}`, background: isSelectMode ? colors.bg.tertiary : "transparent", color: isSelectMode ? colors.text.primary : colors.text.tertiary, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}
+            <button
+              onClick={() => {
+                isSelectMode ? exitSelectMode() : enterSelectMode();
+              }}
+              title={isSelectMode ? "Exit selection" : "Select cards"}
+              style={{
+                padding: 6,
+                borderRadius: 8,
+                border: `1px solid ${
+                  isSelectMode ? colors.text.primary : colors.border
+                }`,
+                background: isSelectMode ? colors.bg.tertiary : "transparent",
+                color: isSelectMode
+                  ? colors.text.primary
+                  : colors.text.tertiary,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                transition: "all 0.2s",
+              }}
             >
               <CopyCheck size={16} />
-          </button>
+            </button>
           )}
+          {/* Mobile Filter Toggle Button */}
+          <button
+            className="browse-filter-toggle"
+            onClick={() => setMobileFiltersOpen(prev => !prev)}
+            title={mobileFiltersOpen ? "Hide filters" : "Show filters"}
+            style={{
+              position: "relative",
+              padding: 6,
+              borderRadius: 8,
+              border: `1px solid ${
+                mobileFiltersOpen || activeFilterCount > 0
+                  ? colors.text.primary
+                  : colors.border
+              }`,
+              background: mobileFiltersOpen || activeFilterCount > 0
+                ? colors.bg.tertiary
+                : "transparent",
+              color: mobileFiltersOpen || activeFilterCount > 0
+                ? colors.text.primary
+                : colors.text.tertiary,
+              cursor: "pointer",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              transition: "all 0.2s",
+            }}
+          >
+            <SlidersHorizontal size={16} />
+            {activeFilterCount > 0 && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -4,
+                  width: 16,
+                  height: 16,
+                  borderRadius: "50%",
+                  background: tc.accent,
+                  color: "#fff",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+                }}
+              >
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
         </div>
       </header>
 
-      <FilterBar sets={sets} filters={filters} onChange={setFilters} />
+      {/* Desktop FilterBar — only rendered on desktop screens */}
+      {!isMobile && (
+        <div className="desktop-filterbar">
+          <FilterBar sets={sets} filters={filters} onChange={setFilters} />
+        </div>
+      )}
 
-      <div style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 12, paddingBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `1px solid ${colors.border}` }}>
+      {/* Mobile Floating Slide-Down Filter Drawer attached directly below the search header */}
+      {isMobile && mobileFiltersOpen && (
+        <>
+          <div
+            className="filter-drawer-backdrop"
+            onClick={() => setMobileFiltersOpen(false)}
+            style={{
+              position: "fixed",
+              top: 122,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.45)",
+              backdropFilter: "blur(2px)",
+              WebkitBackdropFilter: "blur(2px)",
+              zIndex: 25,
+            }}
+          />
+          <div
+            className="browse-mobile-drawer"
+            style={{
+              position: "fixed",
+              top: 122,
+              left: 0,
+              right: 0,
+              zIndex: 30,
+              background: colors.bg.primary,
+              borderBottom: `1px solid ${colors.border}`,
+              boxShadow: "0 16px 36px rgba(0, 0, 0, 0.35)",
+              maxHeight: "calc(80vh - 122px)",
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
+            }}
+          >
+            <FilterBar sets={sets} filters={filters} onChange={setFilters} isMobileDrawer={true} />
+            <div
+              style={{
+                padding: "8px 16px 14px",
+                background: colors.bg.primary,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              {activeFilterCount > 0 ? (
+                <button
+                  onClick={() => setFilters({})}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: colors.text.tertiary,
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "4px 8px",
+                  }}
+                >
+                  Reset all
+                </button>
+              ) : <div />}
+              <button
+                onClick={() => setMobileFiltersOpen(false)}
+                style={{
+                  padding: "6px 18px",
+                  borderRadius: 8,
+                  background: colors.text.primary,
+                  color: colors.bg.primary,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      <div
+        style={{
+          paddingLeft: 24,
+          paddingRight: 24,
+          paddingTop: 12,
+          paddingBottom: 12,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: `1px solid ${colors.border}`,
+        }}
+      >
         <span style={{ fontSize: 14, color: colors.text.tertiary }}>
-          {loading ? "Loading cards..." : (<>Showing <strong style={{ color: colors.text.primary }}>{filtered.length}</strong> cards</>)}
+          {loading ? (
+            "Loading cards..."
+          ) : (
+            <>
+              Showing{" "}
+              <strong style={{ color: colors.text.primary }}>
+                {filtered.length}
+              </strong>{" "}
+              cards
+            </>
+          )}
         </span>
         {hasFilters && (
           <button
-            onClick={() => { setFilters({}); setSearch(""); }}
-            style={{ fontSize: 12, color: colors.accent, fontWeight: 600, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, transition: "all 0.2s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.7"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+            onClick={() => {
+              setFilters({});
+              setSearch("");
+            }}
+            style={{
+              fontSize: 12,
+              color: colors.accent,
+              fontWeight: 600,
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = "0.7";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = "1";
+            }}
           >
             <X style={{ width: 12, height: 12 }} /> Clear filters
           </button>
         )}
       </div>
 
-      <main style={{ paddingLeft: 24, paddingRight: 24, paddingBottom: 64 }}>
+      <main className="browse-main" style={{ paddingLeft: 24, paddingRight: 24, paddingBottom: 64 }}>
         <style>{`
           @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
           .skeleton-loader { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
@@ -608,13 +912,38 @@ export default function Home() {
         `}</style>
 
         {loading ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, marginTop: 16 }}>
+          <div
+            className="browse-skeleton-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(5, 1fr)",
+              gap: 16,
+              marginTop: 16,
+            }}
+          >
             {Array.from({ length: 18 }).map((_, i) => (
-              <div key={i} className="skeleton-loader" style={{ borderRadius: 12, background: colors.bg.tertiary, border: `1px solid ${colors.border}`, height: 256 }} />
+              <div
+                key={i}
+                className="skeleton-loader"
+                style={{
+                  borderRadius: 12,
+                  background: colors.bg.tertiary,
+                  border: `1px solid ${colors.border}`,
+                  height: 256,
+                }}
+              />
             ))}
           </div>
         ) : view === "grid" ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16, marginTop: 16 }}>
+          <div
+            className="browse-card-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+              gap: 16,
+              marginTop: 16,
+            }}
+          >
             {filtered.slice(0, visibleCards).map((card, i) => {
               const shouldFlip = isAnimating && i < 10;
               const isLastFlip = i === Math.min(9, filtered.length - 1);
@@ -624,37 +953,124 @@ export default function Home() {
               return (
                 <div
                   key={`${filterKey}-${card.id}-${i}`}
-                  style={{ perspective: shouldFlip ? "1000px" : "none", position: "relative" }}
-                  onMouseDown={() => { if (!isSelectMode) handleLongPressStart(selectKey); }}
+                  style={{
+                    perspective: shouldFlip ? "1000px" : "none",
+                    position: "relative",
+                  }}
+                  onMouseDown={() => {
+                    if (!isSelectMode) handleLongPressStart(selectKey);
+                  }}
                   onMouseUp={handleLongPressEnd}
                   onMouseLeave={handleLongPressEnd}
-                  onTouchStart={() => { if (!isSelectMode) handleLongPressStart(selectKey); }}
+                  onTouchStart={() => {
+                    if (!isSelectMode) handleLongPressStart(selectKey);
+                  }}
                   onTouchEnd={handleLongPressEnd}
                 >
                   <div
-                    style={{ position: "relative", transformStyle: shouldFlip ? "preserve-3d" : "flat", animationName: shouldFlip ? "cardFlipIn" : "none", animationDuration: shouldFlip ? "0.5s" : "0s", animationTimingFunction: "ease", animationFillMode: "forwards", animationDelay: shouldFlip ? `${i * 0.03}s` : "0s", willChange: shouldFlip ? "transform" : "auto" }}
-                    onAnimationEnd={isLastFlip ? () => setAnimatedKey(filterKey) : undefined}
+                    style={{
+                      position: "relative",
+                      transformStyle: shouldFlip ? "preserve-3d" : "flat",
+                      animationName: shouldFlip ? "cardFlipIn" : "none",
+                      animationDuration: shouldFlip ? "0.5s" : "0s",
+                      animationTimingFunction: "ease",
+                      animationFillMode: "forwards",
+                      animationDelay: shouldFlip ? `${i * 0.03}s` : "0s",
+                      willChange: shouldFlip ? "transform" : "auto",
+                    }}
+                    onAnimationEnd={
+                      isLastFlip ? () => setAnimatedKey(filterKey) : undefined
+                    }
                   >
                     {shouldFlip && (
-                      <div style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)", position: "absolute", inset: 0, borderRadius: 14, overflow: "hidden" }}>
-                        <Image src={card.type?.toUpperCase() === "LEADER" ? "/card-back-leader.png" : "/card-back.png"} alt="" fill loading="lazy" style={{ objectFit: "cover", borderRadius: 14 }} />
+                      <div
+                        style={{
+                          backfaceVisibility: "hidden",
+                          WebkitBackfaceVisibility: "hidden",
+                          transform: "rotateY(180deg)",
+                          position: "absolute",
+                          inset: 0,
+                          borderRadius: 14,
+                          overflow: "hidden",
+                        }}
+                      >
+                        <Image
+                          src={
+                            card.type?.toUpperCase() === "LEADER"
+                              ? "/card-back-leader.png"
+                              : "/card-back.png"
+                          }
+                          alt=""
+                          fill
+                          loading="lazy"
+                          style={{ objectFit: "cover", borderRadius: 14 }}
+                        />
                       </div>
                     )}
                     <div
-                      style={{ backfaceVisibility: shouldFlip ? "hidden" : "visible", WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible", outline: isMultiChecked ? "3px solid #6366f1" : "none", borderRadius: 14, transition: "outline 0.15s" }}
-                      onClick={() => { if (isSelectMode) toggleMultiSelect(selectKey); else setSelectedIndex(i); }}
+                      style={{
+                        backfaceVisibility: shouldFlip ? "hidden" : "visible",
+                        WebkitBackfaceVisibility: shouldFlip
+                          ? "hidden"
+                          : "visible",
+                        outline: isMultiChecked ? "3px solid #6366f1" : "none",
+                        borderRadius: 14,
+                        transition: "outline 0.15s",
+                      }}
+                      onClick={() => {
+                        if (isSelectMode) toggleMultiSelect(selectKey);
+                        else setSelectedIndex(i);
+                      }}
                     >
                       <CardItem card={card} onClick={() => {}} />
                     </div>
                   </div>
                   {isOwned && !isSelectMode && (
-                    <div style={{ position: "absolute", bottom: 10, right: 10, width: 20, height: 20, borderRadius: "50%", background: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: 10,
+                        right: 10,
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        background: "#16a34a",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 10,
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+                      }}
+                    >
                       <Check size={11} color="#fff" strokeWidth={3} />
                     </div>
                   )}
                   {isSelectMode && (
-                    <div style={{ position: "absolute", top: 10, right: 10, width: 22, height: 22, borderRadius: 6, border: `2px solid ${isMultiChecked ? "#6366f1" : "rgba(255,255,255,0.7)"}`, background: isMultiChecked ? "#6366f1" : "rgba(0,0,0,0.3)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, transition: "all 0.15s", pointerEvents: "none" }}>
-                      {isMultiChecked && <Check size={13} color="#fff" strokeWidth={3} />}
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 10,
+                        right: 10,
+                        width: 22,
+                        height: 22,
+                        borderRadius: 6,
+                        border: `2px solid ${
+                          isMultiChecked ? "#6366f1" : "rgba(255,255,255,0.7)"
+                        }`,
+                        background: isMultiChecked
+                          ? "#6366f1"
+                          : "rgba(0,0,0,0.3)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 10,
+                        transition: "all 0.15s",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      {isMultiChecked && (
+                        <Check size={13} color="#fff" strokeWidth={3} />
+                      )}
                     </div>
                   )}
                 </div>
@@ -667,39 +1083,109 @@ export default function Home() {
               const isOwned = ownedSet.has(getCardKey(card));
               const selectKey = `${getCardKey(card)}||${i}`;
               const isMultiChecked = multiSelected.has(selectKey);
-              const rarityRaw = card.rarity?.replace(/\s+CARD\s*$/i, "").trim().replace(/^PR$/i, "P") ?? "";
+              const rarityRaw =
+                card.rarity
+                  ?.replace(/\s+CARD\s*$/i, "")
+                  .trim()
+                  .replace(/^PR$/i, "P") ?? "";
               const rarity = card.name?.includes("(SP)") ? "SP" : rarityRaw;
 
-              const RARITY_COLORS: Record<string, { color: string; bg: string }> = {
-                SEC: { color: "#b45309", bg: isDark ? "rgba(251,191,36,0.15)" : "rgba(254,243,199,0.9)" },
-                SR:  { color: "#7c3aed", bg: isDark ? "rgba(139,92,246,0.15)" : "rgba(237,233,254,0.9)" },
-                R:   { color: "#1d4ed8", bg: isDark ? "rgba(59,130,246,0.15)" : "rgba(219,234,254,0.9)" },
-                UC:  { color: "#065f46", bg: isDark ? "rgba(34,197,94,0.12)" : "rgba(209,250,229,0.9)" },
-                C:   { color: isDark ? "#9ca3af" : "#6b7280", bg: isDark ? "rgba(156,163,175,0.1)" : "rgba(243,244,246,0.9)" },
-                SP:  { color: "#9d174d", bg: isDark ? "rgba(236,72,153,0.15)" : "rgba(252,231,243,0.9)" },
-                TR:  { color: "#0369a1", bg: isDark ? "rgba(14,165,233,0.15)" : "rgba(224,242,254,0.9)" },
-                P:   { color: "#92400e", bg: isDark ? "rgba(217,119,6,0.15)" : "rgba(254,243,199,0.9)" },
+              const RARITY_COLORS: Record<
+                string,
+                { color: string; bg: string }
+              > = {
+                SEC: {
+                  color: "#b45309",
+                  bg: isDark
+                    ? "rgba(251,191,36,0.15)"
+                    : "rgba(254,243,199,0.9)",
+                },
+                SR: {
+                  color: "#7c3aed",
+                  bg: isDark
+                    ? "rgba(139,92,246,0.15)"
+                    : "rgba(237,233,254,0.9)",
+                },
+                R: {
+                  color: "#1d4ed8",
+                  bg: isDark
+                    ? "rgba(59,130,246,0.15)"
+                    : "rgba(219,234,254,0.9)",
+                },
+                UC: {
+                  color: "#065f46",
+                  bg: isDark ? "rgba(34,197,94,0.12)" : "rgba(209,250,229,0.9)",
+                },
+                C: {
+                  color: isDark ? "#9ca3af" : "#6b7280",
+                  bg: isDark
+                    ? "rgba(156,163,175,0.1)"
+                    : "rgba(243,244,246,0.9)",
+                },
+                SP: {
+                  color: "#9d174d",
+                  bg: isDark
+                    ? "rgba(236,72,153,0.15)"
+                    : "rgba(252,231,243,0.9)",
+                },
+                TR: {
+                  color: "#0369a1",
+                  bg: isDark
+                    ? "rgba(14,165,233,0.15)"
+                    : "rgba(224,242,254,0.9)",
+                },
+                P: {
+                  color: "#92400e",
+                  bg: isDark ? "rgba(217,119,6,0.15)" : "rgba(254,243,199,0.9)",
+                },
               };
-              const rarityStyle = RARITY_COLORS[rarity] ?? { color: colors.text.tertiary, bg: "transparent" };
+              const rarityStyle = RARITY_COLORS[rarity] ?? {
+                color: colors.text.tertiary,
+                bg: "transparent",
+              };
 
               const TYPE_COLORS: Record<string, string> = {
-                LEADER:    isDark ? "#f97316" : "#ea580c",
+                LEADER: isDark ? "#f97316" : "#ea580c",
                 CHARACTER: isDark ? "#60a5fa" : "#2563eb",
-                EVENT:     isDark ? "#a78bfa" : "#7c3aed",
-                STAGE:     isDark ? "#34d399" : "#059669",
+                EVENT: isDark ? "#a78bfa" : "#7c3aed",
+                STAGE: isDark ? "#34d399" : "#059669",
               };
-              const typeColor = TYPE_COLORS[card.type?.toUpperCase() ?? ""] ?? colors.text.tertiary;
+              const typeColor =
+                TYPE_COLORS[card.type?.toUpperCase() ?? ""] ??
+                colors.text.tertiary;
 
               return (
                 <div
                   key={`${card.id}-${i}`}
-                  onClick={() => { if (isSelectMode) toggleMultiSelect(selectKey); else setSelectedIndex(i); }}
-                  onMouseDown={() => { if (!isSelectMode) handleLongPressStart(selectKey); }}
+                  onClick={() => {
+                    if (isSelectMode) toggleMultiSelect(selectKey);
+                    else setSelectedIndex(i);
+                  }}
+                  onMouseDown={() => {
+                    if (!isSelectMode) handleLongPressStart(selectKey);
+                  }}
                   onMouseUp={handleLongPressEnd}
-                  onMouseLeave={(e) => { handleLongPressEnd(); e.currentTarget.style.background = isMultiChecked ? (isDark ? "rgba(99,102,241,0.1)" : "rgba(99,102,241,0.05)") : "transparent"; }}
-                  onTouchStart={() => { if (!isSelectMode) handleLongPressStart(selectKey); }}
+                  onMouseLeave={(e) => {
+                    handleLongPressEnd();
+                    e.currentTarget.style.background = isMultiChecked
+                      ? isDark
+                        ? "rgba(99,102,241,0.1)"
+                        : "rgba(99,102,241,0.05)"
+                      : "transparent";
+                  }}
+                  onTouchStart={() => {
+                    if (!isSelectMode) handleLongPressStart(selectKey);
+                  }}
                   onTouchEnd={handleLongPressEnd}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = isMultiChecked ? (isDark ? "rgba(99,102,241,0.14)" : "rgba(99,102,241,0.07)") : (isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)"); }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = isMultiChecked
+                      ? isDark
+                        ? "rgba(99,102,241,0.14)"
+                        : "rgba(99,102,241,0.07)"
+                      : isDark
+                      ? "rgba(255,255,255,0.03)"
+                      : "rgba(0,0,0,0.02)";
+                  }}
                   style={{
                     display: "grid",
                     gridTemplateColumns: isSelectMode
@@ -713,45 +1199,117 @@ export default function Home() {
                     borderBottom: `1px solid ${colors.border}`,
                     cursor: "pointer",
                     background: isMultiChecked
-                      ? (isDark ? "rgba(99,102,241,0.1)" : "rgba(99,102,241,0.05)")
+                      ? isDark
+                        ? "rgba(99,102,241,0.1)"
+                        : "rgba(99,102,241,0.05)"
                       : "transparent",
                     transition: "background 0.12s",
                   }}
                 >
                   {isSelectMode && (
-                    <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${isMultiChecked ? "#6366f1" : colors.border}`, background: isMultiChecked ? "#6366f1" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}>
-                      {isMultiChecked && <Check size={10} color="#fff" strokeWidth={3} />}
+                    <div
+                      style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: 5,
+                        border: `2px solid ${
+                          isMultiChecked ? "#6366f1" : colors.border
+                        }`,
+                        background: isMultiChecked ? "#6366f1" : "transparent",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      {isMultiChecked && (
+                        <Check size={10} color="#fff" strokeWidth={3} />
+                      )}
                     </div>
                   )}
 
                   {/* ID */}
-                  <span style={{ fontFamily: "monospace", fontSize: 11, color: colors.text.tertiary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, paddingRight: 12 }}>
+                  <span
+                    style={{
+                      fontFamily: "monospace",
+                      fontSize: 11,
+                      color: colors.text.tertiary,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap" as const,
+                      paddingRight: 12,
+                    }}
+                  >
                     {card.id}
                   </span>
 
                   {/* Name */}
-                  <span style={{ fontSize: 13, fontWeight: 500, color: colors.text.primary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, paddingRight: 16 }}>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: colors.text.primary,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap" as const,
+                      paddingRight: 16,
+                    }}
+                  >
                     {card.name}
                   </span>
 
                   {/* Rarity pill */}
                   <div>
                     {rarity ? (
-                      <span style={{ display: "inline-block", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: rarityStyle.bg, color: rarityStyle.color, letterSpacing: "0.04em" }}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: "2px 7px",
+                          borderRadius: 4,
+                          background: rarityStyle.bg,
+                          color: rarityStyle.color,
+                          letterSpacing: "0.04em",
+                        }}
+                      >
                         {rarity}
                       </span>
                     ) : null}
                   </div>
 
                   {/* Type */}
-                  <span style={{ fontSize: 11, fontWeight: 500, color: typeColor, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
-                    {card.type ? card.type.charAt(0).toUpperCase() + card.type.slice(1).toLowerCase() : ""}
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 500,
+                      color: typeColor,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap" as const,
+                    }}
+                  >
+                    {card.type
+                      ? card.type.charAt(0).toUpperCase() +
+                        card.type.slice(1).toLowerCase()
+                      : ""}
                   </span>
 
                   {/* Owned dot */}
                   <div style={{ display: "flex", justifyContent: "flex-end" }}>
                     {isOwned && !isSelectMode && (
-                      <div style={{ width: 16, height: 16, borderRadius: "50%", background: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div
+                        style={{
+                          width: 16,
+                          height: 16,
+                          borderRadius: "50%",
+                          background: "#16a34a",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
                         <Check size={9} color="#fff" strokeWidth={3} />
                       </div>
                     )}
@@ -763,33 +1321,196 @@ export default function Home() {
         )}
 
         {!loading && filtered.length === 0 && (
-          <div style={{ textAlign: "center", paddingTop: 96, paddingBottom: 96, color: colors.text.tertiary, display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <Image src="/nocard.png" alt="No cards found" width={120} height={120} priority style={{ marginBottom: 20, objectFit: "contain", opacity: isDark ? 0.9 : 1 }} />
-            <div style={{ fontWeight: 700, fontSize: 20, color: colors.text.primary }}>No cards found</div>
-            <div style={{ fontSize: 14, marginTop: 6, color: colors.text.tertiary }}>Try adjusting your filters</div>
+          <div
+            style={{
+              textAlign: "center",
+              paddingTop: 96,
+              paddingBottom: 96,
+              color: colors.text.tertiary,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <Image
+              src="/nocard.png"
+              alt="No cards found"
+              width={120}
+              height={120}
+              priority
+              style={{
+                marginBottom: 20,
+                objectFit: "contain",
+                opacity: isDark ? 0.9 : 1,
+              }}
+            />
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: 20,
+                color: colors.text.primary,
+              }}
+            >
+              No cards found
+            </div>
+            <div
+              style={{
+                fontSize: 14,
+                marginTop: 6,
+                color: colors.text.tertiary,
+              }}
+            >
+              Try adjusting your filters
+            </div>
           </div>
         )}
       </main>
 
       {/* ── CARD DETAIL MODAL ── */}
       {selected && (
-        <div style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.55)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => { setSelectedIndex(-1); setShowBinderPicker(false); resetInlineCreation(); }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, width: "100%", maxWidth: 960 }} onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => { setSelectedIndex(selectedIndex - 1); setShowBinderPicker(false); resetInlineCreation(); }} disabled={selectedIndex <= 0} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: colors.bg.primary, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)", border: `1px solid ${colors.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: colors.text.primary, cursor: selectedIndex > 0 ? "pointer" : "not-allowed", opacity: selectedIndex <= 0 ? 0.3 : 1, transition: "all 0.2s" }}>
+        <div
+          className="card-modal-outer"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.55)",
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+          }}
+          onClick={() => {
+            setSelectedIndex(-1);
+            setShowBinderPicker(false);
+            resetInlineCreation();
+          }}
+        >
+          <div
+            className="card-modal-nav-row"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 16,
+              width: "100%",
+              maxWidth: 960,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="card-modal-prev"
+              onClick={() => {
+                setSelectedIndex(selectedIndex - 1);
+                setShowBinderPicker(false);
+                resetInlineCreation();
+              }}
+              disabled={selectedIndex <= 0}
+              style={{
+                flexShrink: 0,
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                background: colors.bg.primary,
+                boxShadow: isDark
+                  ? "0 20px 25px rgba(0,0,0,0.4)"
+                  : "0 10px 15px rgba(0,0,0,0.1)",
+                border: `1px solid ${colors.border}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: colors.text.primary,
+                cursor: selectedIndex > 0 ? "pointer" : "not-allowed",
+                opacity: selectedIndex <= 0 ? 0.3 : 1,
+                transition: "all 0.2s",
+              }}
+            >
               <ChevronLeft style={{ width: 20, height: 20 }} />
             </button>
 
-            <div style={{ flex: 1, background: colors.bg.primary, borderRadius: 20, boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.5)" : "0 32px 64px rgba(0,0,0,0.15)", border: `1px solid ${colors.border}`, overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: `1px solid ${colors.border}`, flexShrink: 0, gap: 16 }}>
+            <div
+              className="card-modal-container"
+              onTouchStart={handleModalTouchStart}
+  onTouchEnd={handleModalTouchEnd}
+              style={{
+                flex: 1,
+                background: colors.bg.primary,
+                borderRadius: 20,
+                boxShadow: isDark
+                  ? "0 32px 64px rgba(0,0,0,0.5)"
+                  : "0 32px 64px rgba(0,0,0,0.15)",
+                border: `1px solid ${colors.border}`,
+                overflow: "hidden",
+                maxHeight: "90vh",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <div
+                className="card-modal-header"
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "18px 24px",
+                  borderBottom: `1px solid ${colors.border}`,
+                  flexShrink: 0,
+                  gap: 16,
+                }}
+              >
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontWeight: 900, fontSize: 22, color: colors.text.primary, letterSpacing: "-0.02em", lineHeight: 1.2 }}>{selected.name}</div>
-                  <div style={{ fontSize: 12, color: colors.text.tertiary, fontFamily: "monospace", marginTop: 2 }}>{selected.id}</div>
+                  <div
+                    style={{
+                      fontWeight: 900,
+                      fontSize: 22,
+                      color: colors.text.primary,
+                      letterSpacing: "-0.02em",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {selected.name}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: colors.text.tertiary,
+                      fontFamily: "monospace",
+                      marginTop: 2,
+                    }}
+                  >
+                    {selected.id}
+                  </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    flexShrink: 0,
+                  }}
+                >
                   {user && (
-                    <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8 }}>
+                    <div
+                      style={{
+                        position: "relative",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
                       {ownedSet.has(getCardKey(selected)) && (
-                        <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <div
+                          style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: "50%",
+                            background: "#16a34a",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                          }}
+                        >
                           <Check size={11} color="#fff" strokeWidth={3} />
                         </div>
                       )}
@@ -799,108 +1520,525 @@ export default function Home() {
                           setShowBinderPicker(next);
                           if (!next) resetInlineCreation();
                         }}
-                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: "pointer", transition: "all 0.2s", border: `1px solid ${colors.border}`, background: "transparent", color: colors.text.tertiary }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "7px 12px",
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 500,
+                          cursor: "pointer",
+                          transition: "all 0.2s",
+                          border: `1px solid ${colors.border}`,
+                          background: "transparent",
+                          color: colors.text.tertiary,
+                        }}
                       >
                         <BookmarkPlus size={14} />
                         Add to binder
                       </button>
                       {showBinderPicker && (
-                        <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: 240, background: colors.bg.primary, border: `1px solid ${colors.border}`, borderRadius: 12, overflow: "hidden", boxShadow: isDark ? "0 16px 40px rgba(0,0,0,0.5)" : "0 16px 40px rgba(0,0,0,0.12)", zIndex: 10 }} onClick={(e) => e.stopPropagation()}>
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "calc(100% + 8px)",
+                            right: 0,
+                            width: 240,
+                            background: colors.bg.primary,
+                            border: `1px solid ${colors.border}`,
+                            borderRadius: 12,
+                            overflow: "hidden",
+                            boxShadow: isDark
+                              ? "0 16px 40px rgba(0,0,0,0.5)"
+                              : "0 16px 40px rgba(0,0,0,0.12)",
+                            zIndex: 10,
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {/* Collection section */}
                           <div style={{ padding: "8px 8px 4px" }}>
-                            <div style={{ fontSize: 10, color: colors.text.tertiary, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase" as const, padding: "4px 8px 6px" }}>Collection</div>
-                            <button onClick={() => handleToggleOwned(getCardKey(selected))} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, textAlign: "left" as const, transition: "all 0.15s", background: ownedSet.has(getCardKey(selected)) ? (isDark ? "rgba(22,163,74,0.15)" : "rgba(22,163,74,0.08)") : "transparent", color: ownedSet.has(getCardKey(selected)) ? "#16a34a" : colors.text.primary }} onMouseEnter={(e) => { if (!ownedSet.has(getCardKey(selected))) e.currentTarget.style.background = colors.bg.secondary; }} onMouseLeave={(e) => { if (!ownedSet.has(getCardKey(selected))) e.currentTarget.style.background = "transparent"; }}>
-                              <div style={{ width: 18, height: 18, borderRadius: "50%", border: `1.5px solid ${ownedSet.has(getCardKey(selected)) ? "#16a34a" : colors.border}`, background: ownedSet.has(getCardKey(selected)) ? "#16a34a" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                {ownedSet.has(getCardKey(selected)) && <Check size={10} color="#fff" strokeWidth={3} />}
+                            <div
+                              style={{
+                                fontSize: 10,
+                                color: colors.text.tertiary,
+                                fontWeight: 600,
+                                letterSpacing: "0.07em",
+                                textTransform: "uppercase" as const,
+                                padding: "4px 8px 6px",
+                              }}
+                            >
+                              Collection
+                            </div>
+                            <button
+                              onClick={() =>
+                                handleToggleOwned(getCardKey(selected))
+                              }
+                              style={{
+                                width: "100%",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                padding: "9px 10px",
+                                borderRadius: 8,
+                                border: "none",
+                                cursor: "pointer",
+                                fontSize: 13,
+                                textAlign: "left" as const,
+                                transition: "all 0.15s",
+                                background: ownedSet.has(getCardKey(selected))
+                                  ? isDark
+                                    ? "rgba(22,163,74,0.15)"
+                                    : "rgba(22,163,74,0.08)"
+                                  : "transparent",
+                                color: ownedSet.has(getCardKey(selected))
+                                  ? "#16a34a"
+                                  : colors.text.primary,
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!ownedSet.has(getCardKey(selected)))
+                                  e.currentTarget.style.background =
+                                    colors.bg.secondary;
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!ownedSet.has(getCardKey(selected)))
+                                  e.currentTarget.style.background =
+                                    "transparent";
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: 18,
+                                  height: 18,
+                                  borderRadius: "50%",
+                                  border: `1.5px solid ${
+                                    ownedSet.has(getCardKey(selected))
+                                      ? "#16a34a"
+                                      : colors.border
+                                  }`,
+                                  background: ownedSet.has(getCardKey(selected))
+                                    ? "#16a34a"
+                                    : "transparent",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {ownedSet.has(getCardKey(selected)) && (
+                                  <Check
+                                    size={10}
+                                    color="#fff"
+                                    strokeWidth={3}
+                                  />
+                                )}
                               </div>
                               I own this card
                             </button>
-                            <button onClick={() => handleToggleWishlist(getCardKey(selected))} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, textAlign: "left" as const, transition: "all 0.15s", background: wishlistSet.has(getCardKey(selected)) ? (isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.08)") : "transparent", color: wishlistSet.has(getCardKey(selected)) ? "#d97706" : colors.text.primary }} onMouseEnter={(e) => { if (!wishlistSet.has(getCardKey(selected))) e.currentTarget.style.background = colors.bg.secondary; }} onMouseLeave={(e) => { if (!wishlistSet.has(getCardKey(selected))) e.currentTarget.style.background = "transparent"; }}>
-                              <div style={{ width: 18, height: 18, borderRadius: "50%", border: `1.5px solid ${wishlistSet.has(getCardKey(selected)) ? "#d97706" : colors.border}`, background: wishlistSet.has(getCardKey(selected)) ? "#f59e0b" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 10 }}>
-                                {wishlistSet.has(getCardKey(selected)) && <span style={{ color: "#fff" }}>★</span>}
+                            <button
+                              onClick={() =>
+                                handleToggleWishlist(getCardKey(selected))
+                              }
+                              style={{
+                                width: "100%",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                padding: "9px 10px",
+                                borderRadius: 8,
+                                border: "none",
+                                cursor: "pointer",
+                                fontSize: 13,
+                                textAlign: "left" as const,
+                                transition: "all 0.15s",
+                                background: wishlistSet.has(
+                                  getCardKey(selected)
+                                )
+                                  ? isDark
+                                    ? "rgba(245,158,11,0.15)"
+                                    : "rgba(245,158,11,0.08)"
+                                  : "transparent",
+                                color: wishlistSet.has(getCardKey(selected))
+                                  ? "#d97706"
+                                  : colors.text.primary,
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!wishlistSet.has(getCardKey(selected)))
+                                  e.currentTarget.style.background =
+                                    colors.bg.secondary;
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!wishlistSet.has(getCardKey(selected)))
+                                  e.currentTarget.style.background =
+                                    "transparent";
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: 18,
+                                  height: 18,
+                                  borderRadius: "50%",
+                                  border: `1.5px solid ${
+                                    wishlistSet.has(getCardKey(selected))
+                                      ? "#d97706"
+                                      : colors.border
+                                  }`,
+                                  background: wishlistSet.has(
+                                    getCardKey(selected)
+                                  )
+                                    ? "#f59e0b"
+                                    : "transparent",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  flexShrink: 0,
+                                  fontSize: 10,
+                                }}
+                              >
+                                {wishlistSet.has(getCardKey(selected)) && (
+                                  <span style={{ color: "#fff" }}>★</span>
+                                )}
                               </div>
                               Add to wishlist
                             </button>
                           </div>
                           {/* My binders section — always shown when logged in */}
-                          <div style={{ height: "0.5px", background: colors.border, margin: "4px 0" }} />
+                          <div
+                            style={{
+                              height: "0.5px",
+                              background: colors.border,
+                              margin: "4px 0",
+                            }}
+                          />
                           <div style={{ padding: "4px 8px 0" }}>
-                            <div style={{ fontSize: 10, color: colors.text.tertiary, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase" as const, padding: "4px 8px 6px" }}>My binders</div>
+                            <div
+                              style={{
+                                fontSize: 10,
+                                color: colors.text.tertiary,
+                                fontWeight: 600,
+                                letterSpacing: "0.07em",
+                                textTransform: "uppercase" as const,
+                                padding: "4px 8px 6px",
+                              }}
+                            >
+                              My binders
+                            </div>
                             <div style={{ maxHeight: 180, overflowY: "auto" }}>
-                              {binders.map(binder => {
-                                const inBinder = (binderCardMap[binder.id] ?? []).includes(getCardKey(selected));
+                              {binders.map((binder) => {
+                                const inBinder = (
+                                  binderCardMap[binder.id] ?? []
+                                ).includes(getCardKey(selected));
                                 return (
-                                  <button key={binder.id} onClick={() => handleToggleBinderCard(binder.id, getCardKey(selected))} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, textAlign: "left" as const, transition: "all 0.15s", background: inBinder ? (isDark ? "rgba(99,102,241,0.15)" : "rgba(99,102,241,0.08)") : "transparent", color: inBinder ? "#6366f1" : colors.text.primary }} onMouseEnter={(e) => { if (!inBinder) e.currentTarget.style.background = colors.bg.secondary; }} onMouseLeave={(e) => { if (!inBinder) e.currentTarget.style.background = "transparent"; }}>
-                                    <BookOpen size={14} style={{ flexShrink: 0 }} />
-                                    <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{binder.name}</span>
-                                    {inBinder && <Check size={12} strokeWidth={3} />}
+                                  <button
+                                    key={binder.id}
+                                    onClick={() =>
+                                      handleToggleBinderCard(
+                                        binder.id,
+                                        getCardKey(selected)
+                                      )
+                                    }
+                                    style={{
+                                      width: "100%",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 10,
+                                      padding: "9px 10px",
+                                      borderRadius: 8,
+                                      border: "none",
+                                      cursor: "pointer",
+                                      fontSize: 13,
+                                      textAlign: "left" as const,
+                                      transition: "all 0.15s",
+                                      background: inBinder
+                                        ? isDark
+                                          ? "rgba(99,102,241,0.15)"
+                                          : "rgba(99,102,241,0.08)"
+                                        : "transparent",
+                                      color: inBinder
+                                        ? "#6366f1"
+                                        : colors.text.primary,
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      if (!inBinder)
+                                        e.currentTarget.style.background =
+                                          colors.bg.secondary;
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      if (!inBinder)
+                                        e.currentTarget.style.background =
+                                          "transparent";
+                                    }}
+                                  >
+                                    <BookOpen
+                                      size={14}
+                                      style={{ flexShrink: 0 }}
+                                    />
+                                    <span
+                                      style={{
+                                        flex: 1,
+                                        whiteSpace: "nowrap",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                      }}
+                                    >
+                                      {binder.name}
+                                    </span>
+                                    {inBinder && (
+                                      <Check size={12} strokeWidth={3} />
+                                    )}
                                   </button>
                                 );
                               })}
                             </div>
                             <div style={{ padding: "0 0 8px" }}>
-                              {renderNewBinderRow(() => handleCreateBinderInline(getCardKey(selected)))}
+                              {renderNewBinderRow(() =>
+                                handleCreateBinderInline(getCardKey(selected))
+                              )}
                             </div>
                           </div>
                         </div>
                       )}
                     </div>
                   )}
-                  <button onClick={() => { setSelectedIndex(-1); setShowBinderPicker(false); resetInlineCreation(); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <X style={{ width: 20, height: 20, color: colors.text.tertiary }} />
+                  <button
+                    onClick={() => {
+                      setSelectedIndex(-1);
+                      setShowBinderPicker(false);
+                      resetInlineCreation();
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 4,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <X
+                      style={{
+                        width: 20,
+                        height: 20,
+                        color: colors.text.tertiary,
+                      }}
+                    />
                   </button>
                 </div>
               </div>
 
-              <div style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
-              <div style={{ width: "45%", flexShrink: 0, background: tc.bg.primary, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-                  {selected.images?.large ? (
-                    <ModalCardImage
-                      key={selected.images.large}
-                      src={selected.images.large}
-                      alt={selected.name}
-                      isLeader={selected.type?.toUpperCase() === "LEADER"}
-                      isDark={isDark}
-                      colors={colors}
-                    />
-                  ) : (
-                    <img src="/card-placeholder.png" alt="No image available" style={{ height: 460, width: "100%", maxHeight: "100%", objectFit: "contain", border: `1px solid ${colors.border}`, borderRadius: 15, background: "#ffffff" }} onError={(e) => { e.currentTarget.src = "/card-back.png"; }} />
-                  )}
+              <div
+                className="card-modal-body"
+                style={{
+                  display: "flex",
+                  flex: 1,
+                  overflow: "hidden",
+                  minHeight: 0,
+                }}
+              >
+                <div
+                  className="card-modal-image-pane"
+                  style={{
+                    width: "45%",
+                    flexShrink: 0,
+                    background: tc.bg.primary,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 24,
+                  }}
+                >
+                  <ModalCardImage
+                    key={selected.images?.large ?? selected.images?.small ?? selected.id}
+                    src={selected.images?.large || selected.images?.small || "/card-placeholder.png"}
+                    alt={selected.name}
+                    isLeader={selected.type?.toUpperCase() === "LEADER"}
+                    isDark={isDark}
+                  />
                 </div>
-                <div style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div
+                  className="card-modal-details-pane"
+                  style={{
+                    flex: 1,
+                    overflowY: "auto",
+                    padding: 24,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 16,
+                  }}
+                >
+                  <div
+                    className="card-modal-detail-grid"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: 10,
+                    }}
+                  >
                     {[
-                      ["Type", selected.type], ["Rarity", selected.rarity?.replace(/^PR$/i, "P")], ["Color", selected.color],
-                      ["Cost", selected.cost], ["Power", selected.power], ["Counter", selected.counter],
-                      ["Attribute", selected.attribute?.name], ["Family", selected.family], ["Set", selected.set?.name],
-                    ].filter(([, v]) => v != null && v !== "" && v !== "-").map(([label, value]) => (
-                      <div key={String(label)} style={{ background: colors.bg.secondary, borderRadius: 10, padding: "10px 14px", border: `1px solid ${colors.border}` }}>
-                        <div style={{ fontSize: 11, color: colors.text.tertiary, marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>{label}</div>
-                        <div style={{ fontWeight: 600, fontSize: 14, color: colors.text.primary }}>{String(value)}</div>
-                      </div>
-                    ))}
+                      ["Type", selected.type],
+                      ["Rarity", selected.rarity?.replace(/^PR$/i, "P")],
+                      ["Color", selected.color],
+                      ["Cost", selected.cost],
+                      ["Power", selected.power],
+                      ["Counter", selected.counter],
+                      ["Attribute", selected.attribute?.name],
+                      ["Family", selected.family],
+                      ["Set", selected.set?.name],
+                    ]
+                      .filter(([, v]) => v != null && v !== "" && v !== "-")
+                      .map(([label, value]) => (
+                        <div
+                          key={String(label)}
+                          style={{
+                            background: colors.bg.secondary,
+                            borderRadius: 10,
+                            padding: "10px 14px",
+                            border: `1px solid ${colors.border}`,
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: colors.text.tertiary,
+                              marginBottom: 3,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              fontWeight: 700,
+                            }}
+                          >
+                            {label}
+                          </div>
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              fontSize: 14,
+                              color: colors.text.primary,
+                            }}
+                          >
+                            {String(value)}
+                          </div>
+                        </div>
+                      ))}
                   </div>
                   {selected.ability && (
-                    <div style={{ background: colors.bg.secondary, borderRadius: 10, padding: "12px 14px", border: `1px solid ${colors.border}` }}>
-                      <div style={{ fontSize: 11, color: colors.text.tertiary, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Effect</div>
-                      <div style={{ fontSize: 14, color: colors.text.primary, lineHeight: 1.7 }}>{selected.ability}</div>
+                    <div
+                      style={{
+                        background: colors.bg.secondary,
+                        borderRadius: 10,
+                        padding: "12px 14px",
+                        border: `1px solid ${colors.border}`,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: colors.text.tertiary,
+                          marginBottom: 6,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          fontWeight: 700,
+                        }}
+                      >
+                        Effect
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 14,
+                          color: colors.text.primary,
+                          lineHeight: 1.7,
+                        }}
+                      >
+                        {selected.ability}
+                      </div>
                     </div>
                   )}
                   {selected.trigger && selected.trigger !== "" && (
-                    <div style={{ background: isDark ? "rgba(217,119,6,0.1)" : "rgba(251,191,36,0.08)", borderRadius: 10, padding: "12px 14px", border: `1px solid ${isDark ? "rgba(251,191,36,0.2)" : "rgba(217,119,6,0.2)"}` }}>
-                      <div style={{ fontSize: 11, color: isDark ? "#fbbf24" : "#d97706", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Trigger</div>
-                      <div style={{ fontSize: 14, color: colors.text.primary, lineHeight: 1.7 }}>{selected.trigger}</div>
+                    <div
+                      style={{
+                        background: isDark
+                          ? "rgba(217,119,6,0.1)"
+                          : "rgba(251,191,36,0.08)",
+                        borderRadius: 10,
+                        padding: "12px 14px",
+                        border: `1px solid ${
+                          isDark
+                            ? "rgba(251,191,36,0.2)"
+                            : "rgba(217,119,6,0.2)"
+                        }`,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: isDark ? "#fbbf24" : "#d97706",
+                          marginBottom: 6,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          fontWeight: 700,
+                        }}
+                      >
+                        Trigger
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 14,
+                          color: colors.text.primary,
+                          lineHeight: 1.7,
+                        }}
+                      >
+                        {selected.trigger}
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div style={{ borderTop: `1px solid ${colors.border}`, padding: "10px 24px", textAlign: "center", fontSize: 12, color: colors.text.tertiary, flexShrink: 0 }}>
+              <div
+                className="card-modal-footer"
+                style={{
+                  borderTop: `1px solid ${colors.border}`,
+                  padding: "10px 24px",
+                  textAlign: "center",
+                  fontSize: 12,
+                  color: colors.text.tertiary,
+                  flexShrink: 0,
+                }}
+              >
                 {selectedIndex + 1} / {filtered.length}
               </div>
             </div>
 
-            <button onClick={() => { setSelectedIndex(selectedIndex + 1); setShowBinderPicker(false); resetInlineCreation(); }} disabled={selectedIndex >= filtered.length - 1} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: colors.bg.primary, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)", border: `1px solid ${colors.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: colors.text.primary, cursor: selectedIndex < filtered.length - 1 ? "pointer" : "not-allowed", opacity: selectedIndex >= filtered.length - 1 ? 0.3 : 1, transition: "all 0.2s" }}>
+            <button
+              className="card-modal-next"
+              onClick={() => {
+                setSelectedIndex(selectedIndex + 1);
+                setShowBinderPicker(false);
+                resetInlineCreation();
+              }}
+              disabled={selectedIndex >= filtered.length - 1}
+              style={{
+                flexShrink: 0,
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                background: colors.bg.primary,
+                boxShadow: isDark
+                  ? "0 20px 25px rgba(0,0,0,0.4)"
+                  : "0 10px 15px rgba(0,0,0,0.1)",
+                border: `1px solid ${colors.border}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: colors.text.primary,
+                cursor:
+                  selectedIndex < filtered.length - 1
+                    ? "pointer"
+                    : "not-allowed",
+                opacity: selectedIndex >= filtered.length - 1 ? 0.3 : 1,
+                transition: "all 0.2s",
+              }}
+            >
               <ChevronRight style={{ width: 20, height: 20 }} />
             </button>
           </div>
@@ -909,41 +2047,173 @@ export default function Home() {
 
       {/* ── BULK PROGRESS BAR ── */}
       {bulkProgress && (
-        <div style={{ position: "fixed", bottom: 100, left: "calc(50% + 35px)", transform: "translateX(-50%)", zIndex: 60, background: colors.bg.primary, border: `1px solid ${colors.border}`, borderRadius: 12, padding: "10px 16px", boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.5)" : "0 8px 32px rgba(0,0,0,0.15)", minWidth: 220 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: colors.text.primary }}>Processing...</span>
-            <span style={{ fontSize: 12, color: colors.text.tertiary }}>{bulkProgress.done} / {bulkProgress.total}</span>
+        <div
+          style={{
+            position: "fixed",
+            bottom: 100,
+            left: "calc(50% + 35px)",
+            transform: "translateX(-50%)",
+            zIndex: 60,
+            background: colors.bg.primary,
+            border: `1px solid ${colors.border}`,
+            borderRadius: 12,
+            padding: "10px 16px",
+            boxShadow: isDark
+              ? "0 8px 32px rgba(0,0,0,0.5)"
+              : "0 8px 32px rgba(0,0,0,0.15)",
+            minWidth: 220,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 6,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: colors.text.primary,
+              }}
+            >
+              Processing...
+            </span>
+            <span style={{ fontSize: 12, color: colors.text.tertiary }}>
+              {bulkProgress.done} / {bulkProgress.total}
+            </span>
           </div>
-          <div style={{ height: 6, borderRadius: 999, background: colors.bg.tertiary, overflow: "hidden" }}>
-            <div style={{ height: "100%", borderRadius: 999, background: "#16a34a", width: `${Math.round((bulkProgress.done / bulkProgress.total) * 100)}%`, transition: "width 0.15s ease" }} />
+          <div
+            style={{
+              height: 6,
+              borderRadius: 999,
+              background: colors.bg.tertiary,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                borderRadius: 999,
+                background: "#16a34a",
+                width: `${Math.round(
+                  (bulkProgress.done / bulkProgress.total) * 100
+                )}%`,
+                transition: "width 0.15s ease",
+              }}
+            />
           </div>
         </div>
       )}
 
       {/* ── SCROLL TO TOP ── */}
       {showScrollTop && !isSelectMode && (
-        <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ position: "fixed", bottom: 32, left: "calc(50% + 40px)", transform: "translateX(-50%)", width: 56, height: 56, borderRadius: "50%", background: tc.bg.tertiary, color: colors.text.primary, border: `1px solid ${colors.border}`, cursor: "pointer", fontSize: 22, fontWeight: 700, boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.4)" : "0 4px 20px rgba(0,0,0,0.3)", zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          style={{
+            position: "fixed",
+            bottom: 32,
+            left: "calc(50% + 40px)",
+            transform: "translateX(-50%)",
+            width: 56,
+            height: 56,
+            borderRadius: "50%",
+            background: tc.bg.tertiary,
+            color: colors.text.primary,
+            border: `1px solid ${colors.border}`,
+            cursor: "pointer",
+            fontSize: 22,
+            fontWeight: 700,
+            boxShadow: isDark
+              ? "0 4px 20px rgba(0,0,0,0.4)"
+              : "0 4px 20px rgba(0,0,0,0.3)",
+            zIndex: 20,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "all 0.2s",
+          }}
+        >
           ↑
         </button>
       )}
 
       {/* ── MULTI-SELECT BOTTOM BAR ── */}
       {isSelectMode && (
-        <div style={{ position: "fixed", bottom: 32, left: "calc(50% + 35px)", transform: "translateX(-50%)", zIndex: 50, display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 16, background: colors.bg.primary, border: `1px solid ${colors.border}`, boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.5)" : "0 8px 32px rgba(0,0,0,0.15)" }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: colors.text.primary, whiteSpace: "nowrap" }}>
-            {multiSelected.size} selected
+        <div
+          className="browse-multi-select-bar"
+          style={{
+            position: "fixed",
+            bottom: isNarrow ? 16 : 24,
+            left: isMobile ? "50%" : "calc(50% + 35px)",
+            transform: "translateX(-50%)",
+            zIndex: 25,
+            display: "flex",
+            alignItems: "center",
+            gap: isNarrow ? 4 : 8,
+            padding: isNarrow ? "5px 6px" : "10px 14px",
+            borderRadius: isNarrow ? 12 : 14,
+            background: colors.bg.primary,
+            border: `1px solid ${colors.border}`,
+            boxShadow: isDark
+              ? "0 12px 36px rgba(0,0,0,0.6)"
+              : "0 12px 36px rgba(0,0,0,0.18)",
+            maxWidth: "calc(100vw - 16px)",
+            width: "max-content",
+          }}
+        >
+          <span
+            style={{
+              fontSize: isNarrow ? 11 : 13,
+              fontWeight: 700,
+              color: colors.text.primary,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+              paddingLeft: isNarrow ? 4 : 2,
+              paddingRight: isNarrow ? 2 : 4,
+            }}
+          >
+            {multiSelected.size} {isNarrow ? "sel." : "selected"}
           </span>
-          <div style={{ width: 1, height: 20, background: colors.border, flexShrink: 0 }} />
+          <div
+            style={{
+              width: 1,
+              height: isNarrow ? 14 : 18,
+              background: colors.border,
+              flexShrink: 0,
+            }}
+          />
           {user && (
             <>
               <button
                 onClick={handleMultiMarkOwned}
                 disabled={multiSelected.size === 0}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: multiSelected.size > 0 ? "pointer" : "not-allowed", border: "1px solid #16a34a", background: isDark ? "rgba(22,163,74,0.15)" : "rgba(22,163,74,0.08)", color: "#16a34a", opacity: multiSelected.size === 0 ? 0.5 : 1, transition: "all 0.2s" }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: isNarrow ? 4 : 6,
+                  padding: isNarrow ? "6px 8px" : "8px 14px",
+                  borderRadius: 8,
+                  fontSize: isNarrow ? 11 : 13,
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  cursor: multiSelected.size > 0 ? "pointer" : "not-allowed",
+                  border: "1px solid #16a34a",
+                  background: isDark
+                    ? "rgba(22,163,74,0.15)"
+                    : "rgba(22,163,74,0.08)",
+                  color: "#16a34a",
+                  opacity: multiSelected.size === 0 ? 0.5 : 1,
+                  transition: "all 0.2s",
+                  flexShrink: 0,
+                }}
               >
-                <Check size={14} /> Mark Owned
+                <Check size={isNarrow ? 12 : 14} style={{ flexShrink: 0 }} />
+                <span>{isNarrow ? "Owned" : "Mark Owned"}</span>
               </button>
-              <div style={{ position: "relative" }}>
+              <div style={{ position: "relative", flexShrink: 0 }}>
                 <button
                   onClick={() => {
                     const next = !showMultiBinderPicker;
@@ -951,19 +2221,97 @@ export default function Home() {
                     if (!next) resetInlineCreation();
                   }}
                   disabled={multiSelected.size === 0}
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: multiSelected.size > 0 ? "pointer" : "not-allowed", border: `1px solid ${colors.border}`, background: "transparent", color: colors.text.primary, opacity: multiSelected.size === 0 ? 0.5 : 1, transition: "all 0.2s" }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: isNarrow ? 4 : 6,
+                    padding: isNarrow ? "6px 8px" : "8px 14px",
+                    borderRadius: 8,
+                    fontSize: isNarrow ? 11 : 13,
+                    fontWeight: 600,
+                    whiteSpace: "nowrap",
+                    cursor: multiSelected.size > 0 ? "pointer" : "not-allowed",
+                    border: `1px solid ${colors.border}`,
+                    background: "transparent",
+                    color: colors.text.primary,
+                    opacity: multiSelected.size === 0 ? 0.5 : 1,
+                    transition: "all 0.2s",
+                  }}
                 >
-                  <BookOpen size={14} /> Add to Binder
+                  <BookOpen size={isNarrow ? 12 : 14} style={{ flexShrink: 0 }} />
+                  <span>{isNarrow ? "Binder" : "Add to Binder"}</span>
                 </button>
                 {showMultiBinderPicker && (
-                  <div style={{ position: "absolute", bottom: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)", width: 220, background: colors.bg.primary, border: `1px solid ${colors.border}`, borderRadius: 12, overflow: "hidden", boxShadow: isDark ? "0 16px 40px rgba(0,0,0,0.5)" : "0 16px 40px rgba(0,0,0,0.12)", zIndex: 60 }} onClick={(e) => e.stopPropagation()}>
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: "calc(100% + 8px)",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: 220,
+                      background: colors.bg.primary,
+                      border: `1px solid ${colors.border}`,
+                      borderRadius: 12,
+                      overflow: "hidden",
+                      boxShadow: isDark
+                        ? "0 16px 40px rgba(0,0,0,0.5)"
+                        : "0 16px 40px rgba(0,0,0,0.12)",
+                      zIndex: 28,
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div style={{ padding: "8px 8px 0" }}>
-                      <div style={{ fontSize: 10, color: colors.text.tertiary, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase" as const, padding: "4px 8px 6px" }}>My binders</div>
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: colors.text.tertiary,
+                          fontWeight: 600,
+                          letterSpacing: "0.07em",
+                          textTransform: "uppercase" as const,
+                          padding: "4px 8px 6px",
+                        }}
+                      >
+                        My binders
+                      </div>
                       <div style={{ maxHeight: 180, overflowY: "auto" }}>
-                        {binders.map(binder => (
-                          <button key={binder.id} onClick={() => handleMultiAddToBinder(binder.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, textAlign: "left" as const, background: "transparent", color: colors.text.primary, transition: "all 0.15s" }} onMouseEnter={(e) => { e.currentTarget.style.background = colors.bg.secondary; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+                        {binders.map((binder) => (
+                          <button
+                            key={binder.id}
+                            onClick={() => handleMultiAddToBinder(binder.id)}
+                            style={{
+                              width: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                              padding: "9px 10px",
+                              borderRadius: 8,
+                              border: "none",
+                              cursor: "pointer",
+                              fontSize: 13,
+                              textAlign: "left" as const,
+                              background: "transparent",
+                              color: colors.text.primary,
+                              transition: "all 0.15s",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background =
+                                colors.bg.secondary;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "transparent";
+                            }}
+                          >
                             <BookOpen size={14} style={{ flexShrink: 0 }} />
-                            <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{binder.name}</span>
+                            <span
+                              style={{
+                                flex: 1,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}
+                            >
+                              {binder.name}
+                            </span>
                           </button>
                         ))}
                       </div>
@@ -977,17 +2325,61 @@ export default function Home() {
             </>
           )}
           <button
-            onClick={() => { if (allSelected) { setMultiSelected(new Set()); } else { setMultiSelected(new Set(allSelectKeys)); } }}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", border: `1px solid ${colors.border}`, background: allSelected ? colors.bg.tertiary : "transparent", color: colors.text.primary, transition: "all 0.2s" }}
+            onClick={() => {
+              if (allSelected) {
+                setMultiSelected(new Set());
+              } else {
+                setMultiSelected(new Set(allSelectKeys));
+              }
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: isNarrow ? 4 : 6,
+              padding: isNarrow ? "6px 8px" : "8px 14px",
+              borderRadius: 8,
+              fontSize: isNarrow ? 11 : 13,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              cursor: "pointer",
+              border: `1px solid ${colors.border}`,
+              background: allSelected ? colors.bg.tertiary : "transparent",
+              color: colors.text.primary,
+              transition: "all 0.2s",
+              flexShrink: 0,
+            }}
           >
-            <CheckSquare size={14} />
-            {allSelected ? "Deselect All" : "Select All"}
+            <CheckSquare size={isNarrow ? 12 : 14} style={{ flexShrink: 0 }} />
+            <span>
+              {allSelected
+                ? isNarrow
+                  ? "None"
+                  : "Deselect All"
+                : isNarrow
+                ? "All"
+                : "Select All"}
+            </span>
           </button>
           <button
             onClick={exitSelectMode}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", border: `1px solid ${colors.border}`, background: "transparent", color: colors.text.tertiary, transition: "all 0.2s" }}
+            title="Cancel selection"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: isNarrow ? 28 : 32,
+              height: isNarrow ? 28 : 32,
+              borderRadius: 8,
+              cursor: "pointer",
+              border: `1px solid ${colors.border}`,
+              background: "transparent",
+              color: colors.text.tertiary,
+              transition: "all 0.2s",
+              flexShrink: 0,
+              padding: 0,
+            }}
           >
-            <X size={14} /> Cancel
+            <X size={isNarrow ? 13 : 15} />
           </button>
         </div>
       )}

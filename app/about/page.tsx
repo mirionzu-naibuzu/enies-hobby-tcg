@@ -55,6 +55,7 @@ export default function AboutPage() {
 
   return (
     <div
+      className="about-wrapper"
       suppressHydrationWarning
       style={{ minHeight: "100vh", background: c.bg, color: c.text, transition: "background-color 0.3s", marginLeft: 70 }}
     >
@@ -73,12 +74,12 @@ export default function AboutPage() {
       <Sidebar />
 
       {/* ── HERO ── */}
-      <section className="fu" style={{ padding: "64px 48px 48px", borderBottom: `1px solid ${c.border}`, maxWidth: 900 }}>
+      <section className="fu about-hero" style={{ padding: "64px 48px 48px", borderBottom: `1px solid ${c.border}`, maxWidth: 900 }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
           <span style={{ background: c.accent, color: "#fff", fontSize: 9, fontWeight: 500, padding: "3px 8px", borderRadius: 3, letterSpacing: "0.07em", textTransform: "uppercase" as const }}>About</span>
           <span style={{ fontSize: 11, color: c.textTer }}>Open source · Fan-made · Free forever</span>
         </div>
-        <h1 style={{ fontFamily: "'Impact','Arial Narrow',sans-serif", fontSize: 68, lineHeight: 0.95, letterSpacing: "0.01em", color: c.text, marginBottom: 20 }}>
+        <h1 className="about-hero-title" style={{ fontFamily: "'Impact','Arial Narrow',sans-serif", fontSize: 68, lineHeight: 0.95, letterSpacing: "0.01em", color: c.text, marginBottom: 20 }}>
           BUILT FOR<br />
           <span style={{ color: c.accent }}>COLLECTORS</span><span style={{ opacity: 0.25 }}>.</span>
         </h1>
@@ -101,7 +102,7 @@ export default function AboutPage() {
         <div style={{ padding: "20px 24px 12px", borderBottom: `1px solid ${c.border}` }}>
           <span style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: c.textTer }}>What's inside</span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)" }}>
+        <div className="about-features-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)" }}>
           {FEATURES.map((f, i) => (
             <div
               key={f.n}
@@ -120,7 +121,7 @@ export default function AboutPage() {
       </section>
 
       {/* ── THE STORY + TECH ── */}
-      <section className="fu2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderBottom: `1px solid ${c.border}` }}>
+      <section className="fu2 about-story-tech" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderBottom: `1px solid ${c.border}` }}>
 
         {/* Story */}
         <div style={{ padding: "28px 24px", borderRight: `1px solid ${c.border}` }}>
@@ -172,7 +173,7 @@ export default function AboutPage() {
       {/* ── DATA SOURCE ── */}
       <section className="fu3" style={{ padding: "28px 24px", borderBottom: `1px solid ${c.border}` }}>
         <div style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: c.textTer, marginBottom: 16 }}>Card data</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, maxWidth: 700 }}>
+        <div className="about-data-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, maxWidth: 700 }}>
           <div style={{ background: c.bgSec, borderRadius: 12, padding: "16px 18px", border: `1px solid ${c.border}` }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: c.text, marginBottom: 6 }}>optcgapi.com</div>
             <p style={{ fontSize: 12, color: c.textSec, lineHeight: 1.65, margin: "0 0 10px" }}>
@@ -199,7 +200,7 @@ export default function AboutPage() {
       </section>
 
       {/* ── SUPPORT STRIP ── */}
-      <section className="fu4" style={{ padding: "32px 24px", borderBottom: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" as const, gap: 16 }}>
+      <section className="fu4 about-support-strip" style={{ padding: "32px 24px", borderBottom: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" as const, gap: 16 }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
             <Heart size={14} style={{ color: "#ef4444", fill: "#ef4444" }} />
@@ -233,7 +234,7 @@ export default function AboutPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <div style={{ padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="about-footer" style={{ padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <img
                 src={isDark ? "/logo-dark.png" : "/logo-light.png"}

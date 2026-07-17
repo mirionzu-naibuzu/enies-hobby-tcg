@@ -128,18 +128,8 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
       } else if (error.message.includes("Email not confirmed")) {
         setError("Please confirm your email first. Check your inbox!");
       } else if (error.message.includes("Invalid login credentials")) {
-        const { data } = await supabase.auth.signUp({
-          email,
-          password: crypto.randomUUID(),
-          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-        });
-
-        if (data.user && data.user.identities && data.user.identities.length === 0) {
-          setError("Incorrect password. Please try again.");
-        } else {
-          setError("No account found with this email.");
-          setSuggestSignup(true);
-        }
+        setError("Incorrect email or password. Please try again.");
+        setSuggestSignup(true);
       } else {
         setError(error.message);
       }
@@ -164,6 +154,7 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
       onClick={onClose}
     >
       <div
+        className="auth-modal-content"
         style={{
           background: colors.bg.primary,
           borderRadius: 16,

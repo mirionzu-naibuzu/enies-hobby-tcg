@@ -28,8 +28,23 @@ export default function Sidebar() {
   const [feedbackStatus, setFeedbackStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
     const [showSupport, setShowSupport] = useState(false);
   const [supportTab, setSupportTab] = useState<"gcash" | "kofi">("gcash");
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile && !expanded) {
+      setShowAppearance(false);
+    }
+  }, [isMobile, expanded]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -136,155 +151,358 @@ export default function Sidebar() {
 
   return (
     <>
+      {/* Mobile Top Bar */}
+      <div
+        className="mobile-topbar"
+        style={{
+          background: colors.bg.secondary,
+          borderBottom: `1px solid ${colors.border}`,
+          height: 64,
+          boxSizing: "border-box",
+          padding: "0 16px",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            title="Toggle sidebar"
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", justifyContent: "center", color: colors.text.primary }}
+          >
+            <PanelLeft size={20} />
+          </button>
+          <img
+            src={colors.isDark ? "/sidebar-logo.png" : "/logo-light.png"}
+            alt="Enies Hobby"
+            onClick={() => router.push("/")}
+            style={{ height: 32, objectFit: "contain", cursor: "pointer" }}
+          />
+        </div>
+        <button
+          onClick={() => {
+            setShowAppearance(prev => {
+              const next = !prev;
+              if (next) setThemeMode(isDark ? "dark" : "light");
+              return next;
+            });
+          }}
+          title="Appearance"
+          style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", justifyContent: "center", color: colors.text.primary }}
+        >
+          <Palette size={18} />
+        </button>
+      </div>
+
+      {/* Mobile sidebar backdrop */}
+      {isMobile && expanded && (
+        <div
+          className="sidebar-mobile-backdrop open"
+          onClick={() => setExpanded(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside
+        className={`app-sidebar${expanded ? ' expanded' : ''}`}
         suppressHydrationWarning
         style={{
-          position: "fixed", left: 0, top: 0, height: "100vh",
+          position: "fixed",
+          left: 0,
+          top: 0,
+          height: "100vh",
           width: expanded ? 280 : 70,
           background: colors.bg.secondary,
           borderRight: `1px solid ${colors.border}`,
-          display: "flex", flexDirection: "column",
-          zIndex: 40, transition: "width 0.3s ease", overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          zIndex: 50,
+          transition: "width 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.35s ease",
+          overflow: "hidden",
+          boxShadow: expanded ? (isDark ? "4px 0 28px rgba(0,0,0,0.5)" : "4px 0 28px rgba(0,0,0,0.12)") : "none",
         }}
       >
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: expanded ? "space-between" : "center", padding: "16px 12px", borderBottom: `1px solid ${colors.border}` }}>
-          {expanded && (
-            <div
-            onClick={() => router.push("/")}
-            style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
-          >
-            <img
-              src={colors.isDark
-                ? "/sidebar-logo.png"
-                : "/logo-light.png"}
-              alt="Enies Hobby Logo"
-              style={{
-                height: 40,
-                objectFit: "contain",
-                transition: "opacity 0.3s ease",
-              }}
-            />
-          </div>
+        {/* Inner Fixed 280px Container — Ensures icons stay completely stationary during expanding/collapsing */}
+        <div className="sidebar-inner" style={{ width: 280, minWidth: 280, height: "100%", display: "flex", flexDirection: "column", overflowY: "auto", overflowX: "hidden" }}>
           
-          )}
-          <button
-            onClick={() => setExpanded(!expanded)}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: 5.5, display: "flex", alignItems: "center", justifyContent: "center", color: colors.text.primary }}
+          {/* Header */}
+          <div
+            className="sidebar-header"
+            style={{
+              height: 64,
+              boxSizing: "border-box",
+              position: "relative",
+              borderBottom: `1px solid ${colors.border}`,
+              overflow: "hidden",
+              flexShrink: 0,
+            }}
           >
-            <PanelLeft size={20} style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.3s ease" }} />
-          </button>
-        </div>
-
-        {/* User Profile */}
-        {user && (
-          <div style={{ padding: "16px 12px", borderBottom: `1px solid ${colors.border}`, display: "flex", flexDirection: "row", alignItems: expanded ? "flex-start" : "center", gap: expanded ? 12 : 0 }}>
-            <div style={{ width: 45, height: 45, borderRadius: "50%", background: colors.text.primary, color: colors.bg.primary, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 16 }}>
-              {user.email?.[0].toUpperCase()}
+            {/* Logo on the left when expanded */}
+            <div
+              onClick={() => router.push("/")}
+              style={{
+                position: "absolute",
+                left: 16,
+                top: "50%",
+                transform: expanded ? "translateY(-50%) translateX(0)" : "translateY(-50%) translateX(-12px)",
+                opacity: expanded ? 1 : 0,
+                transition: "opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                pointerEvents: expanded ? "auto" : "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <img
+                src={colors.isDark ? "/sidebar-logo.png" : "/logo-light.png"}
+                alt="Enies Hobby Logo"
+                style={{
+                  height: 32,
+                  objectFit: "contain",
+                }}
+              />
             </div>
-            {expanded && (
-              <div style={{ width: "70%" }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: colors.text.primary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+
+            {/* Sidebar toggle icon — centered at x=19 in 70px rail when closed, glides to right (x=232) when open */}
+            <button
+              onClick={() => setExpanded(!expanded)}
+              title={expanded ? "Collapse sidebar" : "Expand sidebar"}
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: expanded ? 232 : 19,
+                transform: expanded ? "translateY(-50%) rotate(180deg)" : "translateY(-50%) rotate(0deg)",
+                transition: "left 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), background 0.15s",
+                width: 32,
+                height: 32,
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: colors.text.primary,
+                borderRadius: 8,
+                padding: 0,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = colors.hover; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
+            >
+              <PanelLeft size={20} />
+            </button>
+          </div>
+
+          {/* User Profile */}
+          {user && (
+            <div
+              className="sidebar-profile"
+              style={{
+                height: 64,
+                boxSizing: "border-box",
+                borderBottom: `1px solid ${colors.border}`,
+                display: "flex",
+                alignItems: "center",
+                flexShrink: 0,
+              }}
+            >
+              <div style={{ width: 70, height: "100%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div
+                  className="sidebar-profile-avatar"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
+                    background: colors.text.primary,
+                    color: colors.bg.primary,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 700,
+                    fontSize: 15,
+                  }}
+                >
+                  {user.email?.[0].toUpperCase()}
+                </div>
+              </div>
+              <div
+                style={{
+                  width: 190,
+                  opacity: expanded ? 1 : 0,
+                  transform: expanded ? "translateX(0)" : "translateX(-8px)",
+                  transition: "opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                  pointerEvents: expanded ? "auto" : "none",
+                  overflow: "hidden",
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: 13, color: colors.text.primary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {user.user_metadata?.full_name ?? user.email?.split("@")[0]}
                 </div>
-                <div style={{ fontSize: 12, color: colors.text.secondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <div style={{ fontSize: 11, color: colors.text.secondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {user.email}
                 </div>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Nav */}
-        <nav style={{ flex: 1, padding: "12px 0", display: "flex", flexDirection: "column" }}>
-        {menuItems.map((item) => {
-  if (item.show === false) return null;
-  const Icon = item.icon;
+          {/* Nav */}
+          <nav className="sidebar-nav" style={{ flex: 1, padding: "8px 0", display: "flex", flexDirection: "column", gap: 2 }}>
+            {menuItems.map((item) => {
+              if (item.show === false) return null;
+              const Icon = item.icon;
 
-  return (
-    <button
-      key={item.label}
-      onClick={item.action}
-      title={item.label}
-      style={{
-        width: "100%",
-        padding: "12px",
-        background: "none",
-        border: "none",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        color: colors.text.primary,
-        transition: "all 0.2s",
-        justifyContent: expanded ? "flex-start" : "center",
-        position: "relative",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = colors.hover;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = "none";
-      }}
-    >
-      <Icon size={20} />
+              return (
+                <button
+                  key={item.label}
+                  onClick={item.action}
+                  title={expanded ? undefined : item.label}
+                  className="sidebar-nav-btn"
+                  style={{
+                    width: 280,
+                    height: 44,
+                    padding: 0,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    color: colors.text.primary,
+                    transition: "background 0.15s",
+                    textAlign: "left",
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = colors.hover;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "none";
+                  }}
+                >
+                  <div className="sidebar-icon-wrap" style={{ width: 70, height: 44, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Icon size={20} />
+                  </div>
+                  <div
+                    className="sidebar-text-wrap"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      whiteSpace: "nowrap",
+                      opacity: expanded ? 1 : 0,
+                      transform: expanded ? "translateX(0)" : "translateX(-8px)",
+                      transition: "opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                      pointerEvents: expanded ? "auto" : "none",
+                    }}
+                  >
+                    <span style={{ fontSize: 14, fontWeight: 500 }}>
+                      {item.label}
+                    </span>
+                    {item.badge && (
+                      <span
+                        style={{
+                          fontSize: 9,
+                          lineHeight: 1,
+                          padding: "2px 5px",
+                          borderRadius: 999,
+                          background: "#ef4444",
+                          color: "#fff",
+                          fontWeight: 700,
+                          transform: "translateY(-4px)",
+                        }}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </nav>
 
-      {expanded && (
-  <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
-    <span style={{ fontSize: 14, fontWeight: 500 }}>
-      {item.label}
-    </span>
+          {/* Bottom */}
+          <div className="sidebar-bottom" style={{ borderTop: `1px solid ${colors.border}`, padding: "8px 0", display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
+            {bottomItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.label}
+                  onClick={item.action}
+                  title={expanded ? undefined : item.label}
+                  className="sidebar-bottom-btn"
+                  style={{
+                    width: 280,
+                    height: 44,
+                    padding: 0,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    color: colors.text.primary,
+                    transition: "background 0.15s",
+                    textAlign: "left",
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = colors.hover; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
+                >
+                  <div className="sidebar-icon-wrap" style={{ width: 70, height: 44, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Icon size={20} />
+                  </div>
+                  <div
+                    className="sidebar-text-wrap"
+                    style={{
+                      whiteSpace: "nowrap",
+                      opacity: expanded ? 1 : 0,
+                      transform: expanded ? "translateX(0)" : "translateX(-8px)",
+                      transition: "opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                      pointerEvents: expanded ? "auto" : "none",
+                    }}
+                  >
+                    <span style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</span>
+                  </div>
+                </button>
+              );
+            })}
 
-    {item.badge && (
-      <span
-        style={{
-          fontSize: 9,
-          lineHeight: 1,
-          padding: "2px 5px",
-          borderRadius: 999,
-          background: "#ef4444",
-          color: "#fff",
-          fontWeight: 700,
-          transform: "translateY(-4px)", // 👈 makes it "exponent-like"
-        }}
-      >
-        {item.badge}
-      </span>
-    )}
-  </div>
-)}
-    </button>
-  );
-})}
-        </nav>
-
-        {/* Bottom */}
-        <div style={{ borderTop: `1px solid ${colors.border}`, padding: "12px 0", display: "flex", flexDirection: "column" }}>
-          {bottomItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button key={item.label} onClick={item.action} title={item.label}
-                style={{ width: "100%", padding: "12px", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, color: colors.text.primary, transition: "all 0.2s", justifyContent: expanded ? "flex-start" : "center" }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = colors.hover; }}
+            {user && (
+              <button
+                onClick={() => setShowSignOutConfirm(true)}
+                title={expanded ? undefined : "Sign Out"}
+                className="sidebar-bottom-btn"
+                style={{
+                  width: 280,
+                  height: 44,
+                  padding: 0,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  color: "#ef4444",
+                  transition: "background 0.15s",
+                  textAlign: "left",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.05)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
               >
-                <Icon size={20} />
-                {expanded && <span style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</span>}
+                <div className="sidebar-icon-wrap" style={{ width: 70, height: 44, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <LogOut size={20} />
+                </div>
+                <div
+                  className="sidebar-text-wrap"
+                  style={{
+                    whiteSpace: "nowrap",
+                    opacity: expanded ? 1 : 0,
+                    transform: expanded ? "translateX(0)" : "translateX(-8px)",
+                    transition: "opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                    pointerEvents: expanded ? "auto" : "none",
+                  }}
+                >
+                  <span style={{ fontSize: 14, fontWeight: 500 }}>Sign Out</span>
+                </div>
               </button>
-            );
-          })}
-
-          {user && (
-            <button onClick={() => setShowSignOutConfirm(true)} title="Sign Out"
-              style={{ width: "100%", padding: "12px", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, color: "#ef4444", transition: "all 0.2s", justifyContent: expanded ? "flex-start" : "center" }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.05)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
-            >
-              <LogOut size={20} />
-              {expanded && <span style={{ fontSize: 14, fontWeight: 500 }}>Sign Out</span>}
-            </button>
-          )}
+            )}
+          </div>
         </div>
       </aside>
 
@@ -343,7 +561,7 @@ export default function Sidebar() {
         </button>
       </div>
       <p style={{ fontSize: 13, color: colors.text.secondary, lineHeight: 1.6, margin: "0 0 18px" }}>
-        This project is free and always will be. If it's been useful to you, even a small contribution means a lot.
+        This project is free and always will be. If it&apos;s been useful to you, even a small contribution means a lot.
       </p>
 
       {/* Tab switcher */}
@@ -419,7 +637,7 @@ export default function Sidebar() {
                 </div>
               ) : (
                 <>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: colors.text.secondary, marginBottom: 8 }}>What's this about?</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: colors.text.secondary, marginBottom: 8 }}>What&apos;s this about?</div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 20 }}>
                     {FEEDBACK_CATEGORIES.map((cat) => {
                       const Icon = cat.icon;
@@ -537,9 +755,10 @@ export default function Sidebar() {
           </div>
         )}
 
-      {/* Overlay */}
-      {expanded && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 30 }}
+      {/* Overlay (desktop only — mobile uses sidebar-mobile-backdrop) */}
+      {expanded && !isMobile && (
+        <div 
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 45 }}
           onClick={() => setExpanded(false)}
         />
       )}
@@ -549,11 +768,15 @@ export default function Sidebar() {
         <div onClick={() => setShowAppearance(false)} style={{ position: "fixed", inset: 0, zIndex: 50 }}>
           <div
             onClick={(e) => e.stopPropagation()}
+            className={isMobile ? 'theme-popover-mobile' : ''}
             style={{
-              position: "absolute",
-              left: expanded ? 292 : 82,
-              bottom: 100,
-              width: 280,
+              position: isMobile ? undefined : "absolute",
+              left: isMobile ? undefined : (expanded ? 292 : 82),
+              bottom: isMobile ? undefined : 100,
+              width: isMobile ? undefined : 280,
+              maxHeight: isMobile ? undefined : "calc(100vh - 120px)",
+              overflowY: isMobile ? undefined : "auto",
+              scrollbarWidth: "thin",
               background: colors.bg.primary,
               border: `1.5px solid ${isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.12)"}`,
               borderRadius: 16,

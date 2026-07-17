@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 
+export const revalidate = 86400; // 24 hours ISR
+
 const OPTCG_URL = "https://optcgapi.com/api";
 
 let cachedCards: unknown[] = [];
 let cacheTime = 0;
-const CACHE_DURATION = 1000 * 60 * 60;
+const CACHE_DURATION = 1000 * 60 * 60 * 24;
+
+const CACHE_HEADERS = {
+  "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
+};
 
 type OptcgApiCard = {
   card_set_id?: string;
@@ -55,17 +61,17 @@ function normalizeOptcgCard(
     setType: options.setType,
   };
 }
+
 export async function GET() {
   try {
     if (cachedCards.length > 0 && Date.now() - cacheTime < CACHE_DURATION) {
-      console.log(`✅ Returning ${cachedCards.length} cached cards`);
-      return NextResponse.json(cachedCards);
+      return NextResponse.json(cachedCards, { headers: CACHE_HEADERS });
     }
 
     const [setCardsPayload, stCardsPayload, promoCardsPayload] = await Promise.all([
-      fetch(`${OPTCG_URL}/allSetCards/`).then(r => r.json()),
-      fetch(`${OPTCG_URL}/allSTCards/`).then(r => r.json()),
-      fetch(`${OPTCG_URL}/allPromos/`).then(r => r.json()).catch(() => []),
+      fetch(`${OPTCG_URL}/allSetCards/`, { next: { revalidate: 86400 } }).then(r => r.json()),
+      fetch(`${OPTCG_URL}/allSTCards/`, { next: { revalidate: 86400 } }).then(r => r.json()),
+      fetch(`${OPTCG_URL}/allPromos/`, { next: { revalidate: 86400 } }).then(r => r.json()).catch(() => []),
     ]);
 
     const setCards = toOptcgCards(setCardsPayload);
@@ -83,18 +89,14 @@ export async function GET() {
 
     const allCards = [...mainCards, ...limitedProductCards];
 
-    console.log(
-      `✅ Total cards: ${allCards.length} (${mainCards.length} main + ${limitedProductCards.length} limited product)`
-    );
-
     cachedCards = allCards;
     cacheTime = Date.now();
 
-    return NextResponse.json(allCards);
+    return NextResponse.json(allCards, { headers: CACHE_HEADERS });
   } catch (err) {
     if (cachedCards.length > 0) {
       console.log("⚠️ Returning stale cache");
-      return NextResponse.json(cachedCards);
+      return NextResponse.json(cachedCards, { headers: CACHE_HEADERS });
     }
     console.error(err);
     return NextResponse.json({ error: "Failed to fetch cards" }, { status: 500 });

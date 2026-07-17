@@ -7,33 +7,28 @@ import { useTheme } from "next-themes";
 import AuthModal from "@/components/AuthModal";
 import { createClient } from "@/lib/supabase";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
-import { getAllCards } from "@/lib/api";
+import { getHomeCards } from "@/lib/api";
 import { Card } from "@/types/card";
 import { getColors, ALL_THEMES } from "@/lib/themes";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
-
-const SETS = [
-  "OP-01","OP-02","OP-03","OP-04","OP-05","OP-06","OP-07","OP-08","OP-09","OP-10",
-  "ST-01","ST-02","ST-03","ST-04","ST-05","ST-06","ST-07","ST-08","ST-09","ST-10",
-  "EB-01","EB-02","EB-03","EB-04",
-  "PRB-01","PRB-02"
-];
+import { SET_ORDER } from "@/lib/sets";
+import ModalCardImage from "@/components/ModalCardImage";
 
 const STACK_META = [
-  { color: "#ef4444", darkBg: "#7f1d1d", bg: "#fff1f2", rarityColor: "#991b1b", rarityBg: "#fee2e2", rot: -8, top: 0,  left: 0,   z: 1, cls: "card-a" },
-  { color: "#3b82f6", darkBg: "#0c2340", bg: "#eff6ff", rarityColor: "#6d28d9", rarityBg: "#ede9fe", rot:  2, top: 32, left: 130, z: 3, cls: "card-b" },
-  { color: "#a855f7", darkBg: "#3f0f5c", bg: "#faf5ff", rarityColor: "#1d4ed8", rarityBg: "#dbeafe", rot: 11, top: 12, left: 256, z: 1, cls: "card-c" },
+  { color: "#ef4444", darkBg: "#7f1d1d", bg: "#fff1f2", rarityColor: "#991b1b", rarityBg: "#fee2e2", rot: -8, top: 0,  left: 12,  z: 1, cls: "card-a" },
+  { color: "#3b82f6", darkBg: "#0c2340", bg: "#eff6ff", rarityColor: "#6d28d9", rarityBg: "#ede9fe", rot:  1, top: 28, left: 118, z: 3, cls: "card-b" },
+  { color: "#a855f7", darkBg: "#3f0f5c", bg: "#faf5ff", rarityColor: "#1d4ed8", rarityBg: "#dbeafe", rot:  9, top: 10, left: 224, z: 1, cls: "card-c" },
 ];
 
 const RARITIES = [
-  { label: "SEC", name: "Secret Rare", color: "#991b1b", bg: "#fee2e2", description: "The rarest cards in any booster set. Secret Rares feature stunning alternate art, unique foiling, and are extremely hard to pull. Every set has only a handful of SECs — owning one is a real flex.", pullRate: "~1 in 144 packs", icon: "💎" },
-  { label: "SR",  name: "Super Rare",  color: "#6d28d9", bg: "#ede9fe", description: "Super Rares are powerful, visually impressive cards with foil treatment. They feature key characters and strong abilities that often see competitive play. Highly sought after by collectors and players alike.", pullRate: "~1 in 12 packs", icon: "⭐" },
-  { label: "R",   name: "Rare",        color: "#1d4ed8", bg: "#dbeafe", description: "Rares strike the balance between accessibility and value. They often include strong support cards and fan-favorite characters. A staple of most competitive decks.", pullRate: "~1 in 4 packs", icon: "🔷" },
-  { label: "UC",  name: "Uncommon",    color: "#065f46", bg: "#d1fae5", description: "Uncommons are reliable, consistent cards that form the backbone of many strategies. Don't sleep on them — some of the most competitive cards in the game are Uncommons.", pullRate: "~3-4 per pack", icon: "🟢" },
-  { label: "C",   name: "Common",      color: "#6b7280", bg: "#f3f4f6", description: "The foundation of every deck. Commons are widely available and easy to collect, but many are competitively viable. Perfect for building consistent, budget-friendly decks.", pullRate: "~5-6 per pack", icon: "⬜" },
-  { label: "SP",  name: "SP Card",     color: "#9d174d", bg: "#fce7f3", description: "SP Cards are special alternate art versions of existing cards, featuring unique illustrations not found anywhere else. They're chase cards for collectors and don't affect gameplay — pure eye candy.", pullRate: "Very rare, set-dependent", icon: "✨" },
-  { label: "TR",  name: "Trophy Rare", color: "#0369a1", bg: "#e0f2fe", description: "Trophy Rares are awarded exclusively through official tournaments and events. They cannot be pulled from booster packs, making them among the rarest cards in the entire game. A true badge of honor.", pullRate: "Tournament exclusive", icon: "🏆" },
-  { label: "P",  name: "Promo",       color: "#b45309", bg: "#fef3c7", description: "Promo cards are distributed through special events, pre-release kits, and promotional campaigns. Each promo has its own unique art or stamp, making them highly collectible outside of normal set releases.", pullRate: "Event / promo exclusive", icon: "🎁" },
+  { label: "SEC", name: "Secret Rare", bg: "#fee2e2", description: "The rarest cards in any booster set. Secret Rares feature stunning alternate art, unique foiling, and are extremely hard to pull. Every set has only a handful of SECs — owning one is a real flex.", pullRate: "~1 in 144 packs", icon: "💎" },
+  { label: "SR",  name: "Super Rare",  bg: "#ede9fe", description: "Super Rares are powerful, visually impressive cards with foil treatment. They feature key characters and strong abilities that often see competitive play. Highly sought after by collectors and players alike.", pullRate: "~1 in 12 packs", icon: "⭐" },
+  { label: "R",   name: "Rare",        bg: "#dbeafe", description: "Rares strike the balance between accessibility and value. They often include strong support cards and fan-favorite characters. A staple of most competitive decks.", pullRate: "~1 in 4 packs", icon: "🔷" },
+  { label: "UC",  name: "Uncommon",    bg: "#d1fae5", description: "Uncommons are reliable, consistent cards that form the backbone of many strategies. Don't sleep on them — some of the most competitive cards in the game are Uncommons.", pullRate: "~3-4 per pack", icon: "🟢" },
+  { label: "C",   name: "Common",      bg: "#f3f4f6", description: "The foundation of every deck. Commons are widely available and easy to collect, but many are competitively viable. Perfect for building consistent, budget-friendly decks.", pullRate: "~5-6 per pack", icon: "⬜" },
+  { label: "SP",  name: "SP Card",     bg: "#fce7f3", description: "SP Cards are special alternate art versions of existing cards, featuring unique illustrations not found anywhere else. They're chase cards for collectors and don't affect gameplay — pure eye candy.", pullRate: "Very rare, set-dependent", icon: "✨" },
+  { label: "TR",  name: "Trophy Rare", bg: "#e0f2fe", description: "Trophy Rares are awarded exclusively through official tournaments and events. They cannot be pulled from booster packs, making them among the rarest cards in the entire game. A true badge of honor.", pullRate: "Tournament exclusive", icon: "🏆" },
+  { label: "P",  name: "Promo",        bg: "#fef3c7", description: "Promo cards are distributed through special events, pre-release kits, and promotional campaigns. Each promo has its own unique art or stamp, making them highly collectible outside of normal set releases.", pullRate: "Event / promo exclusive", icon: "🎁" },
 ];
 
 const CARD_PREVIEWS = [
@@ -74,73 +69,6 @@ function renderHeroTyping(typedCount: number, accentColor: string) {
   });
 }
 
-// ── Modal card image with flip-in animation (matches browse page) ──
-function ModalCardImage({ src, alt, isLeader, isDark }: {
-  src: string; alt: string; isLeader: boolean; isDark: boolean;
-}) {
-  const [loaded, setLoaded] = useState(false);
-  const [flipped, setFlipped] = useState(false);
-  const [imgSrc, setImgSrc] = useState(src);
-  const backSrc = isLeader ? "/card-back-leader.png" : "/card-back.png";
-
-  useEffect(() => {
-    setLoaded(false);
-    setFlipped(false);
-    setImgSrc(src);
-
-    const img = new window.Image();
-    img.src = src;
-    img.onload = () => {
-      setLoaded(true);
-      setTimeout(() => setFlipped(true), 60);
-    };
-    img.onerror = () => {
-      setImgSrc("/card-placeholder.png");
-      setLoaded(true);
-      setTimeout(() => setFlipped(true), 60);
-    };
-  }, [src]);
-
-  return (
-    <div style={{ width: "100%", aspectRatio: "63/88", perspective: "1000px" }}>
-      <div style={{
-        position: "relative",
-        width: "100%",
-        height: "100%",
-        transformStyle: "preserve-3d",
-        transition: "transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)",
-        transform: flipped ? "rotateY(0deg)" : "rotateY(180deg)",
-        borderRadius: 17,
-        boxShadow: isDark ? "0 12px 40px rgba(0,0,0,0.6)" : "0 12px 40px rgba(0,0,0,0.2)",
-      }}>
-        <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", borderRadius: 17, overflow: "hidden" }}>
-          {loaded && (
-            <img
-              src={imgSrc}
-              alt={alt}
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-              onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }}
-            />
-          )}
-        </div>
-        <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)", borderRadius: 17, overflow: "hidden" }}>
-          <img src={backSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function probeImage(url: string, timeoutMs = 4000): Promise<boolean> {
-  return new Promise((resolve) => {
-    const img = new window.Image();
-    const timer = setTimeout(() => resolve(false), timeoutMs);
-    img.onload = () => { clearTimeout(timer); resolve(true); };
-    img.onerror = () => { clearTimeout(timer); resolve(false); };
-    img.src = url;
-  });
-}
-
 export default function HomePage() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -170,51 +98,22 @@ export default function HomePage() {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
     const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => { setUser(session?.user ?? null); });
 
-    getAllCards().then((cards) => {
-      setCardCount(cards.length);
-      const shuffle = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5);
-      const highRarity = cards.filter((c) => {
-        const r = c.rarity?.replace(/\s+CARD\s*$/i, "").trim() ?? "";
-        const normalized = c.name?.includes("(SP)") ? "SP" : r;
-        return ["SR","SP","SEC"].includes(normalized) && ["LEADER","CHARACTER"].includes(c.type?.toUpperCase() ?? "") && !!c.images?.large;
+    // Reset reveal flags on every fetch so a remount/navigation always
+    // re-runs the flip-in animation instead of getting stuck on the back.
+    setStackRevealed(false);
+    setPreviewRevealed(false);
+    setStackCards([]);
+    setPreviewCards([]);
+
+    getHomeCards()
+      .then((data) => {
+        setCardCount(data.cardCount);
+        setStackCards(data.stackCards);
+        setPreviewCards(data.previewCards);
+      })
+      .catch((err) => {
+        console.error("Failed to load home cards:", err);
       });
-    
-      // Probe a buffer of high-rarity cards, keep the first 3 whose large image actually loads
-      const stackCandidates = shuffle(highRarity).slice(0, 10);
-      const stackAccepted: Card[] = [];
-      let stackSettled = 0;
-      let stackFinished = false;
-    
-      stackCandidates.forEach((card) => {
-        probeImage(card.images!.large!, 4000).then((ok) => {
-          if (stackFinished) return;
-          stackSettled++;
-          if (ok) stackAccepted.push(card);
-          if (stackAccepted.length >= 3 || stackSettled === stackCandidates.length) {
-            stackFinished = true;
-            setStackCards(stackAccepted.slice(0, 3));
-          }
-        });
-      });
-    
-      // Probe a buffer of small-image candidates, keep the first 6 that succeed
-      const candidates = shuffle(cards.filter((c) => !!c.images?.small)).slice(0, 16);
-      const accepted: Card[] = [];
-      let settled = 0;
-      let finished = false;
-    
-      candidates.forEach((card) => {
-        probeImage(card.images!.small!, 2500).then((ok) => {
-          if (finished) return;
-          settled++;
-          if (ok) accepted.push(card);
-          if (accepted.length >= 6 || settled === candidates.length) {
-            finished = true;
-            setPreviewCards(accepted.slice(0, 6));
-          }
-        });
-      });
-    });
 
     return () => { listener.subscription.unsubscribe(); };
   }, []);
@@ -295,8 +194,8 @@ useEffect(() => {
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@400;500;600&display=swap');
         @keyframes floatA { 0%,100%{transform:rotate(-8deg) translateY(0)} 50%{transform:rotate(-8deg) translateY(-10px)} }
-        @keyframes floatB { 0%,100%{transform:rotate(2deg)  translateY(0)} 50%{transform:rotate(2deg)  translateY(-7px)}  }
-        @keyframes floatC { 0%,100%{transform:rotate(11deg) translateY(0)} 50%{transform:rotate(11deg) translateY(-12px)} }
+        @keyframes floatB { 0%,100%{transform:rotate(1deg)  translateY(0)} 50%{transform:rotate(1deg)  translateY(-7px)}  }
+        @keyframes floatC { 0%,100%{transform:rotate(9deg)  translateY(0)} 50%{transform:rotate(9deg)  translateY(-10px)} }
         @keyframes cardFlipIn { 0% { transform: rotateY(180deg); } 100% { transform: rotateY(0deg); } }
         @keyframes blinkCursor { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
         .typing-cursor { display: inline-block; animation: blinkCursor 0.9s steps(1) infinite; margin-left: 2px; }
@@ -323,6 +222,7 @@ useEffect(() => {
 
       {/* NAV */}
       <header
+        className="home-nav-header"
         style={{
           position: "sticky",
           top: 0,
@@ -340,6 +240,7 @@ useEffect(() => {
         {/* LEFT: LOGO */}
         <div style={{ display: "flex", alignItems: "center" }}>
           <img
+            className="home-nav-logo"
             src={isDark ? "/logo-dark.png" : "/logo-light.png"}
             alt="Enies Hobby logo"
             style={{ height: 50, width: "auto", objectFit: "contain" }}
@@ -349,7 +250,7 @@ useEffect(() => {
         {/* RIGHT: NAV + THEME + AUTH */}
         <div style={{ display: "flex", alignItems: "center", gap: 26 }}>
           {/* NAV LINKS */}
-          <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
+          <div className="home-nav-links" style={{ display: "flex", gap: 20, alignItems: "center" }}>
           {["Cards", "Binder", "Don!!", "About"].map((l) => (
             <button
               key={l}
@@ -387,6 +288,22 @@ useEffect(() => {
                     return next;
                   });
                 }}
+                title="Change theme"
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 8,
+                  background: showThemePicker
+                    ? (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)")
+                    : "transparent",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.2s",
+                  flexShrink: 0,
+                  border: "none",
+                }}
               >
                 <Palette style={{ width: 16, height: 16 }} />
               </button>
@@ -398,12 +315,15 @@ useEffect(() => {
                   onClick={() => setShowThemePicker(false)}
                 />
                 <div
-                  className="pop-in"
+                  className="pop-in home-theme-popover"
                   style={{
                     position: "absolute",
-                    top: "calc(100% + 10px)",
+                    top: "calc(100% + 8px)",
                     right: 0,
                     width: 280,
+                    maxHeight: "calc(100vh - 72px)",
+                    overflowY: "auto",
+                    scrollbarWidth: "thin",
                     background: c.bg,
                     border: `1px solid ${c.border}`,
                     borderRadius: 16,
@@ -564,34 +484,34 @@ useEffect(() => {
       </header>
 
       {/* HERO */}
-      <section style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", borderBottom: `1px solid ${c.border}`, minHeight: 440 }}>
-        <div className="fu" style={{ padding: "20px 32px 40px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+      <section className="home-hero" style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", borderBottom: `1px solid ${c.border}` }}>
+        <div className="fu home-hero-text" style={{ padding: "20px 32px 40px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           <div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 22 }}>
               <span style={{ background: tc.accent, color: "#fff", fontSize: 9, fontWeight: 500, padding: "3px 8px", borderRadius: 3, letterSpacing: "0.07em", textTransform: "uppercase" as const }}>New</span>
               <span style={{ fontSize: 11, color: c.textTer }}>OP-16 · The Time of Battle just added</span>
             </div>
-            <h1 style={{ fontFamily: "'Impact','Arial Narrow',sans-serif", fontSize: 72, lineHeight: 0.95, letterSpacing: "0.01em", color: c.text, marginBottom: 18 }}>
+            <h1 className="home-hero-title" style={{ fontFamily: "'Impact','Arial Narrow',sans-serif", lineHeight: 0.95, letterSpacing: "0.01em", color: c.text }}>
               {renderHeroTyping(typedCount, tc.accent)}
               {typedCount < HERO_TOTAL_LENGTH && (
                 <span className="typing-cursor" style={{ color: tc.accent }}>|</span>
               )}
             </h1>
-            <p style={{ fontSize: 13, color: c.textSec, lineHeight: 1.65, maxWidth: 340, marginBottom: 28 }}>
+            <p className="home-hero-desc" style={{ fontSize: 13, color: c.textSec, lineHeight: 1.65, maxWidth: 340, marginBottom: 28 }}>
               Browse, filter, and collect every English One Piece TCG card across all sets — from Romance Dawn to the latest boosters.
             </p>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <button className="btn-primary" onClick={() => handleBrowse()} style={{ padding: "10px 22px", borderRadius: 8, background: c.text, color: c.bg, fontSize: 13, fontWeight: 500, border: "none", cursor: "pointer", transition: "opacity 0.2s" }}>
+              <button className="btn-primary home-hero-cta" onClick={() => handleBrowse()} style={{ padding: "10px 22px", borderRadius: 8, background: c.text, color: c.bg, fontSize: 13, fontWeight: 500, border: "none", cursor: "pointer", transition: "opacity 0.2s" }}>
                 Browse cards →
               </button>
               {mounted && !user && (
-                <button className="btn-secondary" onClick={() => openAuth("signup")} style={{ padding: "10px 22px", borderRadius: 8, border: `0.5px solid ${c.border}`, background: "transparent", color: c.text, fontSize: 13, cursor: "pointer", transition: "background 0.2s" }}>
+                <button className="btn-secondary home-hero-cta" onClick={() => openAuth("signup")} style={{ padding: "10px 22px", borderRadius: 8, border: `0.5px solid ${c.border}`, background: "transparent", color: c.text, fontSize: 13, cursor: "pointer", transition: "background 0.2s" }}>
                   Sign up free
                 </button>
               )}
             </div>
           </div>
-          <div style={{ display: "flex", gap: 16, marginTop: 24 }}>
+          <div className="home-hero-stats" style={{ display: "flex", gap: 16, marginTop: 24 }}>
             {[cardCount ? `${cardCount.toLocaleString()} cards` : "Loading...", "English only", "Always free"].map((s) => (
               <span key={s} style={{ fontSize: 11, color: c.textTer }}>{s}</span>
             ))}
@@ -599,8 +519,8 @@ useEffect(() => {
         </div>
 
         {/* Floating card stack */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 28px", overflow: "hidden" }}>
-          <div style={{ position: "relative", width: 460, height: 340 }}>
+        <div className="home-hero-cards" style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px", overflow: "hidden" }}>
+          <div className="home-hero-card-stack" style={{ position: "relative", width: 430, height: 310, flexShrink: 0 }}>
           {STACK_META.map((meta, i) => {
   const card = stackCards[i];
   const hasCard = !!card;
@@ -609,7 +529,11 @@ useEffect(() => {
   const backSrc = card?.type?.toUpperCase() === "LEADER" ? "/card-back-leader.png" : "/card-back.png";
 
   return (
-    <div key={i} className={meta.cls} style={{ position: "absolute", top: meta.top, left: meta.left, zIndex: meta.z, width: 190, height: 266, borderRadius: 14, border: fullyShown ? `1px solid ${c.border}` : "none", overflow: "hidden", boxShadow: isDark ? "0 20px 56px rgba(0,0,0,0.7)" : "0 20px 56px rgba(0,0,0,0.18)", perspective: shouldFlip ? "1000px" : "none" }}>
+    <div
+      key={`${card?.id ?? "empty"}-${i}`}
+      className={`home-hero-card ${meta.cls}`}
+      style={{ position: "absolute", top: meta.top, left: meta.left, zIndex: meta.z, width: 180, height: 252, borderRadius: 14, border: fullyShown ? `1px solid ${c.border}` : "none", overflow: "hidden", boxShadow: isDark ? "0 20px 56px rgba(0,0,0,0.7)" : "0 20px 56px rgba(0,0,0,0.18)", perspective: shouldFlip ? "1000px" : "none" }}
+    >
       <div
         style={{ position: "absolute", inset: 0, transformStyle: shouldFlip ? "preserve-3d" : "flat", animationName: shouldFlip ? "cardFlipIn" : "none", animationDuration: "0.5s", animationTimingFunction: "ease", animationFillMode: "forwards", animationDelay: shouldFlip ? `${i * 0.12}s` : "0s" }}
         onAnimationEnd={hasCard && i === STACK_META.length - 1 ? () => setStackRevealed(true) : undefined}
@@ -624,11 +548,20 @@ useEffect(() => {
         {hasCard && (
           <div style={{ position: "absolute", inset: 0, backfaceVisibility: shouldFlip ? "hidden" : "visible", WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible" }}>
             <img
-              src={card.images?.large || "/card-placeholder.png"}
+              src={card.images?.large}
               alt={card.name}
+              loading="eager"
+              fetchPriority="high"
               style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
               onLoad={() => setCardLoaded((prev) => ({ ...prev, [i]: true }))}
-              onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; setCardLoaded((prev) => ({ ...prev, [i]: true })); }}
+              onError={() => {
+                setStackCards((prev) => prev.filter((sc) => sc !== card));
+                setCardLoaded((prev) => {
+                  const next = { ...prev };
+                  delete next[i];
+                  return next;
+                });
+              }}
             />
           </div>
         )}
@@ -648,7 +581,7 @@ useEffect(() => {
       </div>
 
       {/* FEATURES */}
-      <div className="fu1" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", borderBottom: `1px solid ${c.border}` }}>
+      <div className="fu1 home-features" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", borderBottom: `1px solid ${c.border}` }}>
         {[
           { n: "01", title: "Search & filter",  desc: "Stack filters across set, color, type, and rarity. Search by name or ID instantly." },
           { n: "02", title: "Card binder",       desc: "Save your collection to a personal binder. Sign in to sync it across devices." },
@@ -663,20 +596,20 @@ useEffect(() => {
       </div>
 
       {/* SETS + RARITIES */}
-      <div className="fu2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderBottom: `1px solid ${c.border}` }}>
+      <div className="fu2 home-sets-rarities" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderBottom: `1px solid ${c.border}` }}>
         <div style={{ padding: "20px 24px", borderRight: `1px solid ${c.border}` }}>
           <div style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: c.textTer, marginBottom: 12 }}>Browse by set</div>
           <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
-            <button onClick={() => { setActiveSet(null); handleBrowse(); }} className="set-pill" style={{ fontSize: 11, padding: "4px 11px", borderRadius: 99, border: `0.5px solid ${activeSet === null ? c.text : c.border}`, background: activeSet === null ? c.text : "transparent", color: activeSet === null ? c.bg : c.textSec, cursor: "pointer", transition: "all 0.15s" }}>All</button>
-            {SETS.map((s) => (
-              <button key={s} onClick={() => { setActiveSet(s); handleBrowse(s); }} className="set-pill" style={{ fontSize: 11, padding: "4px 11px", borderRadius: 99, border: `0.5px solid ${activeSet === s ? c.text : c.border}`, background: activeSet === s ? c.text : "transparent", color: activeSet === s ? c.bg : c.textSec, cursor: "pointer", transition: "all 0.15s" }}>{s}</button>
+            <button onClick={() => { setActiveSet(null); handleBrowse(); }} className="set-pill home-set-pill" style={{ fontSize: 11, padding: "4px 11px", borderRadius: 99, border: `0.5px solid ${activeSet === null ? c.text : c.border}`, background: activeSet === null ? c.text : "transparent", color: activeSet === null ? c.bg : c.textSec, cursor: "pointer", transition: "all 0.15s" }}>All</button>
+            {SET_ORDER.map((s) => (
+              <button key={s} onClick={() => { setActiveSet(s); handleBrowse(s); }} className="set-pill home-set-pill" style={{ fontSize: 11, padding: "4px 11px", borderRadius: 99, border: `0.5px solid ${activeSet === s ? c.text : c.border}`, background: activeSet === s ? c.text : "transparent", color: activeSet === s ? c.bg : c.textSec, cursor: "pointer", transition: "all 0.15s" }}>{s}</button>
             ))}
           </div>
         </div>
 
         <div style={{ padding: "20px 24px" }}>
           <div style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: c.textTer, marginBottom: 12 }}>Filter by rarity</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6 }}>
+          <div className="home-rarity-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6 }}>
             {RARITIES.map((r) => (
               <div key={r.label} className="rar-cell" onClick={() => setSelectedRarity(r)} style={{ padding: "7px 6px", borderRadius: 8, border: `0.5px solid ${c.border}`, textAlign: "center", cursor: "pointer", transition: "all 0.15s" }}>
                 <span style={{ fontSize: 10, fontWeight: 600, display: "block", color: tc.accent, marginBottom: 2 }}>{r.label}</span>
@@ -688,19 +621,19 @@ useEffect(() => {
       </div>
 
       {/* CARD STRIP */}
-      <div className="fu3" style={{ padding: "18px 24px", borderBottom: `1px solid ${c.border}` }}>
+      <div className="fu3 home-card-strip-section" style={{ padding: "18px 24px", borderBottom: `1px solid ${c.border}` }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <span style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: c.textTer }}>Card preview</span>
           <span onClick={() => handleBrowse()} style={{ fontSize: 11, color: tc.accent, cursor: "pointer", fontWeight: 500 }}>View all →</span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 8 }}>
+        <div className="home-card-strip" style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 8 }}>
         {CARD_PREVIEWS.map((meta, i) => {
             const real = previewCards[i];
             const hasReal = !!real;
             const shouldFlip = hasReal && !previewRevealed;
             const backSrc = real?.type?.toUpperCase() === "LEADER" ? "/card-back-leader.png" : "/card-back.png";
             return (
-              <div key={i} className="strip-card" onClick={() => { setSelectedCard(real ?? null); setSelectedIndex(i); }} style={{ aspectRatio: "0.72", borderRadius: 8, border: `1px solid ${meta.border}`, background: isDark ? `linear-gradient(135deg, ${meta.darkBg}, ${tc.bg.secondary})` : `linear-gradient(135deg, ${meta.bg}, ${tc.bg.secondary})`, cursor: "pointer", position: "relative", overflow: "hidden", perspective: shouldFlip ? "700px" : "none" }}>
+              <div key={`${real?.id ?? "empty"}-${i}`} className="strip-card" onClick={() => { setSelectedCard(real ?? null); setSelectedIndex(i); }} style={{ aspectRatio: "0.72", borderRadius: 8, border: `1px solid ${meta.border}`, background: isDark ? `linear-gradient(135deg, ${meta.darkBg}, ${tc.bg.secondary})` : `linear-gradient(135deg, ${meta.bg}, ${tc.bg.secondary})`, cursor: "pointer", position: "relative", overflow: "hidden", perspective: shouldFlip ? "700px" : "none" }}>
                 <div
                   style={{ position: "absolute", inset: 0, transformStyle: shouldFlip ? "preserve-3d" : "flat", animationName: shouldFlip ? "cardFlipIn" : "none", animationDuration: "0.5s", animationTimingFunction: "ease", animationFillMode: "forwards", animationDelay: shouldFlip ? `${i * 0.05}s` : "0s" }}
                   onAnimationEnd={hasReal && i === CARD_PREVIEWS.length - 1 ? () => setPreviewRevealed(true) : undefined}
@@ -715,10 +648,10 @@ useEffect(() => {
                   )}
                   {hasReal && (
                     <img
-                      src={real.images?.small || "/card-placeholder.png"}
+                      src={real.images?.small}
                       alt={real.name}
                       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", backfaceVisibility: shouldFlip ? "hidden" : "visible", WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible" }}
-                      onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }}
+                      onError={() => setPreviewCards((prev) => prev.filter((pc) => pc !== real))}
                     />
                   )}
                 </div>
@@ -732,8 +665,8 @@ useEffect(() => {
       </div>
 
       {/* FOOTER */}
-      <div style={{ padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      <div className="home-footer" style={{ padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="home-footer-inner" style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <img
             onClick={() => router.push("/")}
             src={isDark ? "/logo-dark.png" : "/logo-light.png"}
@@ -755,10 +688,9 @@ useEffect(() => {
             <div style={{ padding: "20px 20px 22px" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: selectedRarity.color, flexShrink: 0 }} />
                   <span style={{ fontSize: 15, fontWeight: 600, color: c.text }}>{selectedRarity.name}</span>
                 </div>
-                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: "'Anton','Impact',sans-serif", fontWeight: 400, fontSize: 18, color: "#000", background: selectedRarity.label === "SEC" ? "#f59e0b" : "#ffffff", border: `1px solid ${selectedRarity.label === "SEC" ? "#92400e" : "#000"}`, borderRadius: 8, padding: "2px 10px", letterSpacing: "0.02em", lineHeight: 1.2 }}>
+                <span style={{ display: "inline-flex", width: 50,  alignItems: "center", justifyContent: "center", fontFamily: "'Anton','Impact',sans-serif", fontWeight: 400, fontSize: 18, color: "#000", background: selectedRarity.label === "SEC" ? "#f59e0b" : "#ffffff", border: `1px solid ${selectedRarity.label === "SEC" ? "#92400e" : "#000"}`, borderRadius: 8, padding: "2px 10px", letterSpacing: "0.02em", lineHeight: 1.2 }}>
                   {selectedRarity.label}
                 </span>
               </div>
@@ -781,13 +713,13 @@ useEffect(() => {
 
       {/* CARD DETAIL MODAL */}
       {selectedCard && (
-        <div style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => { setSelectedCard(null); setSelectedIndex(-1); }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, width: "100%", maxWidth: 960 }} onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => { const next = Math.max(selectedIndex - 1, 0); setSelectedIndex(next); setSelectedCard(previewCards[next] ?? null); }} disabled={selectedIndex <= 0} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: selectedIndex > 0 ? "pointer" : "not-allowed", opacity: selectedIndex <= 0 ? 0.3 : 1, transition: "all 0.2s", boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
+        <div className="card-modal-outer" style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => { setSelectedCard(null); setSelectedIndex(-1); }}>
+          <div className="card-modal-nav-row" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, width: "100%", maxWidth: 960 }} onClick={(e) => e.stopPropagation()}>
+            <button className="card-modal-prev" onClick={() => { const next = Math.max(selectedIndex - 1, 0); setSelectedIndex(next); setSelectedCard(previewCards[next] ?? null); }} disabled={selectedIndex <= 0} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: selectedIndex > 0 ? "pointer" : "not-allowed", opacity: selectedIndex <= 0 ? 0.3 : 1, transition: "all 0.2s", boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
               <ChevronLeft style={{ width: 20, height: 20 }} />
             </button>
-            <div style={{ flex: 1, background: c.bg, borderRadius: 20, border: `1px solid ${c.border}`, overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.5)" : "0 32px 64px rgba(0,0,0,0.15)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: `1px solid ${c.border}`, flexShrink: 0 }}>
+            <div className="card-modal-container" style={{ flex: 1, background: c.bg, borderRadius: 20, border: `1px solid ${c.border}`, overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.5)" : "0 32px 64px rgba(0,0,0,0.15)" }}>
+              <div className="card-modal-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: `1px solid ${c.border}`, flexShrink: 0 }}>
                 <div>
                   <div style={{ fontWeight: 900, fontSize: 22, color: c.text, letterSpacing: "-0.02em" }}>{selectedCard.name}</div>
                   <div style={{ fontSize: 12, color: c.textTer, fontFamily: "monospace", marginTop: 2 }}>{selectedCard.id}</div>
@@ -796,22 +728,18 @@ useEffect(() => {
                   <X style={{ width: 20, height: 20, color: c.textTer }} />
                 </button>
               </div>
-              <div style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
-                <div style={{ width: "45%", flexShrink: 0, background: tc.bg.primary, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-                  {selectedCard.images?.large ? (
-                    <ModalCardImage
-                      key={selectedCard.images.large}
-                      src={selectedCard.images.large}
-                      alt={selectedCard.name}
-                      isLeader={selectedCard.type?.toUpperCase() === "LEADER"}
-                      isDark={isDark}
-                    />
-                  ) : (
-                    <div style={{ width: 100, height: 100, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, border: `2px dashed ${c.border}`, background: c.bgSec }}>🃏</div>
-                  )}
+              <div className="card-modal-body" style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
+                <div className="card-modal-image-pane" style={{ width: "45%", flexShrink: 0, background: tc.bg.primary, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+                  <ModalCardImage
+                    key={selectedCard.images?.large ?? selectedCard.images?.small ?? selectedCard.id}
+                    src={selectedCard.images?.large || selectedCard.images?.small || "/card-placeholder.png"}
+                    alt={selectedCard.name}
+                    isLeader={selectedCard.type?.toUpperCase() === "LEADER"}
+                    isDark={isDark}
+                  />
                 </div>
-                <div style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div className="card-modal-details-pane" style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div className="card-modal-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                     {([["Type", selectedCard.type],["Rarity", selectedCard.rarity],["Color", selectedCard.color],["Cost", selectedCard.cost],["Power", selectedCard.power],["Counter", selectedCard.counter],["Attribute", selectedCard.attribute?.name],["Family", selectedCard.family],["Set", selectedCard.set?.name]] as [string, unknown][]).filter(([, v]) => v != null && v !== "" && v !== "-").map(([label, value]) => (
                       <div key={label} style={{ background: c.bgSec, borderRadius: 10, padding: "10px 14px", border: `1px solid ${c.border}` }}>
                         <div style={{ fontSize: 11, color: c.textTer, marginBottom: 3, textTransform: "uppercase" as const, letterSpacing: "0.05em", fontWeight: 700 }}>{label}</div>
@@ -833,11 +761,11 @@ useEffect(() => {
                   )}
                 </div>
               </div>
-              <div style={{ borderTop: `1px solid ${c.border}`, padding: "10px 24px", textAlign: "center", fontSize: 12, color: c.textTer, flexShrink: 0 }}>
+              <div className="card-modal-footer" style={{ borderTop: `1px solid ${c.border}`, padding: "10px 24px", textAlign: "center", fontSize: 12, color: c.textTer, flexShrink: 0 }}>
                 {selectedIndex + 1} / {previewCards.length}
               </div>
             </div>
-            <button onClick={() => { const next = Math.min(selectedIndex + 1, previewCards.length - 1); setSelectedIndex(next); setSelectedCard(previewCards[next] ?? null); }} disabled={selectedIndex >= previewCards.length - 1} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: selectedIndex < previewCards.length - 1 ? "pointer" : "not-allowed", opacity: selectedIndex >= previewCards.length - 1 ? 0.3 : 1, transition: "all 0.2s", boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
+            <button className="card-modal-next" onClick={() => { const next = Math.min(selectedIndex + 1, previewCards.length - 1); setSelectedIndex(next); setSelectedCard(previewCards[next] ?? null); }} disabled={selectedIndex >= previewCards.length - 1} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: selectedIndex < previewCards.length - 1 ? "pointer" : "not-allowed", opacity: selectedIndex >= previewCards.length - 1 ? 0.3 : 1, transition: "all 0.2s", boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
               <ChevronRight style={{ width: 20, height: 20 }} />
             </button>
           </div>

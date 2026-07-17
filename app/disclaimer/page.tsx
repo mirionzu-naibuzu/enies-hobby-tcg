@@ -249,6 +249,7 @@ export default function DisclaimerPage() {
 
   return (
     <div
+      className="disclaimer-wrapper"
       suppressHydrationWarning
       style={{
         minHeight: "100vh",

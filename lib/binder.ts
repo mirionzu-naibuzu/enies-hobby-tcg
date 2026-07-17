@@ -1,4 +1,11 @@
 import { createClient } from "@/lib/supabase";
+import { Card } from "@/types/card";
+
+export const getCardKey = (card: Card) =>
+  `${card.id ?? ""}||${card.name ?? ""}||${card.set?.name ?? ""}`;
+
+export const getDonCardKey = (donCard: { card_name: string }) =>
+  `don||${donCard.card_name}`;
 
 // ── TYPES ──────────────────────────────────────────────
 
