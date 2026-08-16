@@ -14,7 +14,9 @@
 /coverage
 
 # next.js
-/.next/
+.next/
+**/.next/
+optcg-browser/
 /out/
 
 # production
