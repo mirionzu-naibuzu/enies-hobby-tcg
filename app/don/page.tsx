@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
@@ -56,10 +56,13 @@ export default function DonCardsPage() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [filterKey, setFilterKey] = useState(0);
   const [animatedKey, setAnimatedKey] = useState(-1);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
 
   // Modal state
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [showBinderPicker, setShowBinderPicker] = useState(false);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   // Auth + binder state
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -81,10 +84,53 @@ export default function DonCardsPage() {
     accent: tc.accent,
   };
 
+  const handleModalTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY };
+  };
+
+  const handleModalTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start || showBinderPicker) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx < 0 && selectedIndex < filteredCards.length - 1) {
+      setSelectedIndex(selectedIndex + 1);
+      setShowBinderPicker(false);
+      setCreatingBinderInline(false);
+      setNewBinderNameInline("");
+    } else if (dx > 0 && selectedIndex > 0) {
+      setSelectedIndex(selectedIndex - 1);
+      setShowBinderPicker(false);
+      setCreatingBinderInline(false);
+      setNewBinderNameInline("");
+    }
+  };
+
   //scroll lock
   useBodyScrollLock(selectedIndex >= 0);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+    
+    const mqMobile = window.matchMedia("(max-width: 768px)");
+    setIsMobile(mqMobile.matches);
+    const handlerMobile = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mqMobile.addEventListener("change", handlerMobile);
+
+    const mqLand = window.matchMedia("(orientation: landscape)");
+    setIsLandscape(mqLand.matches);
+    const handlerLand = (e: MediaQueryListEvent) => setIsLandscape(e.matches);
+    mqLand.addEventListener("change", handlerLand);
+
+    return () => {
+      mqMobile.removeEventListener("change", handlerMobile);
+      mqLand.removeEventListener("change", handlerLand);
+    };
+  }, []);
 
   // Auth
   useEffect(() => {
@@ -239,7 +285,7 @@ export default function DonCardsPage() {
               style={{ width: "100%", padding: "10px 32px 10px 36px", borderRadius: 12, border: `1px solid ${colors.border}`, background: colors.bg.secondary, color: colors.text.primary, outline: "none", fontSize: 13 }}
             />
             {search && (
-              <button onClick={() => setSearch("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex" }}>
+              <button onClick={() => setSearch("")} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <X size={14} color={colors.text.tertiary} />
               </button>
             )}
@@ -264,7 +310,7 @@ export default function DonCardsPage() {
                   key={filter}
                   onClick={() => setActiveFilter(filter)}
                   style={{
-                    padding: "6px 10px",
+                    padding: "8px 14px",
                     borderRadius: 6,
                     border: "none",
                     cursor: "pointer",
@@ -375,19 +421,25 @@ export default function DonCardsPage() {
           onClick={closeModal}
         >
           <div className="card-modal-nav-row" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, width: "100%", maxWidth: 860 }} onClick={(e) => e.stopPropagation()}>
-
             {/* Prev */}
-            <button
-              className="card-modal-prev"
-              onClick={() => { setSelectedIndex(selectedIndex - 1); setShowBinderPicker(false); setCreatingBinderInline(false); setNewBinderNameInline(""); }}
-              disabled={selectedIndex <= 0}
-              style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: colors.bg.primary, border: `1px solid ${colors.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: colors.text.primary, cursor: selectedIndex > 0 ? "pointer" : "not-allowed", opacity: selectedIndex <= 0 ? 0.3 : 1, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)", transition: "all 0.2s" }}
-            >
-              <ChevronLeft size={20} />
-            </button>
+            {(!isMobile || isLandscape) && (
+              <button
+                className="card-modal-prev"
+                onClick={() => { setSelectedIndex(selectedIndex - 1); setShowBinderPicker(false); setCreatingBinderInline(false); setNewBinderNameInline(""); }}
+                disabled={selectedIndex <= 0}
+                style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: colors.bg.primary, border: `1px solid ${colors.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: colors.text.primary, cursor: selectedIndex > 0 ? "pointer" : "not-allowed", opacity: selectedIndex <= 0 ? 0.3 : 1, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)", transition: "all 0.2s" }}
+              >
+                <ChevronLeft size={20} />
+              </button>
+            )}
 
             {/* Modal card */}
-            <div className="card-modal-container" style={{ flex: 1, background: colors.bg.primary, borderRadius: 20, border: `1px solid ${colors.border}`, overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.5)" : "0 32px 64px rgba(0,0,0,0.15)" }}>
+            <div
+              className="card-modal-container"
+              onTouchStart={handleModalTouchStart}
+              onTouchEnd={handleModalTouchEnd}
+              style={{ flex: 1, background: colors.bg.primary, borderRadius: 20, border: `1px solid ${colors.border}`, overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.5)" : "0 32px 64px rgba(0,0,0,0.15)" }}
+            >
 
               {/* Header */}
               <div className="card-modal-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: `1px solid ${colors.border}`, flexShrink: 0 }}>
@@ -488,7 +540,7 @@ export default function DonCardsPage() {
                     </div>
                   )}
 
-                  <button onClick={closeModal} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <button onClick={closeModal} style={{ background: "none", border: "none", cursor: "pointer", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <X size={20} color={colors.text.tertiary} />
                   </button>
                 </div>
@@ -514,14 +566,16 @@ export default function DonCardsPage() {
             </div>
 
             {/* Next */}
-            <button
-              className="card-modal-next"
-              onClick={() => { setSelectedIndex(selectedIndex + 1); setShowBinderPicker(false); setCreatingBinderInline(false); setNewBinderNameInline(""); }}
-              disabled={selectedIndex >= filteredCards.length - 1}
-              style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: colors.bg.primary, border: `1px solid ${colors.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: colors.text.primary, cursor: selectedIndex < filteredCards.length - 1 ? "pointer" : "not-allowed", opacity: selectedIndex >= filteredCards.length - 1 ? 0.3 : 1, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)", transition: "all 0.2s" }}
-            >
-              <ChevronRight size={20} />
-            </button>
+            {(!isMobile || isLandscape) && (
+              <button
+                className="card-modal-next"
+                onClick={() => { setSelectedIndex(selectedIndex + 1); setShowBinderPicker(false); setCreatingBinderInline(false); setNewBinderNameInline(""); }}
+                disabled={selectedIndex >= filteredCards.length - 1}
+                style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: colors.bg.primary, border: `1px solid ${colors.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: colors.text.primary, cursor: selectedIndex < filteredCards.length - 1 ? "pointer" : "not-allowed", opacity: selectedIndex >= filteredCards.length - 1 ? 0.3 : 1, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)", transition: "all 0.2s" }}
+              >
+                <ChevronRight size={20} />
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { Menu, PanelLeft, User, BookOpen, Palette, MessageSquare, LogOut, LayoutGrid, Heart, X, Sun, Moon, Check, Bug, Lightbulb, HelpCircle, Coffee } from "lucide-react";
@@ -11,6 +11,7 @@ import { getColors, ALL_THEMES } from "@/lib/themes";
 
 export default function Sidebar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -170,12 +171,14 @@ export default function Sidebar() {
           >
             <PanelLeft size={20} />
           </button>
-          <img
-            src={colors.isDark ? "/sidebar-logo.png" : "/logo-light.png"}
-            alt="Enies Hobby"
-            onClick={() => router.push("/")}
-            style={{ height: 32, objectFit: "contain", cursor: "pointer" }}
-          />
+          {pathname !== "/browse" && (
+            <img
+              src={colors.isDark ? "/sidebar-logo.png" : "/logo-light.png"}
+              alt="Enies Hobby"
+              onClick={() => router.push("/")}
+              style={{ height: 32, objectFit: "contain", cursor: "pointer" }}
+            />
+          )}
         </div>
         <button
           onClick={() => {
@@ -209,7 +212,7 @@ export default function Sidebar() {
           left: 0,
           top: 0,
           height: "100vh",
-          width: expanded ? 280 : 70,
+          width: expanded ? (isMobile ? "min(280px, 85vw)" : 280) : 70,
           background: colors.bg.secondary,
           borderRight: `1px solid ${colors.border}`,
           display: "flex",
@@ -356,8 +359,8 @@ export default function Sidebar() {
                   title={expanded ? undefined : item.label}
                   className="sidebar-nav-btn"
                   style={{
-                    width: 280,
-                    height: 44,
+                    width: "100%",
+                    minHeight: 44,
                     padding: 0,
                     background: "none",
                     border: "none",
@@ -428,8 +431,8 @@ export default function Sidebar() {
                   title={expanded ? undefined : item.label}
                   className="sidebar-bottom-btn"
                   style={{
-                    width: 280,
-                    height: 44,
+                    width: "100%",
+                    minHeight: 44,
                     padding: 0,
                     background: "none",
                     border: "none",
@@ -469,8 +472,8 @@ export default function Sidebar() {
                 title={expanded ? undefined : "Sign Out"}
                 className="sidebar-bottom-btn"
                 style={{
-                  width: 280,
-                  height: 44,
+                  width: "100%",
+                  minHeight: 44,
                   padding: 0,
                   background: "none",
                   border: "none",
@@ -545,6 +548,7 @@ export default function Sidebar() {
     onClick={closeSupport}
   >
     <div
+      className="support-modal-content"
       style={{ background: colors.bg.primary, borderRadius: 20, width: "100%", maxWidth: 360, border: `1px solid ${colors.border}`, boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.6)" : "0 32px 64px rgba(0,0,0,0.15)", padding: 24 }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -621,6 +625,7 @@ export default function Sidebar() {
             onClick={closeFeedback}
           >
             <div
+              className="feedback-modal-content"
               style={{ background: colors.bg.primary, borderRadius: 16, padding: 28, width: "100%", maxWidth: 400, border: `1px solid ${colors.border}`, boxShadow: isDark ? "0 25px 50px rgba(0,0,0,0.5)" : "0 25px 50px rgba(0,0,0,0.15)" }}
               onClick={(e) => e.stopPropagation()}
             >

@@ -44,6 +44,7 @@ export default function Home() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
 
   // ── AUTH + BINDER STATE ──
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -121,6 +122,14 @@ export default function Home() {
     const mq = window.matchMedia("(max-width: 540px)");
     setIsNarrow(mq.matches);
     const handler = (e: MediaQueryListEvent) => setIsNarrow(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(orientation: landscape)");
+    setIsLandscape(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsLandscape(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
@@ -250,10 +259,19 @@ export default function Home() {
           ? bracketMatch[1].replace(/-/g, "").toUpperCase()
           : setName.replace(/-/g, "").toUpperCase();
         const cardIdNorm = (c.id ?? "").replace(/-/g, "").toUpperCase();
-        if (!normalizedSet.includes(normalizedFilter) && !cardIdNorm.startsWith(normalizedFilter)) return false;
-        // EB04 only: exclude cards whose card ID starts with OP14 or OP15
+        
+        // Initial match check (does the card belong to this set according to API or its ID?)
+        const isMatch = normalizedSet.includes(normalizedFilter) || cardIdNorm.startsWith(normalizedFilter);
+        if (!isMatch) return false;
+
+        // Targeted exclusions for grouped sets (OP14-EB04, OP15-EB04)
+        // This ensures reprints from older sets (OP10, PRB, etc.) are kept,
+        // while properly separating the overlapping new sets.
         if (normalizedFilter === "EB04") {
           if (cardIdNorm.startsWith("OP14") || cardIdNorm.startsWith("OP15")) return false;
+        }
+        if (normalizedFilter === "OP14" || normalizedFilter === "OP15") {
+          if (cardIdNorm.startsWith("EB04")) return false;
         }
       }
       
@@ -598,13 +616,17 @@ export default function Home() {
                 onClick={() => setSearch("")}
                 style={{
                   position: "absolute",
-                  right: 12,
+                  right: 8,
                   top: "50%",
                   transform: "translateY(-50%)",
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  padding: 4,
+                  width: 32,
+                  height: 32,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
                 <X
@@ -626,7 +648,7 @@ export default function Home() {
             <button
               onClick={() => setView("grid")}
               style={{
-                padding: 6,
+                padding: 8,
                 borderRadius: 6,
                 background: view === "grid" ? colors.bg.primary : "transparent",
                 border: "none",
@@ -644,7 +666,7 @@ export default function Home() {
             <button
               onClick={() => setView("list")}
               style={{
-                padding: 6,
+                padding: 8,
                 borderRadius: 6,
                 background: view === "list" ? colors.bg.primary : "transparent",
                 border: "none",
@@ -663,7 +685,7 @@ export default function Home() {
           <button
             onClick={() => setSortDesc(!sortDesc)}
             style={{
-              padding: 6,
+              padding: 8,
               borderRadius: 6,
               border: "1px solid",
               background: sortDesc ? colors.bg.tertiary : "transparent",
@@ -688,7 +710,7 @@ export default function Home() {
               }}
               title={isSelectMode ? "Exit selection" : "Select cards"}
               style={{
-                padding: 6,
+                padding: 8,
                 borderRadius: 8,
                 border: `1px solid ${
                   isSelectMode ? colors.text.primary : colors.border
@@ -715,7 +737,7 @@ export default function Home() {
             title={mobileFiltersOpen ? "Hide filters" : "Show filters"}
             style={{
               position: "relative",
-              padding: 6,
+              padding: 8,
               borderRadius: 8,
               border: `1px solid ${
                 mobileFiltersOpen || activeFilterCount > 0
@@ -1398,35 +1420,37 @@ export default function Home() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              className="card-modal-prev"
-              onClick={() => {
-                setSelectedIndex(selectedIndex - 1);
-                setShowBinderPicker(false);
-                resetInlineCreation();
-              }}
-              disabled={selectedIndex <= 0}
-              style={{
-                flexShrink: 0,
-                width: 44,
-                height: 44,
-                borderRadius: "50%",
-                background: colors.bg.primary,
-                boxShadow: isDark
-                  ? "0 20px 25px rgba(0,0,0,0.4)"
-                  : "0 10px 15px rgba(0,0,0,0.1)",
-                border: `1px solid ${colors.border}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: colors.text.primary,
-                cursor: selectedIndex > 0 ? "pointer" : "not-allowed",
-                opacity: selectedIndex <= 0 ? 0.3 : 1,
-                transition: "all 0.2s",
-              }}
-            >
-              <ChevronLeft style={{ width: 20, height: 20 }} />
-            </button>
+            {(!isMobile || isLandscape) && (
+              <button
+                className="card-modal-prev"
+                onClick={() => {
+                  setSelectedIndex(selectedIndex - 1);
+                  setShowBinderPicker(false);
+                  resetInlineCreation();
+                }}
+                disabled={selectedIndex <= 0}
+                style={{
+                  flexShrink: 0,
+                  width: 44,
+                  height: 44,
+                  borderRadius: "50%",
+                  background: colors.bg.primary,
+                  boxShadow: isDark
+                    ? "0 20px 25px rgba(0,0,0,0.4)"
+                    : "0 10px 15px rgba(0,0,0,0.1)",
+                  border: `1px solid ${colors.border}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: colors.text.primary,
+                  cursor: selectedIndex > 0 ? "pointer" : "not-allowed",
+                  opacity: selectedIndex <= 0 ? 0.3 : 1,
+                  transition: "all 0.2s",
+                }}
+              >
+                <ChevronLeft style={{ width: 20, height: 20 }} />
+              </button>
+            )}
 
             <div
               className="card-modal-container"
@@ -2009,38 +2033,40 @@ export default function Home() {
               </div>
             </div>
 
-            <button
-              className="card-modal-next"
-              onClick={() => {
-                setSelectedIndex(selectedIndex + 1);
-                setShowBinderPicker(false);
-                resetInlineCreation();
-              }}
-              disabled={selectedIndex >= filtered.length - 1}
-              style={{
-                flexShrink: 0,
-                width: 44,
-                height: 44,
-                borderRadius: "50%",
-                background: colors.bg.primary,
-                boxShadow: isDark
-                  ? "0 20px 25px rgba(0,0,0,0.4)"
-                  : "0 10px 15px rgba(0,0,0,0.1)",
-                border: `1px solid ${colors.border}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: colors.text.primary,
-                cursor:
-                  selectedIndex < filtered.length - 1
-                    ? "pointer"
-                    : "not-allowed",
-                opacity: selectedIndex >= filtered.length - 1 ? 0.3 : 1,
-                transition: "all 0.2s",
-              }}
-            >
-              <ChevronRight style={{ width: 20, height: 20 }} />
-            </button>
+            {(!isMobile || isLandscape) && (
+              <button
+                className="card-modal-next"
+                onClick={() => {
+                  setSelectedIndex(selectedIndex + 1);
+                  setShowBinderPicker(false);
+                  resetInlineCreation();
+                }}
+                disabled={selectedIndex >= filtered.length - 1}
+                style={{
+                  flexShrink: 0,
+                  width: 44,
+                  height: 44,
+                  borderRadius: "50%",
+                  background: colors.bg.primary,
+                  boxShadow: isDark
+                    ? "0 20px 25px rgba(0,0,0,0.4)"
+                    : "0 10px 15px rgba(0,0,0,0.1)",
+                  border: `1px solid ${colors.border}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: colors.text.primary,
+                  cursor:
+                    selectedIndex < filtered.length - 1
+                      ? "pointer"
+                      : "not-allowed",
+                  opacity: selectedIndex >= filtered.length - 1 ? 0.3 : 1,
+                  transition: "all 0.2s",
+                }}
+              >
+                <ChevronRight style={{ width: 20, height: 20 }} />
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -2208,6 +2234,9 @@ export default function Home() {
                   opacity: multiSelected.size === 0 ? 0.5 : 1,
                   transition: "all 0.2s",
                   flexShrink: 0,
+                  minHeight: 44,
+                  minWidth: 44,
+                  justifyContent: "center",
                 }}
               >
                 <Check size={isNarrow ? 12 : 14} style={{ flexShrink: 0 }} />
@@ -2236,6 +2265,9 @@ export default function Home() {
                     color: colors.text.primary,
                     opacity: multiSelected.size === 0 ? 0.5 : 1,
                     transition: "all 0.2s",
+                    minHeight: 44,
+                    minWidth: 44,
+                    justifyContent: "center",
                   }}
                 >
                   <BookOpen size={isNarrow ? 12 : 14} style={{ flexShrink: 0 }} />
@@ -2347,6 +2379,9 @@ export default function Home() {
               color: colors.text.primary,
               transition: "all 0.2s",
               flexShrink: 0,
+              minHeight: 44,
+              minWidth: 44,
+              justifyContent: "center",
             }}
           >
             <CheckSquare size={isNarrow ? 12 : 14} style={{ flexShrink: 0 }} />
@@ -2377,6 +2412,8 @@ export default function Home() {
               transition: "all 0.2s",
               flexShrink: 0,
               padding: 0,
+              minHeight: 44,
+              minWidth: 44,
             }}
           >
             <X size={isNarrow ? 13 : 15} />

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { X, ChevronLeft, ChevronRight, Palette, Sun, Moon } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Palette, Sun, Moon, Menu } from "lucide-react";
 import { useTheme } from "next-themes";
 import AuthModal from "@/components/AuthModal";
 import { createClient } from "@/lib/supabase";
@@ -84,16 +84,56 @@ export default function HomePage() {
   const [cardCount, setCardCount] = useState<number | null>(null);
   const [selectedRarity, setSelectedRarity] = useState<typeof RARITIES[number] | null>(null);
   const [showThemePicker, setShowThemePicker] = useState(false);
+  const [showMobileNav, setShowMobileNav] = useState(false);
   const [stackRevealed, setStackRevealed] = useState(false);
   const [previewRevealed, setPreviewRevealed] = useState(false);
   const [typedCount, setTypedCount] = useState(0);
   const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
+  const [isMobile, setIsMobile] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const handleModalTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY };
+  };
+
+  const handleModalTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx < 0 && selectedIndex < previewCards.length - 1) {
+      const next = selectedIndex + 1;
+      setSelectedIndex(next);
+      setSelectedCard(previewCards[next] ?? null);
+    } else if (dx > 0 && selectedIndex > 0) {
+      const next = selectedIndex - 1;
+      setSelectedIndex(next);
+      setSelectedCard(previewCards[next] ?? null);
+    }
+  };
 
   //scroll lock
   useBodyScrollLock(!!selectedCard || !!selectedRarity);
 
   useEffect(() => {
     setMounted(true);
+    
+    const mqMobile = window.matchMedia("(max-width: 768px)");
+    setIsMobile(mqMobile.matches);
+    const handlerMobile = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mqMobile.addEventListener("change", handlerMobile);
+
+    const mqLand = window.matchMedia("(orientation: landscape)");
+    setIsLandscape(mqLand.matches);
+    const handlerLand = (e: MediaQueryListEvent) => setIsLandscape(e.matches);
+    mqLand.addEventListener("change", handlerLand);
+
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
     const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => { setUser(session?.user ?? null); });
@@ -115,7 +155,11 @@ export default function HomePage() {
         console.error("Failed to load home cards:", err);
       });
 
-    return () => { listener.subscription.unsubscribe(); };
+    return () => { 
+      mqMobile.removeEventListener("change", handlerMobile);
+      mqLand.removeEventListener("change", handlerLand);
+      listener.subscription.unsubscribe(); 
+    };
   }, []);
 
   useEffect(() => {
@@ -266,7 +310,7 @@ useEffect(() => {
                 color: c.textSec,
                 fontSize: 13,
                 cursor: "pointer",
-                padding: 0,
+                padding: "10px 4px",
                 transition: "color 0.15s ease"
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = c.text)}
@@ -275,6 +319,84 @@ useEffect(() => {
               {l}
             </button>
           ))}
+                    </div>
+
+          {/* MOBILE MENU BUTTON */}
+          <div style={{ position: "relative" }}>
+            <button
+              className="home-mobile-menu-btn"
+              onClick={() => setShowMobileNav((p) => !p)}
+              title="Menu"
+              style={{
+                display: "none",
+                width: 44,
+                height: 44,
+                borderRadius: 8,
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                color: c.text,
+              }}
+            >
+              <Menu style={{ width: 16, height: 16 }} />
+            </button>
+
+            {showMobileNav && (
+              <>
+                <div
+                  style={{ position: "fixed", inset: 0, zIndex: 49 }}
+                  onClick={() => setShowMobileNav(false)}
+                />
+                <div
+                  className="pop-in"
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    right: 0,
+                    minWidth: 180,
+                    background: c.bg,
+                    border: `1px solid ${c.border}`,
+                    borderRadius: 16,
+                    padding: 8,
+                    zIndex: 50,
+                    boxShadow: isDark
+                      ? "0 16px 36px rgba(0,0,0,0.65), 0 0 0 1px rgba(0,0,0,0.4)"
+                      : "0 16px 36px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.06)",
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {["Cards", "Binder", "Don!!", "About"].map((l) => (
+                    <button
+                      key={l}
+                      onClick={() => {
+                        setShowMobileNav(false);
+                        if (l === "Cards") handleBrowse();
+                        if (l === "Binder") router.push("/binder");
+                        if (l === "Don!!") router.push("/don");
+                        if (l === "About") router.push("/about");
+                      }}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        background: "transparent",
+                        border: "none",
+                        color: c.text,
+                        fontSize: 14,
+                        padding: "12px 14px",
+                        borderRadius: 10,
+                        cursor: "pointer",
+                        minHeight: 44,
+                      }}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           {/* THEME BUTTON + POPOVER */}
@@ -290,8 +412,8 @@ useEffect(() => {
                 }}
                 title="Change theme"
                 style={{
-                  width: 34,
-                  height: 34,
+                  width: 44,
+                  height: 44,
                   borderRadius: 8,
                   background: showThemePicker
                     ? (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)")
@@ -474,7 +596,7 @@ useEffect(() => {
               </button>
               <button
                 onClick={() => openAuth("signup")}
-                style={{ background: tc.accent, border: "none", color: "#fff", fontSize: 13, padding: "7px 14px", borderRadius: 10, cursor: "pointer" }}
+                style={{ background: tc.accent, border: "none", color: "#fff", fontSize: 13, padding: "10px 16px", borderRadius: 10, cursor: "pointer" }}
               >
                 Join
               </button>
@@ -600,9 +722,9 @@ useEffect(() => {
         <div style={{ padding: "20px 24px", borderRight: `1px solid ${c.border}` }}>
           <div style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: c.textTer, marginBottom: 12 }}>Browse by set</div>
           <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
-            <button onClick={() => { setActiveSet(null); handleBrowse(); }} className="set-pill home-set-pill" style={{ fontSize: 11, padding: "4px 11px", borderRadius: 99, border: `0.5px solid ${activeSet === null ? c.text : c.border}`, background: activeSet === null ? c.text : "transparent", color: activeSet === null ? c.bg : c.textSec, cursor: "pointer", transition: "all 0.15s" }}>All</button>
+            <button onClick={() => { setActiveSet(null); handleBrowse(); }} className="set-pill home-set-pill" style={{ fontSize: 11, padding: "6px 12px", borderRadius: 99, border: `0.5px solid ${activeSet === null ? c.text : c.border}`, background: activeSet === null ? c.text : "transparent", color: activeSet === null ? c.bg : c.textSec, cursor: "pointer", transition: "all 0.15s" }}>All</button>
             {SET_ORDER.map((s) => (
-              <button key={s} onClick={() => { setActiveSet(s); handleBrowse(s); }} className="set-pill home-set-pill" style={{ fontSize: 11, padding: "4px 11px", borderRadius: 99, border: `0.5px solid ${activeSet === s ? c.text : c.border}`, background: activeSet === s ? c.text : "transparent", color: activeSet === s ? c.bg : c.textSec, cursor: "pointer", transition: "all 0.15s" }}>{s}</button>
+              <button key={s} onClick={() => { setActiveSet(s); handleBrowse(s); }} className="set-pill home-set-pill" style={{ fontSize: 11, padding: "6px 12px", borderRadius: 99, border: `0.5px solid ${activeSet === s ? c.text : c.border}`, background: activeSet === s ? c.text : "transparent", color: activeSet === s ? c.bg : c.textSec, cursor: "pointer", transition: "all 0.15s" }}>{s}</button>
             ))}
           </div>
         </div>
@@ -611,7 +733,7 @@ useEffect(() => {
           <div style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: c.textTer, marginBottom: 12 }}>Filter by rarity</div>
           <div className="home-rarity-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6 }}>
             {RARITIES.map((r) => (
-              <div key={r.label} className="rar-cell" onClick={() => setSelectedRarity(r)} style={{ padding: "7px 6px", borderRadius: 8, border: `0.5px solid ${c.border}`, textAlign: "center", cursor: "pointer", transition: "all 0.15s" }}>
+              <div key={r.label} className="rar-cell" onClick={() => setSelectedRarity(r)} style={{ padding: "10px 8px", borderRadius: 8, border: `0.5px solid ${c.border}`, textAlign: "center", cursor: "pointer", transition: "all 0.15s" }}>
                 <span style={{ fontSize: 10, fontWeight: 600, display: "block", color: tc.accent, marginBottom: 2 }}>{r.label}</span>
                 <span style={{ fontSize: 9, color: c.textTer }}>{r.name}</span>
               </div>
@@ -713,18 +835,25 @@ useEffect(() => {
 
       {/* CARD DETAIL MODAL */}
       {selectedCard && (
-        <div className="card-modal-outer" style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => { setSelectedCard(null); setSelectedIndex(-1); }}>
-          <div className="card-modal-nav-row" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, width: "100%", maxWidth: 960 }} onClick={(e) => e.stopPropagation()}>
-            <button className="card-modal-prev" onClick={() => { const next = Math.max(selectedIndex - 1, 0); setSelectedIndex(next); setSelectedCard(previewCards[next] ?? null); }} disabled={selectedIndex <= 0} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: selectedIndex > 0 ? "pointer" : "not-allowed", opacity: selectedIndex <= 0 ? 0.3 : 1, transition: "all 0.2s", boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
-              <ChevronLeft style={{ width: 20, height: 20 }} />
-            </button>
-            <div className="card-modal-container" style={{ flex: 1, background: c.bg, borderRadius: 20, border: `1px solid ${c.border}`, overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.5)" : "0 32px 64px rgba(0,0,0,0.15)" }}>
+        <div className="card-modal-outer home-card-modal-outer" style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => { setSelectedCard(null); setSelectedIndex(-1); }}>
+        <div className="card-modal-nav-row" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, width: "100%", maxWidth: 960 }} onClick={(e) => e.stopPropagation()}>
+            {(!isMobile || isLandscape) && (
+              <button className="card-modal-prev" onClick={() => { const next = Math.max(selectedIndex - 1, 0); setSelectedIndex(next); setSelectedCard(previewCards[next] ?? null); }} disabled={selectedIndex <= 0} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: selectedIndex > 0 ? "pointer" : "not-allowed", opacity: selectedIndex <= 0 ? 0.3 : 1, transition: "all 0.2s", boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
+                <ChevronLeft style={{ width: 20, height: 20 }} />
+              </button>
+            )}
+            <div
+              className="card-modal-container"
+              onTouchStart={handleModalTouchStart}
+              onTouchEnd={handleModalTouchEnd}
+              style={{ flex: 1, background: c.bg, borderRadius: 20, border: `1px solid ${c.border}`, overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.5)" : "0 32px 64px rgba(0,0,0,0.15)" }}
+            >
               <div className="card-modal-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: `1px solid ${c.border}`, flexShrink: 0 }}>
                 <div>
                   <div style={{ fontWeight: 900, fontSize: 22, color: c.text, letterSpacing: "-0.02em" }}>{selectedCard.name}</div>
                   <div style={{ fontSize: 12, color: c.textTer, fontFamily: "monospace", marginTop: 2 }}>{selectedCard.id}</div>
                 </div>
-                <button onClick={() => { setSelectedCard(null); setSelectedIndex(-1); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
+                <button onClick={() => { setSelectedCard(null); setSelectedIndex(-1); }} style={{ background: "none", border: "none", cursor: "pointer", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <X style={{ width: 20, height: 20, color: c.textTer }} />
                 </button>
               </div>
@@ -765,9 +894,11 @@ useEffect(() => {
                 {selectedIndex + 1} / {previewCards.length}
               </div>
             </div>
-            <button className="card-modal-next" onClick={() => { const next = Math.min(selectedIndex + 1, previewCards.length - 1); setSelectedIndex(next); setSelectedCard(previewCards[next] ?? null); }} disabled={selectedIndex >= previewCards.length - 1} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: selectedIndex < previewCards.length - 1 ? "pointer" : "not-allowed", opacity: selectedIndex >= previewCards.length - 1 ? 0.3 : 1, transition: "all 0.2s", boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
-              <ChevronRight style={{ width: 20, height: 20 }} />
-            </button>
+            {(!isMobile || isLandscape) && (
+              <button className="card-modal-next" onClick={() => { const next = Math.min(selectedIndex + 1, previewCards.length - 1); setSelectedIndex(next); setSelectedCard(previewCards[next] ?? null); }} disabled={selectedIndex >= previewCards.length - 1} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: selectedIndex < previewCards.length - 1 ? "pointer" : "not-allowed", opacity: selectedIndex >= previewCards.length - 1 ? 0.3 : 1, transition: "all 0.2s", boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
+                <ChevronRight style={{ width: 20, height: 20 }} />
+              </button>
+            )}
           </div>
         </div>
       )}

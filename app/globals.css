@@ -62,6 +62,10 @@
   padding-left: 70px !important;
 }
 
+.home-card-modal-outer {
+  padding-left: 0 !important;
+}
+
 @media (min-height: 641px) {
   .card-modal-body {
     align-items: flex-start !important;
@@ -95,50 +99,41 @@
     padding-bottom: 48px !important;
   }
 
-  /* Card detail modal on mobile */
+  /* ══════════════════════════════════════════════════════════
+     CARD DETAIL MODAL — MOBILE PORTRAIT (≤768px)
+     Floating modal design, but with maximum image size.
+     Nav arrows hidden — swipe to navigate.
+     ══════════════════════════════════════════════════════════ */
   .card-modal-outer {
-    padding: 12px 10px !important;
+    padding: 16px 12px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
   }
 
   .card-modal-nav-row {
-    gap: 0 !important;
+    gap: 8px !important;
     width: 100% !important;
-    max-width: 440px !important;
-  }
-
-  .card-modal-nav-row {
+    max-width: none !important;
     position: relative !important;
   }
 
+  /* Hide nav arrows on mobile — we will use swipe gestures */
   .card-modal-prev,
   .card-modal-next {
-    position: absolute !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    z-index: 5 !important;
-    width: 34px !important;
-    height: 34px !important;
-    background: rgba(0, 0, 0, 0.35) !important;
-    backdrop-filter: blur(4px) !important;
-    -webkit-backdrop-filter: blur(4px) !important;
-    border: none !important;
-    color: #fff !important;
+    display: none !important;
   }
 
-  .card-modal-prev { left: 2px !important; }
-  .card-modal-next { right: 2px !important; }
-
   .card-modal-container {
-    max-height: 88vh !important;
+    max-height: 90vh !important;
     height: auto !important;
-    border-radius: 18px !important;
+    border-radius: 20px !important;
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
     width: 100% !important;
+    max-width: 420px !important;
+    margin: 0 auto !important; /* ensure modal centers in nav-row */
   }
 
   .card-modal-header {
@@ -147,14 +142,28 @@
     gap: 8px !important;
   }
 
+  /* Truncate long titles (like DON cards) so they don't crush the buttons */
+  .card-modal-header > div:first-child {
+    min-width: 0 !important;
+    flex: 1 !important;
+  }
+  
+  .card-modal-header > div:first-child > div {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
   .card-modal-header > div:first-child > div:first-child {
     font-size: 16px !important;
     line-height: 1.2 !important;
   }
 
+  /* Body scrolls vertically, center items horizontally */
   .card-modal-body {
     display: flex !important;
     flex-direction: column !important;
+    align-items: center !important; /* CRITICAL: Centers the image pane */
     overflow-y: auto !important;
     overflow-x: hidden !important;
     flex: 1 1 auto !important;
@@ -162,10 +171,12 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  /* ── IMAGE PANE: fills available width inside modal ── */
   .card-modal-image-pane {
     width: 100% !important;
+    max-width: none !important; /* Override any inline max-width */
     max-height: none !important;
-    padding: 16px 16px 10px !important;
+    padding: 16px 16px 8px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -174,25 +185,39 @@
 
   .card-modal-image-pane > div {
     width: 100% !important;
-    max-width: 220px !important;
+    max-width: 300px !important;
     margin: 0 auto !important;
   }
 
+  /* ── DETAILS PANE: compact grid, scrolls with body ── */
   .card-modal-details-pane {
     width: 100% !important;
-    padding: 8px 14px 20px !important;
+    padding: 6px 16px 20px !important;
     flex: none !important;
     overflow-y: visible !important;
-    gap: 12px !important;
+    gap: 10px !important;
   }
 
   .card-modal-detail-grid {
     grid-template-columns: 1fr 1fr !important;
-    gap: 6px !important;
+    gap: 5px !important;
+  }
+
+  .card-modal-detail-grid > div {
+    padding: 6px 8px !important;
+  }
+
+  .card-modal-detail-grid > div > div:first-child {
+    font-size: 9px !important;
+    margin-bottom: 1px !important;
+  }
+
+  .card-modal-detail-grid > div > div:nth-child(2) {
+    font-size: 12px !important;
   }
 
   .card-modal-footer {
-    padding: 8px 14px !important;
+    padding: 6px 14px !important;
     flex-shrink: 0 !important;
   }
 
@@ -246,7 +271,6 @@
 
   .filter-bar-groups {
     gap: 12px !important;
-    flex-direction: column !important;
   }
 
   .filter-bar-groups > div {
@@ -263,7 +287,8 @@
 .binder-filter-toggle,
 .browse-mobile-drawer,
 .binder-mobile-drawer,
-.filter-drawer-backdrop {
+.filter-drawer-backdrop,
+.home-mobile-menu-btn {
   display: none !important;
 }
 
@@ -286,8 +311,12 @@
     z-index: 35;
   }
 
+  .home-mobile-menu-btn {
+    display: flex !important;
+  }
+
   .app-sidebar {
-    width: 280px !important;
+    width: min(280px, 85vw) !important;
     transform: translateX(-100%) !important;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   }
@@ -801,58 +830,6 @@
     z-index: 55 !important;
   }
 
-  /* Card detail modal: stack vertically on mobile */
-  .card-modal-body {
-    flex-direction: column !important;
-  }
-
-  .card-modal-image-pane {
-    width: 100% !important;
-    max-height: 45vh !important;
-    padding: 16px !important;
-  }
-
-  .card-modal-details-pane {
-    padding: 16px !important;
-  }
-
-  .card-modal-container {
-    max-height: 95vh !important;
-    border-radius: 16px !important;
-  }
-
-  .card-modal-header {
-    padding: 14px 16px !important;
-  }
-
-  .card-modal-header div:first-child div:first-child {
-    font-size: 18px !important;
-  }
-
-  .card-modal-footer {
-    padding: 8px 16px !important;
-  }
-
-  .card-modal-prev,
-  .card-modal-next {
-    top: 28% !important;
-    width: 36px !important;
-    height: 36px !important;
-  }
-
-  .card-modal-nav-row {
-    gap: 8px !important;
-    padding: 0 8px !important;
-  }
-
-  .card-modal-outer {
-    padding: 12px !important;
-  }
-
-  .card-modal-detail-grid {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
-  }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -986,13 +963,25 @@
     font-size: 9px !important;
   }
 
-  .card-modal-prev,
-  .card-modal-next {
-    display: none !important;
+  /* Card modal on fold phones — even tighter chrome */
+  .card-modal-image-pane {
+    padding: 6px 10px 4px !important;
   }
 
-  .card-modal-nav-row {
-    padding: 0 4px !important;
+  .card-modal-image-pane > div {
+    max-width: 90vw !important;
+  }
+
+  .card-modal-header {
+    padding: 6px 10px !important;
+  }
+
+  .card-modal-header > div:first-child > div:first-child {
+    font-size: 13px !important;
+  }
+
+  .card-modal-footer {
+    padding: 4px 10px !important;
   }
 }
 
@@ -1198,6 +1187,25 @@
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 10px !important;
   }
+
+  .auth-modal-content {
+    padding: 20px !important;
+    border-radius: 14px !important;
+  }
+
+  .binder-auth-gate {
+    margin-left: 0 !important;
+  }
+
+  .binder-tabs {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .binder-tabs::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1331,14 +1339,12 @@
   .browse-mobile-drawer,
   .binder-mobile-drawer {
     top: 52px !important;
-    left: 70px !important;
     right: 0 !important;
     max-height: calc(100vh - 52px) !important;
   }
 
   .filter-drawer-backdrop {
     top: 52px !important;
-    left: 70px !important;
   }
 
   .binder-set-header,
@@ -1355,6 +1361,20 @@
   }
 }
 
+/* Same short-landscape scenario, but only where the sidebar is still a
+   persistent 70px rail (≥769px wide) — phones in landscape (≤768px) have
+   the sidebar off-canvas instead, so they should stay flush at left: 0. */
+@media (orientation: landscape) and (max-height: 520px) and (min-width: 769px) {
+  .browse-mobile-drawer,
+  .binder-mobile-drawer {
+    left: 70px !important;
+  }
+
+  .filter-drawer-backdrop {
+    left: 70px !important;
+  }
+}
+
 /* ══════════════════════════════════════════════════════════
    CARD MODAL — SHORT SCREENS & LANDSCAPE (Height ≤640px)
    ══════════════════════════════════════════════════════════ */
@@ -1365,6 +1385,7 @@
   
     .card-modal-container {
       max-height: 94vh !important;
+      height: 94vh !important;
     }
   
     .card-modal-header {
@@ -1378,10 +1399,11 @@
     /* Short/landscape screens always get the row layout, even under 768px wide */
     .card-modal-body {
       flex-direction: row !important;
+      align-items: stretch !important;
     }
   
     .card-modal-image-pane {
-      width: 42% !important;
+      width: auto !important;
       flex-shrink: 0 !important;
       padding: 8px 10px !important;
       min-height: 0 !important;
@@ -1407,6 +1429,18 @@
       padding: 6px 14px !important;
     }
   }
+
+/* ══════════════════════════════════════════════════════════
+   SUPPORT / FEEDBACK MODALS — SHORT SCREENS & LANDSCAPE (Height ≤640px)
+   ══════════════════════════════════════════════════════════ */
+@media (max-height: 640px) {
+  .support-modal-content,
+  .feedback-modal-content {
+    max-height: calc(100vh - 32px) !important;
+    overflow-y: auto !important;
+  }
+}
+
 @media (max-height: 480px) {
   .card-modal-header > div:first-child > div:first-child {
     font-size: 14px !important;

@@ -179,7 +179,12 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
               background: "none",
               border: "none",
               cursor: "pointer",
-              padding: 0,
+              padding: 8,
+              minWidth: 44,
+              minHeight: 44,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             <X
@@ -237,6 +242,7 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
         fontSize: 14,
         fontWeight: 700,
         cursor: "pointer",
+        minHeight: 44,
       }}
     >
       Back to Sign in
@@ -285,6 +291,7 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
         fontSize: 14,
         fontWeight: 700,
         cursor: "pointer",
+        minHeight: 44,
       }}
     >
       Go to Sign in
@@ -307,6 +314,7 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
                   background: mode === "login" ? colors.bg.secondary : "transparent",
                   color: colors.text.primary,
                   transition: "all 0.2s",
+                  minHeight: 44,
                 }}
               >
                 Sign In
@@ -324,6 +332,7 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
                   background: mode === "signup" ? colors.bg.secondary : "transparent",
                   color: colors.text.primary,
                   transition: "all 0.2s",
+                  minHeight: 44,
                 }}
               >
                 Sign Up
@@ -349,6 +358,7 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
                 cursor: "pointer",
                 marginBottom: 16,
                 transition: "all 0.2s",
+                minHeight: 44,
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = colors.bg.secondary; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
@@ -415,6 +425,7 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
         cursor: loading || !email ? "not-allowed" : "pointer",
         opacity: loading || !email ? 0.6 : 1,
         marginBottom: 12,
+        minHeight: 44,
       }}
     >
       {loading ? "Sending..." : "Send reset link"}
@@ -436,6 +447,7 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
         cursor: "pointer",
         fontSize: 13,
         fontWeight: 600,
+        minHeight: 44,
       }}
     >
       ← Back to sign in
@@ -488,7 +500,10 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
           color: colors.text.secondary,
           display: "flex",
           alignItems: "center",
+          justifyContent: "center",
           padding: 0,
+          minWidth: 44,
+          minHeight: 44,
         }}
       >
         {showPassword ? (
@@ -589,6 +604,7 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
           (mode === "signup" && !termsAccepted)
             ? 0.6
             : 1,
+        minHeight: 44,
       }}
     >
       {loading
@@ -624,6 +640,7 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
           color: tc.accent,
           cursor: "pointer",
           padding: 0,
+          minHeight: 44,
         }}
       >
         {mode === "login" ? "Sign up" : "Sign in"}
@@ -647,6 +664,7 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
                     fontSize: 13,
                     fontWeight: 600,
                     padding: 0,
+                    minHeight: 44,
                   }}
                 >
                   Forgot password?

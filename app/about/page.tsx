@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import Image from "next/image";
 import { getColors } from "@/lib/themes";
 import Sidebar from "@/components/Sidebar";
 import { Heart, ExternalLink, Coffee } from "lucide-react";
@@ -74,7 +75,7 @@ export default function AboutPage() {
       <Sidebar />
 
       {/* ── HERO ── */}
-      <section className="fu about-hero" style={{ padding: "64px 48px 48px", borderBottom: `1px solid ${c.border}`, maxWidth: 900 }}>
+      <section className="fu about-hero" style={{ padding: "64px 48px 48px", borderBottom: `1px solid ${c.border}`, maxWidth: 900, lineHeight: 1.7 }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
           <span style={{ background: c.accent, color: "#fff", fontSize: 9, fontWeight: 500, padding: "3px 8px", borderRadius: 3, letterSpacing: "0.07em", textTransform: "uppercase" as const }}>About</span>
           <span style={{ fontSize: 11, color: c.textTer }}>Open source · Fan-made · Free forever</span>
@@ -236,11 +237,14 @@ export default function AboutPage() {
       {/* ── FOOTER ── */}
       <div className="about-footer" style={{ padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <img
+        <div style={{ position: "relative", height: 30, width: 120 }}>
+              <Image
                 src={isDark ? "/logo-dark.png" : "/logo-light.png"}
                 alt="Enies Hobby logo"
-                style={{ height: 30, width: "auto", objectFit: "contain" }}
-            />
+                fill
+                style={{ objectFit: "contain" }}
+              />
+            </div>
           <span style={{ fontSize: 10, color: c.textTer }}>
             Fan project · Not affiliated with Bandai ·{" "}
             <span

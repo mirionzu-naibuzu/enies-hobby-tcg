@@ -16,6 +16,7 @@ import {
 } from "@/lib/binder";
 import AuthModal from "@/components/AuthModal";
 import { useTheme } from "next-themes";
+import Image from "next/image";
 import { getColors } from "@/lib/themes";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import { SET_ORDER, SET_NAMES } from "@/lib/sets";
@@ -65,8 +66,8 @@ function AuthGate({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: () =
         <h1 style={{ fontSize: 22, fontWeight: 500, color: tc.text.primary, letterSpacing: "-0.02em", marginBottom: 8 }}>Your binder</h1>
         <p style={{ fontSize: 14, color: tc.text.tertiary, lineHeight: 1.6, marginBottom: 32 }}>Sign in to track your collection, mark cards as owned, and build custom binders.</p>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={onSignIn} style={{ flex: 1, padding: "11px 0", borderRadius: 8, background: tc.text.primary, color: tc.bg.primary, fontSize: 13, fontWeight: 500, border: "none", cursor: "pointer" }}>Sign in</button>
-          <button onClick={onSignUp} style={{ flex: 1, padding: "11px 0", borderRadius: 8, background: "transparent", color: tc.text.primary, fontSize: 13, fontWeight: 500, border: `0.5px solid ${tc.border}`, cursor: "pointer" }}>Sign up free</button>
+          <button onClick={onSignIn} style={{ flex: 1, padding: "14px 0", borderRadius: 8, background: tc.text.primary, color: tc.bg.primary, fontSize: 13, fontWeight: 500, border: "none", cursor: "pointer" }}>Sign in</button>
+          <button onClick={onSignUp} style={{ flex: 1, padding: "14px 0", borderRadius: 8, background: "transparent", color: tc.text.primary, fontSize: 13, fontWeight: 500, border: `0.5px solid ${tc.border}`, cursor: "pointer" }}>Sign up free</button>
         </div>
       </div>
     </div>
@@ -90,9 +91,28 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
   onToggleOwned: (cardId: string) => void; onToggleWishlist: (cardId: string) => void;
 }) {
   const [showOwnershipPicker, setShowOwnershipPicker] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
   const cardKey = getCardKey(modalCard);
   const owned = ownedSet.has(cardKey);
   const wished = wishlistSet.has(cardKey);
+
+  useEffect(() => {
+    const mqMobile = window.matchMedia("(max-width: 768px)");
+    setIsMobile(mqMobile.matches);
+    const handlerMobile = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mqMobile.addEventListener("change", handlerMobile);
+
+    const mqLand = window.matchMedia("(orientation: landscape)");
+    setIsLandscape(mqLand.matches);
+    const handlerLand = (e: MediaQueryListEvent) => setIsLandscape(e.matches);
+    mqLand.addEventListener("change", handlerLand);
+
+    return () => {
+      mqMobile.removeEventListener("change", handlerMobile);
+      mqLand.removeEventListener("change", handlerLand);
+    };
+  }, []);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -118,13 +138,48 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
     return () => window.removeEventListener("keydown", handleKey);
   }, [modalIndex, modalCards, showOwnershipPicker]);
 
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const handleModalTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY };
+  };
+
+  const handleModalTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start || showOwnershipPicker) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx < 0 && modalIndex < modalCards.length - 1) {
+      const i = modalIndex + 1;
+      setModalIndex(i);
+      setModalCard(modalCards[i]);
+      setShowOwnershipPicker(false);
+    } else if (dx > 0 && modalIndex > 0) {
+      const i = modalIndex - 1;
+      setModalIndex(i);
+      setModalCard(modalCards[i]);
+      setShowOwnershipPicker(false);
+    }
+  };
+
   return (
     <div className="card-modal-outer" style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => { setModalCard(null); setShowOwnershipPicker(false); }}>
       <div className="card-modal-nav-row" style={{ display: "flex", alignItems: "center", gap: 16, width: "100%", maxWidth: 960 }} onClick={(e) => e.stopPropagation()}>
-        <button className="card-modal-prev" onClick={() => { const i = modalIndex - 1; setModalIndex(i); setModalCard(modalCards[i]); setShowOwnershipPicker(false); }} disabled={modalIndex <= 0} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: modalIndex > 0 ? "pointer" : "not-allowed", opacity: modalIndex <= 0 ? 0.3 : 1, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
-          <ChevronLeft size={20} />
-        </button>
-        <div className="card-modal-container" style={{ flex: 1, background: c.bg, borderRadius: 20, border: `1px solid ${c.border}`, overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.5)" : "0 32px 64px rgba(0,0,0,0.15)" }}>
+        {(!isMobile || isLandscape) && (
+          <button className="card-modal-prev" onClick={() => { const i = Math.max(modalIndex - 1, 0); setModalIndex(i); setModalCard(modalCards[i]); setShowOwnershipPicker(false); }} disabled={modalIndex <= 0} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: modalIndex > 0 ? "pointer" : "not-allowed", opacity: modalIndex <= 0 ? 0.3 : 1, transition: "all 0.2s", boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
+            <ChevronLeft size={20} />
+          </button>
+        )}
+        <div
+          className="card-modal-container"
+          onTouchStart={handleModalTouchStart}
+          onTouchEnd={handleModalTouchEnd}
+          style={{ flex: 1, background: c.bg, borderRadius: 20, border: `1px solid ${c.border}`, overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.5)" : "0 32px 64px rgba(0,0,0,0.15)" }}
+        >
           <div className="card-modal-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: `1px solid ${c.border}`, flexShrink: 0 }}>
             <div>
               <div style={{ fontWeight: 900, fontSize: 22, color: c.text, letterSpacing: "-0.02em" }}>{modalCard.name}</div>
@@ -184,14 +239,16 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
                 ))}
               </div>
               {modalCard.ability && (<div style={{ background: c.bgSec, borderRadius: 10, padding: "12px 14px", border: `1px solid ${c.border}` }}><div style={{ fontSize: 11, color: c.textTer, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Effect</div><div style={{ fontSize: 14, color: c.text, lineHeight: 1.7 }}>{modalCard.ability}</div></div>)}
-              {modalCard.trigger && modalCard.trigger !== "" && (<div style={{ background: isDark ? "rgba(217,119,6,0.1)" : "rgba(251,191,36,0.08)", borderRadius: 10, padding: "12px 14px", border: `1px solid ${isDark ? "rgba(251,191,36,0.2)" : "rgba(217,119,6,0.2)"}` }}><div style={{ fontSize: 11, color: isDark ? "#fbbf24" : "#d97706", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Trigger</div><div style={{ fontSize: 14, color: c.text, lineHeight: 1.7 }}>{modalCard.trigger}</div></div>)}
+              {modalCard.trigger && modalCard.trigger !== "" && (<div style={{ background: isDark ? "rgba(217,119,6,0.1)" : "rgba(251,191,36,0.08)", borderRadius: 10, padding: "12px 14px", border: `1px solid ${isDark ? "rgba(217,119,6,0.2)" : "rgba(251,191,36,0.2)"}` }}><div style={{ fontSize: 11, color: isDark ? "#fbbf24" : "#d97706", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Trigger</div><div style={{ fontSize: 14, color: c.text, lineHeight: 1.7 }}>{modalCard.trigger}</div></div>)}
             </div>
           </div>
           <div className="card-modal-footer" style={{ borderTop: `1px solid ${c.border}`, padding: "10px 24px", textAlign: "center", fontSize: 12, color: c.textTer, flexShrink: 0 }}>{modalIndex + 1} / {modalCards.length}</div>
         </div>
-        <button className="card-modal-next" onClick={() => { const i = modalIndex + 1; setModalIndex(i); setModalCard(modalCards[i]); }} disabled={modalIndex >= modalCards.length - 1} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: modalIndex < modalCards.length - 1 ? "pointer" : "not-allowed", opacity: modalIndex >= modalCards.length - 1 ? 0.3 : 1, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
-          <ChevronRight size={20} />
-        </button>
+        {(!isMobile || isLandscape) && (
+          <button className="card-modal-next" onClick={() => { const i = Math.min(modalIndex + 1, modalCards.length - 1); setModalIndex(i); setModalCard(modalCards[i]); setShowOwnershipPicker(false); }} disabled={modalIndex >= modalCards.length - 1} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: modalIndex < modalCards.length - 1 ? "pointer" : "not-allowed", opacity: modalIndex >= modalCards.length - 1 ? 0.3 : 1, transition: "all 0.2s", boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
+            <ChevronRight size={20} />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -531,8 +588,8 @@ export default function BinderPage() {
         <Sidebar />
 
         <div className="binder-set-header" style={{ padding: "20px 32px", borderBottom: `0.5px solid ${c.border}`, display: "flex", alignItems: "center", gap: 16, position: "sticky", top: 0, background: c.bg, zIndex: 20 }}>
-          <button onClick={() => { setOpenSetId(null); setBinderFiltersOpen(false); window.scrollTo(0, savedScrollY.current); }} title="Back" style={{ background: "none", border: "none", cursor: "pointer", color: c.textSec, display: "flex", alignItems: "center", justifyContent: "center", padding: 4, flexShrink: 0 }}>
-            <ChevronLeft size={20} />
+        <button onClick={() => { setOpenSetId(null); setBinderFiltersOpen(false); window.scrollTo(0, savedScrollY.current); }} title="Back" style={{ background: "none", border: "none", cursor: "pointer", color: c.textSec, display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, flexShrink: 0 }}>
+          <ChevronLeft size={20} />
           </button>
           <div style={{ width: "0.5px", height: 16, background: c.border, flexShrink: 0 }} />
           <div style={{ minWidth: 0, overflow: "hidden" }}>
@@ -816,8 +873,8 @@ export default function BinderPage() {
                   )}
                   <div style={{ backfaceVisibility: shouldFlip ? "hidden" : "visible", WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible" }}>
                     <div onClick={() => { setModalCards(setCards); setModalIndex(i); setModalCard(setCards[i]); }} style={{ borderRadius: 14, overflow: "hidden", border: `1px solid ${owned ? (isDark ? "#4ade80" : "#16a34a") : c.border}`, background: c.bgSec, boxShadow: owned ? "0 10px 30px rgba(34,197,94,0.15)" : "0 10px 25px rgba(0,0,0,0.25)", transition: "all 0.25s ease", opacity: owned ? 1 : 0.55, cursor: "pointer" }}>
-                      <div style={{ aspectRatio: "5 / 7", overflow: "hidden" }}>
-                        <img src={card.images?.small || "/card-placeholder.png"} alt={card.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }} />
+                      <div style={{ aspectRatio: "5 / 7", overflow: "hidden", position: "relative" }}>
+                        <Image src={card.images?.small || "/card-placeholder.png"} alt={card.name} fill sizes="(max-width: 540px) 45vw, (max-width: 1024px) 22vw, 175px" style={{ objectFit: "cover" }} onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }} />
                       </div>
                     </div>
                     {wished && !owned && (i >= 18 || flipDone) && (
@@ -861,7 +918,7 @@ export default function BinderPage() {
         <Sidebar />
 
         <div className="binder-custom-header" style={{ padding: "16px 28px", borderBottom: `0.5px solid ${c.border}`, display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, background: c.bg, zIndex: 20 }}>
-          <button onClick={() => { setOpenBinderId(null); window.scrollTo(0, savedScrollY.current); }} title="Back" style={{ background: "none", border: "none", cursor: "pointer", color: c.textSec, display: "flex", alignItems: "center", justifyContent: "center", padding: 4, flexShrink: 0 }}>
+          <button onClick={() => { setOpenBinderId(null); window.scrollTo(0, savedScrollY.current); }} title="Back" style={{ background: "none", border: "none", cursor: "pointer", color: c.textSec, display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, flexShrink: 0 }}>
             <ChevronLeft size={20} />
           </button>
           <div style={{ width: "0.5px", height: 16, background: c.border, flexShrink: 0 }} />
@@ -1013,7 +1070,7 @@ export default function BinderPage() {
         <ProgressBar value={totalOwned} total={totalCards} color={tc.text.primary} />
         <div className="binder-tabs" style={{ display: "flex", gap: 0, marginTop: 28, borderBottom: `0.5px solid ${c.border}` }}>
           {(["sets", "custom", "wishlist"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)} style={{ padding: "8px 0", marginRight: 24, fontSize: 13, fontWeight: 500, background: "none", border: "none", cursor: "pointer", color: tab === t ? c.text : c.textTer, borderBottom: tab === t ? `1.5px solid ${c.text}` : "1.5px solid transparent", transition: "all 0.15s" }}>
+            <button key={t} onClick={() => setTab(t)} style={{ padding: "12px 0", marginRight: 24, fontSize: 13, fontWeight: 500, background: "none", border: "none", cursor: "pointer", color: tab === t ? c.text : c.textTer, borderBottom: tab === t ? `1.5px solid ${c.text}` : "1.5px solid transparent", transition: "all 0.15s" }}>
               {t === "sets" ? "Set binders" : t === "custom" ? "My binders" : "My wishlist"}
             </button>
           ))}
@@ -1066,8 +1123,8 @@ export default function BinderPage() {
               {creatingBinder ? (
                 <div style={{ display: "flex", gap: 10, padding: 18, borderRadius: 24, maxWidth: 420, background: tc.bg.secondary, border: `1px solid ${tc.border}`, boxShadow: "0 10px 40px rgba(0,0,0,0.25)" }}>
                   <input autoFocus value={newBinderName} onChange={(e) => setNewBinderName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleCreateBinder(); if (e.key === "Escape") { setCreatingBinder(false); setNewBinderName(""); } }} placeholder="My legendary collection..." style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 15, color: c.text, fontFamily: "inherit" }} />
-                  <button onClick={() => { setCreatingBinder(false); setNewBinderName(""); }} style={{ width: 38, height: 38, borderRadius: 999, border: "none", cursor: "pointer", background: isDark ? "rgba(255,255,255,0.06)" : tc.bg.tertiary, color: c.textTer, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><X size={16} /></button>
-                  <button onClick={handleCreateBinder} style={{ width: 38, height: 38, borderRadius: 999, border: "none", cursor: "pointer", background: `linear-gradient(90deg,${tc.accent},${tc.accent}cc)`, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Check size={16} /></button>
+                  <button onClick={() => { setCreatingBinder(false); setNewBinderName(""); }} style={{ width: 44, height: 44, borderRadius: 999, border: "none", cursor: "pointer", background: isDark ? "rgba(255,255,255,0.06)" : tc.bg.tertiary, color: c.textTer, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><X size={16} /></button>
+                  <button onClick={handleCreateBinder} style={{ width: 44, height: 44, borderRadius: 999, border: "none", cursor: "pointer", background: `linear-gradient(90deg,${tc.accent},${tc.accent}cc)`, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Check size={16} /></button>
                 </div>
               ) : (
                 <button onClick={() => setCreatingBinder(true)} style={{ padding: "16px 22px", borderRadius: 999, border: "none", cursor: "pointer", background: `linear-gradient(90deg,${tc.accent},${tc.accent}bb)`, color: "#fff", fontSize: 14, fontWeight: 600, boxShadow: `0 10px 30px ${tc.accent}55`, transition: "all 0.2s ease" }} onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0px)"; }}>

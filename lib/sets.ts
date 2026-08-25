@@ -5,7 +5,7 @@ export const SET_ORDER = [
     "ST-09","ST-10","ST-11","ST-12","ST-13","ST-14","ST-15","ST-16",
     "ST-17","ST-18","ST-19","ST-20","ST-21","ST-22","ST-23","ST-24",
     "ST-25","ST-26","ST-27","ST-28","ST-29","ST-30", "ST-31", "ST-32",
-    "ST-33","ST-34","ST-35","ST-36",
+    "ST-33","ST-34","ST-35","ST-36","ST-37",
     "EB-01","EB-02","EB-03","EB-04",
     "PRB-01","PRB-02",
   ];
@@ -33,6 +33,9 @@ export const SET_NAMES: Record<string, string> = {
     "ST-25": "Blue Buggy", "ST-26": "Purple/Black Monkey D. Luffy",
     "ST-27": "Black Marshall D. Teach", "ST-28": "Green/Yellow Yamato",
     "ST-29": "EGGHEAD", "ST-30": "EX · Luffy & Ace",
+    "ST-31": "Red Monkey D. Luffy", "ST-32": "Green Roronoa Zoro",
+    "ST-33": "Blue Kuzan", "ST-34": "Purple Charlotte Katakuri",
+    "ST-35": "Red/Black Sabo", "ST-36": "Yellow Eustass Captain Kid",
     "EB-01": "Memorial Collection", "EB-02": "Anime 25th Collection",
     "EB-03": "Pillars of Strength", "EB-04": "Egghead Crisis",
     "PRB-01": "Premium Booster", "PRB-02": "Premium Booster",
