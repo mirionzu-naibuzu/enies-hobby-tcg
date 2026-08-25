@@ -6,7 +6,7 @@ import { getAllCards, getAllSets } from "@/lib/api";
 import CardItem from "@/components/CardItem";
 const FilterBar = dynamic(() => import("@/components/FilterBar"));
 const Sidebar = dynamic(() => import("@/components/Sidebar"));
-import { Search, X, LayoutGrid, List, ChevronLeft, ChevronRight, BookmarkPlus, Check, BookOpen, ArrowDownWideNarrow, ArrowUpNarrowWide, CheckSquare, Plus, CopyCheck, SlidersHorizontal } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, BookmarkPlus, Check, BookOpen, ArrowDownWideNarrow, ArrowUpNarrowWide, CheckSquare, Plus, CopyCheck, SlidersHorizontal, MoreVertical } from "lucide-react";
 import { useTheme } from "next-themes";
 import { createClient } from "@/lib/supabase";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -31,7 +31,7 @@ export default function Home() {
   const [sets, setSets]           = useState<{ set_id: string; set_name: string }[]>([]);
   const [filters, setFilters]     = useState<FilterParams>({});
   const [search, setSearch]       = useState("");
-  const [view, setView]           = useState<"grid" | "list">("grid");
+
   const [loading, setLoading]     = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -54,6 +54,7 @@ export default function Home() {
 
   const [showBinderPicker, setShowBinderPicker] = useState(false);
   const [isSelectMode, setIsSelectMode] = useState(false);
+  const [showSelectMenu, setShowSelectMenu] = useState(false);
   const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
   const [showMultiBinderPicker, setShowMultiBinderPicker] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -635,53 +636,7 @@ export default function Home() {
               </button>
             )}
           </div>
-          <div
-            style={{
-              display: "flex",
-              gap: 4,
-              background: colors.bg.tertiary,
-              padding: 4,
-              borderRadius: 8,
-              flexShrink: 0,
-            }}
-          >
-            <button
-              onClick={() => setView("grid")}
-              style={{
-                padding: 8,
-                borderRadius: 6,
-                background: view === "grid" ? colors.bg.primary : "transparent",
-                border: "none",
-                cursor: "pointer",
-                color:
-                  view === "grid" ? colors.text.primary : colors.text.tertiary,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "all 0.2s",
-              }}
-            >
-              <LayoutGrid style={{ width: 16, height: 16 }} />
-            </button>
-            <button
-              onClick={() => setView("list")}
-              style={{
-                padding: 8,
-                borderRadius: 6,
-                background: view === "list" ? colors.bg.primary : "transparent",
-                border: "none",
-                cursor: "pointer",
-                color:
-                  view === "list" ? colors.text.primary : colors.text.tertiary,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "all 0.2s",
-              }}
-            >
-              <List style={{ width: 16, height: 16 }} />
-            </button>
-          </div>
+
           <button
             onClick={() => setSortDesc(!sortDesc)}
             style={{
@@ -704,31 +659,112 @@ export default function Home() {
             )}
           </button>
           {user && (
-            <button
-              onClick={() => {
-                isSelectMode ? exitSelectMode() : enterSelectMode();
-              }}
-              title={isSelectMode ? "Exit selection" : "Select cards"}
-              style={{
-                padding: 8,
-                borderRadius: 8,
-                border: `1px solid ${
-                  isSelectMode ? colors.text.primary : colors.border
-                }`,
-                background: isSelectMode ? colors.bg.tertiary : "transparent",
-                color: isSelectMode
-                  ? colors.text.primary
-                  : colors.text.tertiary,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                transition: "all 0.2s",
-              }}
-            >
-              <CopyCheck size={16} />
-            </button>
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => {
+                  if (isSelectMode) {
+                    exitSelectMode();
+                  } else {
+                    setShowSelectMenu(!showSelectMenu);
+                  }
+                }}
+                title={isSelectMode ? "Exit selection" : "Options"}
+                style={{
+                  padding: 8,
+                  borderRadius: 8,
+                  border: `1px solid ${isSelectMode || showSelectMenu ? colors.text.primary : colors.border}`,
+                  background: isSelectMode || showSelectMenu ? colors.bg.tertiary : "transparent",
+                  color: isSelectMode || showSelectMenu ? colors.text.primary : colors.text.tertiary,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  transition: "all 0.2s",
+                }}
+              >
+                {isSelectMode ? <X size={16} /> : <MoreVertical size={16} />}
+              </button>
+
+              {showSelectMenu && !isSelectMode && (
+                <>
+                  <div
+                    style={{ position: "fixed", inset: 0, zIndex: 40 }}
+                    onClick={() => setShowSelectMenu(false)}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      right: 0,
+                      marginTop: 8,
+                      background: colors.bg.primary,
+                      border: `1px solid ${colors.border}`,
+                      borderRadius: 12,
+                      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+                      overflow: "hidden",
+                      zIndex: 50,
+                      minWidth: 160,
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
+                    <button
+                      onClick={() => {
+                        enterSelectMode();
+                        setShowSelectMenu(false);
+                      }}
+                      style={{
+                        padding: "12px 16px",
+                        background: "transparent",
+                        border: "none",
+                        color: colors.text.primary,
+                        fontSize: 14,
+                        fontWeight: 500,
+                        textAlign: "left",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        transition: "background 0.2s",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = colors.bg.tertiary)}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <CheckSquare size={16} color={colors.text.tertiary} />
+                      Select Cards
+                    </button>
+                    <div style={{ height: 1, background: colors.border }} />
+                    <button
+                      onClick={() => {
+                        setMultiSelected(new Set(allSelectKeys));
+                        setIsSelectMode(true);
+                        setShowSelectMenu(false);
+                      }}
+                      style={{
+                        padding: "12px 16px",
+                        background: "transparent",
+                        border: "none",
+                        color: colors.text.primary,
+                        fontSize: 14,
+                        fontWeight: 500,
+                        textAlign: "left",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        transition: "background 0.2s",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = colors.bg.tertiary)}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <CopyCheck size={16} color={colors.text.tertiary} />
+                      Select All
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           )}
           {/* Mobile Filter Toggle Button */}
           <button
@@ -956,7 +992,7 @@ export default function Home() {
               />
             ))}
           </div>
-        ) : view === "grid" ? (
+        ) : (
           <div
             className="browse-card-grid"
             style={{
@@ -1099,247 +1135,7 @@ export default function Home() {
               );
             })}
           </div>
-        ) : (
-          <div style={{ marginTop: 8 }}>
-            {filtered.slice(0, visibleCards).map((card, i) => {
-              const isOwned = ownedSet.has(getCardKey(card));
-              const selectKey = `${getCardKey(card)}||${i}`;
-              const isMultiChecked = multiSelected.has(selectKey);
-              const rarityRaw =
-                card.rarity
-                  ?.replace(/\s+CARD\s*$/i, "")
-                  .trim()
-                  .replace(/^PR$/i, "P") ?? "";
-              const rarity = card.name?.includes("(SP)") ? "SP" : rarityRaw;
 
-              const RARITY_COLORS: Record<
-                string,
-                { color: string; bg: string }
-              > = {
-                SEC: {
-                  color: "#b45309",
-                  bg: isDark
-                    ? "rgba(251,191,36,0.15)"
-                    : "rgba(254,243,199,0.9)",
-                },
-                SR: {
-                  color: "#7c3aed",
-                  bg: isDark
-                    ? "rgba(139,92,246,0.15)"
-                    : "rgba(237,233,254,0.9)",
-                },
-                R: {
-                  color: "#1d4ed8",
-                  bg: isDark
-                    ? "rgba(59,130,246,0.15)"
-                    : "rgba(219,234,254,0.9)",
-                },
-                UC: {
-                  color: "#065f46",
-                  bg: isDark ? "rgba(34,197,94,0.12)" : "rgba(209,250,229,0.9)",
-                },
-                C: {
-                  color: isDark ? "#9ca3af" : "#6b7280",
-                  bg: isDark
-                    ? "rgba(156,163,175,0.1)"
-                    : "rgba(243,244,246,0.9)",
-                },
-                SP: {
-                  color: "#9d174d",
-                  bg: isDark
-                    ? "rgba(236,72,153,0.15)"
-                    : "rgba(252,231,243,0.9)",
-                },
-                TR: {
-                  color: "#0369a1",
-                  bg: isDark
-                    ? "rgba(14,165,233,0.15)"
-                    : "rgba(224,242,254,0.9)",
-                },
-                P: {
-                  color: "#92400e",
-                  bg: isDark ? "rgba(217,119,6,0.15)" : "rgba(254,243,199,0.9)",
-                },
-              };
-              const rarityStyle = RARITY_COLORS[rarity] ?? {
-                color: colors.text.tertiary,
-                bg: "transparent",
-              };
-
-              const TYPE_COLORS: Record<string, string> = {
-                LEADER: isDark ? "#f97316" : "#ea580c",
-                CHARACTER: isDark ? "#60a5fa" : "#2563eb",
-                EVENT: isDark ? "#a78bfa" : "#7c3aed",
-                STAGE: isDark ? "#34d399" : "#059669",
-              };
-              const typeColor =
-                TYPE_COLORS[card.type?.toUpperCase() ?? ""] ??
-                colors.text.tertiary;
-
-              return (
-                <div
-                  key={`${card.id}-${i}`}
-                  onClick={() => {
-                    if (isSelectMode) toggleMultiSelect(selectKey);
-                    else setSelectedIndex(i);
-                  }}
-                  onMouseDown={() => {
-                    if (!isSelectMode) handleLongPressStart(selectKey);
-                  }}
-                  onMouseUp={handleLongPressEnd}
-                  onMouseLeave={(e) => {
-                    handleLongPressEnd();
-                    e.currentTarget.style.background = isMultiChecked
-                      ? isDark
-                        ? "rgba(99,102,241,0.1)"
-                        : "rgba(99,102,241,0.05)"
-                      : "transparent";
-                  }}
-                  onTouchStart={() => {
-                    if (!isSelectMode) handleLongPressStart(selectKey);
-                  }}
-                  onTouchEnd={handleLongPressEnd}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = isMultiChecked
-                      ? isDark
-                        ? "rgba(99,102,241,0.14)"
-                        : "rgba(99,102,241,0.07)"
-                      : isDark
-                      ? "rgba(255,255,255,0.03)"
-                      : "rgba(0,0,0,0.02)";
-                  }}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: isSelectMode
-                      ? "28px 110px 1fr 52px 96px 20px"
-                      : "110px 1fr 52px 96px 20px",
-                    alignItems: "center",
-                    paddingLeft: 16,
-                    paddingRight: 16,
-                    paddingTop: 9,
-                    paddingBottom: 9,
-                    borderBottom: `1px solid ${colors.border}`,
-                    cursor: "pointer",
-                    background: isMultiChecked
-                      ? isDark
-                        ? "rgba(99,102,241,0.1)"
-                        : "rgba(99,102,241,0.05)"
-                      : "transparent",
-                    transition: "background 0.12s",
-                  }}
-                >
-                  {isSelectMode && (
-                    <div
-                      style={{
-                        width: 18,
-                        height: 18,
-                        borderRadius: 5,
-                        border: `2px solid ${
-                          isMultiChecked ? "#6366f1" : colors.border
-                        }`,
-                        background: isMultiChecked ? "#6366f1" : "transparent",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      {isMultiChecked && (
-                        <Check size={10} color="#fff" strokeWidth={3} />
-                      )}
-                    </div>
-                  )}
-
-                  {/* ID */}
-                  <span
-                    style={{
-                      fontFamily: "monospace",
-                      fontSize: 11,
-                      color: colors.text.tertiary,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap" as const,
-                      paddingRight: 12,
-                    }}
-                  >
-                    {card.id}
-                  </span>
-
-                  {/* Name */}
-                  <span
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 500,
-                      color: colors.text.primary,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap" as const,
-                      paddingRight: 16,
-                    }}
-                  >
-                    {card.name}
-                  </span>
-
-                  {/* Rarity pill */}
-                  <div>
-                    {rarity ? (
-                      <span
-                        style={{
-                          display: "inline-block",
-                          fontSize: 10,
-                          fontWeight: 700,
-                          padding: "2px 7px",
-                          borderRadius: 4,
-                          background: rarityStyle.bg,
-                          color: rarityStyle.color,
-                          letterSpacing: "0.04em",
-                        }}
-                      >
-                        {rarity}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  {/* Type */}
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 500,
-                      color: typeColor,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap" as const,
-                    }}
-                  >
-                    {card.type
-                      ? card.type.charAt(0).toUpperCase() +
-                        card.type.slice(1).toLowerCase()
-                      : ""}
-                  </span>
-
-                  {/* Owned dot */}
-                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                    {isOwned && !isSelectMode && (
-                      <div
-                        style={{
-                          width: 16,
-                          height: 16,
-                          borderRadius: "50%",
-                          background: "#16a34a",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Check size={9} color="#fff" strokeWidth={3} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         )}
 
         {!loading && filtered.length === 0 && (

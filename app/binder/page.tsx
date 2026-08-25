@@ -22,7 +22,7 @@ import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import { SET_ORDER, SET_NAMES } from "@/lib/sets";
 import { getAllDonCards } from "@/lib/api";
 import ModalCardImage from "@/components/ModalCardImage";
-import { Trash2, Pencil, Check, X, ChevronLeft, ChevronRight, CheckSquare, SlidersHorizontal } from "lucide-react";
+import { Trash2, Pencil, Check, X, ChevronLeft, ChevronRight, CheckSquare, SlidersHorizontal, Plus } from "lucide-react";
 
 const sortByCardId = (cards: Card[], setId?: string) => {
   const filterId = (setId ?? "").replace(/-/g, "").toUpperCase();
@@ -1119,19 +1119,30 @@ export default function BinderPage() {
 
         {tab === "custom" && (
           <div>
-            <div style={{ marginBottom: 28 }}>
-              {creatingBinder ? (
-                <div style={{ display: "flex", gap: 10, padding: 18, borderRadius: 24, maxWidth: 420, background: tc.bg.secondary, border: `1px solid ${tc.border}`, boxShadow: "0 10px 40px rgba(0,0,0,0.25)" }}>
-                  <input autoFocus value={newBinderName} onChange={(e) => setNewBinderName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleCreateBinder(); if (e.key === "Escape") { setCreatingBinder(false); setNewBinderName(""); } }} placeholder="My legendary collection..." style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 15, color: c.text, fontFamily: "inherit" }} />
-                  <button onClick={() => { setCreatingBinder(false); setNewBinderName(""); }} style={{ width: 44, height: 44, borderRadius: 999, border: "none", cursor: "pointer", background: isDark ? "rgba(255,255,255,0.06)" : tc.bg.tertiary, color: c.textTer, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><X size={16} /></button>
-                  <button onClick={handleCreateBinder} style={{ width: 44, height: 44, borderRadius: 999, border: "none", cursor: "pointer", background: `linear-gradient(90deg,${tc.accent},${tc.accent}cc)`, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Check size={16} /></button>
-                </div>
-              ) : (
-                <button onClick={() => setCreatingBinder(true)} style={{ padding: "16px 22px", borderRadius: 999, border: "none", cursor: "pointer", background: `linear-gradient(90deg,${tc.accent},${tc.accent}bb)`, color: "#fff", fontSize: 14, fontWeight: 600, boxShadow: `0 10px 30px ${tc.accent}55`, transition: "all 0.2s ease" }} onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0px)"; }}>
-                  + Create Binder
+              {!isMobile && (
+                <div style={{ marginBottom: 28 }}>
+                  <button 
+                    onClick={() => setCreatingBinder(true)} 
+                  style={{ 
+                    padding: "16px 22px", 
+                    borderRadius: 999, 
+                    border: "none", 
+                    cursor: "pointer", 
+                    background: `linear-gradient(90deg,${tc.accent},${tc.accent}bb)`, 
+                    color: "#fff", 
+                    fontSize: 14, 
+                    fontWeight: 600, 
+                    boxShadow: `0 10px 30px ${tc.accent}55`, 
+                    transition: "all 0.2s ease" 
+                  }} 
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; }} 
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0px)"; }}
+                >
+                  <Plus size={16} style={{ display: "inline-block", marginRight: 8, verticalAlign: "-3px" }} />
+                  Create Binder
                 </button>
+                </div>
               )}
-            </div>
 
             <div className="binder-sets-grid" style={{ display: "grid", gap: 24 }}>
               {binders.map((binder) => {
@@ -1185,20 +1196,17 @@ export default function BinderPage() {
             )}
           </div>
         )}
-      </div>
 
         {tab === "wishlist" && (() => {
           const wishlistCards = sortByCardId(allCards.filter(card => wishlistSet.has(getCardKey(card))));
           return wishlistCards.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "80px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div style={{ textAlign: "center", padding: "50px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
               <div style={{ fontSize: 40, marginBottom: 16 }}>★</div>
               <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.04em", color: c.text, marginBottom: 8 }}>No wishlist cards yet</div>
               <div style={{ fontSize: 14, color: c.textTer }}>Add cards to your wishlist from the browse page.</div>
             </div>
           ) : (
-            <div className="binder-wishlist-wrap" style={{ padding: "0 32px" }}>
-              <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              </div>
+            <div className="binder-wishlist-wrap">
               <div className="binder-card-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 22 }}>
                 {wishlistCards.map((card, i) => {
                   const cardKey = getCardKey(card);
@@ -1222,6 +1230,7 @@ export default function BinderPage() {
             </div>
           );
         })()}
+      </div>
       {modalCard && <CardModal modalCard={modalCard} modalIndex={modalIndex} modalCards={modalCards} setModalCard={setModalCard} setModalIndex={setModalIndex} c={c} tc={tc} isDark={isDark} ownedSet={ownedSet} wishlistSet={wishlistSet} onToggleOwned={handleToggleOwned} onToggleWishlist={handleToggleWishlist} />}
       
       {deleteConfirmId && (
@@ -1238,6 +1247,57 @@ export default function BinderPage() {
           </div>
         </div>
       )}
+
+      {/* Mobile FAB for Create Binder */}
+      {isMobile && tab === "custom" && (
+        <button
+          onClick={() => setCreatingBinder(true)}
+          style={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            width: 56,
+            height: 56,
+            borderRadius: "50%",
+            background: `linear-gradient(90deg,${tc.accent},${tc.accent}bb)`,
+            color: "#fff",
+            border: "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: `0 10px 25px ${tc.accent}66`,
+            cursor: "pointer",
+            zIndex: 90,
+          }}
+        >
+          <Plus size={24} />
+        </button>
+      )}
+
+      {/* Create Binder Modal */}
+      {creatingBinder && (
+        <div style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setCreatingBinder(false)}>
+          <div style={{ background: c.bg, borderRadius: 24, padding: 24, width: "100%", maxWidth: 360, boxShadow: "0 25px 50px rgba(0,0,0,0.25)", border: `1px solid ${c.border}` }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontWeight: 800, fontSize: 20, color: c.text, marginBottom: 16 }}>Create Binder</div>
+            <input 
+              autoFocus 
+              value={newBinderName} 
+              onChange={(e) => setNewBinderName(e.target.value)} 
+              onKeyDown={(e) => { 
+                if (e.key === "Enter") handleCreateBinder(); 
+                if (e.key === "Escape") { setCreatingBinder(false); setNewBinderName(""); } 
+              }} 
+              placeholder="My legendary collection..." 
+              style={{ width: "100%", background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)", border: `1px solid ${c.border}`, borderRadius: 12, padding: "14px 16px", outline: "none", fontSize: 16, color: c.text, fontFamily: "inherit", marginBottom: 20 }} 
+            />
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+              <button onClick={() => { setCreatingBinder(false); setNewBinderName(""); }} style={{ padding: "10px 16px", fontSize: 14, fontWeight: 600, border: "none", background: "transparent", color: c.textSec, cursor: "pointer", borderRadius: 8 }}>Cancel</button>
+              <button onClick={handleCreateBinder} style={{ padding: "10px 20px", fontSize: 14, fontWeight: 600, border: "none", background: tc.accent, color: "white", borderRadius: 8, cursor: "pointer" }}>Create</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

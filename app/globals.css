@@ -1320,8 +1320,21 @@
    Browse / Binder specific rules
    ══════════════════════════════════════════════════════════ */
 @media (orientation: landscape) and (max-height: 520px) {
+  .mobile-topbar {
+    height: 48px !important;
+  }
+
+  .browse-wrapper {
+    padding-top: 96px !important;
+  }
+
+  .binder-wrapper {
+    padding-top: 48px !important;
+  }
+
   .browse-header {
-    height: 52px !important;
+    top: 48px !important;
+    height: 48px !important;
     padding: 6px 14px !important;
   }
 
@@ -1338,17 +1351,20 @@
 
   .browse-mobile-drawer,
   .binder-mobile-drawer {
-    top: 52px !important;
+    top: 96px !important;
+    left: 0 !important;
     right: 0 !important;
-    max-height: calc(100vh - 52px) !important;
+    max-height: calc(100vh - 96px) !important;
   }
 
   .filter-drawer-backdrop {
-    top: 52px !important;
+    top: 96px !important;
+    left: 0 !important;
   }
 
   .binder-set-header,
   .binder-custom-header {
+    top: 48px !important;
     padding: 8px 12px !important;
   }
 
