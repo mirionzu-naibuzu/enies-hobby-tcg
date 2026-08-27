@@ -151,6 +151,12 @@ export default function Sidebar() {
     }
   };
 
+  useEffect(() => {
+    const handleToggle = () => setExpanded((prev) => !prev);
+    window.addEventListener("toggle-sidebar", handleToggle);
+    return () => window.removeEventListener("toggle-sidebar", handleToggle);
+  }, []);
+
   return (
     <>
       {/* Mobile Top Bar */}
@@ -172,7 +178,7 @@ export default function Sidebar() {
           >
             <PanelLeft size={20} />
           </button>
-          {pathname !== "/browse" && pathname !== "/don" && pathname !== "/binder" && (
+          {pathname !== "/browse" && pathname !== "/don" && pathname !== "/binder" && pathname !== "/dashboard" && (
             <img
               src={colors.isDark ? "/sidebar-logo.png" : "/logo-light.png"}
               alt="Enies Hobby"

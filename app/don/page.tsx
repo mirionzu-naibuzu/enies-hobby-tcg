@@ -583,8 +583,9 @@ export default function DonCardsPage() {
       {/* SCROLL TOP */}
       {showScrollTop && (
         <button
+          className="don-scroll-top"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          style={{ position: "fixed", bottom: 32, left: "calc(50% + 40px)", transform: "translateX(-50%)", width: 56, height: 56, borderRadius: "50%", background: tc.bg.tertiary, color: colors.text.primary, border: `1px solid ${colors.border}`, cursor: "pointer", fontSize: 22, fontWeight: 700, boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.4)" : "0 4px 20px rgba(0,0,0,0.3)", zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}
+          style={{ position: "fixed", bottom: 32, left: "50%", transform: "translateX(-50%)", width: 56, height: 56, borderRadius: "50%", background: tc.bg.tertiary, color: colors.text.primary, border: `1px solid ${colors.border}`, cursor: "pointer", fontSize: 22, fontWeight: 700, boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.4)" : "0 4px 20px rgba(0,0,0,0.3)", zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}
         >
           ↑
         </button>

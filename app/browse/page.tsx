@@ -6,7 +6,7 @@ import { getAllCards, getAllSets } from "@/lib/api";
 import CardItem from "@/components/CardItem";
 const FilterBar = dynamic(() => import("@/components/FilterBar"));
 const Sidebar = dynamic(() => import("@/components/Sidebar"));
-import { Search, X, ChevronLeft, ChevronRight, BookmarkPlus, Check, BookOpen, ArrowDownWideNarrow, ArrowUpNarrowWide, CheckSquare, Plus, CopyCheck, SlidersHorizontal, MoreVertical } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, BookmarkPlus, Check, BookOpen, ArrowDownWideNarrow, ArrowUpNarrowWide, CheckSquare, Plus, CopyCheck, SlidersHorizontal, MoreVertical, PanelLeft } from "lucide-react";
 import { useTheme } from "next-themes";
 import { createClient } from "@/lib/supabase";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -544,7 +544,7 @@ export default function Home() {
         transition: "background-color 0.3s",
         color: colors.text.primary,
         marginLeft: 70,
-        paddingTop: 57,
+        paddingTop: 64,
       }}
     >
       <Sidebar />
@@ -563,7 +563,9 @@ export default function Home() {
           top: 0,
           left: 70,
           right: 0,
-          zIndex: 20,
+          height: 64,
+          boxSizing: "border-box",
+          zIndex: 30,
           transition: "all 0.3s",
         }}
       >
@@ -843,7 +845,7 @@ export default function Home() {
             onClick={() => setMobileFiltersOpen(false)}
             style={{
               position: "fixed",
-              top: 122,
+              top: 58,
               left: 0,
               right: 0,
               bottom: 0,
@@ -857,14 +859,14 @@ export default function Home() {
             className="browse-mobile-drawer"
             style={{
               position: "fixed",
-              top: 122,
+              top: 58,
               left: 0,
               right: 0,
               zIndex: 30,
               background: colors.bg.primary,
               borderBottom: `1px solid ${colors.border}`,
               boxShadow: "0 16px 36px rgba(0, 0, 0, 0.35)",
-              maxHeight: "calc(80vh - 122px)",
+              maxHeight: "calc(100vh - 58px)",
               overflowY: "auto",
               WebkitOverflowScrolling: "touch",
             }}
@@ -1190,12 +1192,14 @@ export default function Home() {
           style={{
             position: "fixed",
             inset: 0,
-            background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.55)",
-            zIndex: 50,
+            background: isDark ? "rgba(0, 0, 0, 0.78)" : "rgba(0, 0, 0, 0.55)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+            zIndex: 60,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: 24,
+            padding: isMobile ? 12 : 24,
           }}
           onClick={() => {
             setSelectedIndex(-1);
@@ -1891,7 +1895,7 @@ export default function Home() {
           style={{
             position: "fixed",
             bottom: 100,
-            left: "calc(50% + 35px)",
+            left: "50%",
             transform: "translateX(-50%)",
             zIndex: 60,
             background: colors.bg.primary,
@@ -1951,11 +1955,12 @@ export default function Home() {
       {/* ── SCROLL TO TOP ── */}
       {showScrollTop && !isSelectMode && (
         <button
+          className="browse-scroll-top"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           style={{
             position: "fixed",
             bottom: 32,
-            left: "calc(50% + 40px)",
+            left: "50%",
             transform: "translateX(-50%)",
             width: 56,
             height: 56,
@@ -1987,7 +1992,7 @@ export default function Home() {
           style={{
             position: "fixed",
             bottom: isNarrow ? 16 : 24,
-            left: isMobile ? "50%" : "calc(50% + 35px)",
+            left: "50%",
             transform: "translateX(-50%)",
             zIndex: 25,
             display: "flex",
