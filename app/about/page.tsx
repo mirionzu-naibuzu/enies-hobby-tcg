@@ -6,7 +6,7 @@ import { useTheme } from "next-themes";
 import Image from "next/image";
 import { getColors } from "@/lib/themes";
 import Sidebar from "@/components/Sidebar";
-import { Heart, ExternalLink, Coffee } from "lucide-react";
+import { Heart, ExternalLink, Coffee, ArrowRight } from "lucide-react";
 
 const TECH_STACK = [
   { label: "Next.js",      desc: "App Router, SSR, dynamic routes",  color: "#111827", darkColor: "#f3f4f6" },
@@ -80,7 +80,7 @@ export default function AboutPage() {
           <span style={{ background: c.accent, color: "#fff", fontSize: 9, fontWeight: 500, padding: "3px 8px", borderRadius: 3, letterSpacing: "0.07em", textTransform: "uppercase" as const }}>About</span>
           <span style={{ fontSize: 11, color: c.textTer }}>Open source · Fan-made · Free forever</span>
         </div>
-        <h1 className="about-hero-title" style={{ fontFamily: "'Impact','Arial Narrow',sans-serif", fontSize: 68, lineHeight: 0.95, letterSpacing: "0.01em", color: c.text, marginBottom: 20 }}>
+        <h1 className="about-hero-title" style={{ fontFamily: "var(--font-display), 'Anton', 'Impact', sans-serif", fontSize: 68, lineHeight: 0.95, letterSpacing: "0.01em", color: c.text, marginBottom: 20 }}>
           BUILT FOR<br />
           <span style={{ color: c.accent }}>COLLECTORS</span><span style={{ opacity: 0.25 }}>.</span>
         </h1>
@@ -113,7 +113,7 @@ export default function AboutPage() {
                 borderBottom: i < 3 ? `1px solid ${c.border}` : "none",
               }}
             >
-              <div style={{ fontFamily: "'Impact','Arial Narrow',sans-serif", fontSize: 12, color: c.textTer, marginBottom: 10, letterSpacing: "0.06em" }}>{f.n}</div>
+              <div style={{ fontFamily: "var(--font-display), 'Anton', 'Impact', sans-serif", fontSize: 12, color: c.textTer, marginBottom: 10, letterSpacing: "0.06em" }}>{f.n}</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: c.text, marginBottom: 6 }}>{f.title}</div>
               <div style={{ fontSize: 12, color: c.textSec, lineHeight: 1.65 }}>{f.desc}</div>
             </div>
@@ -225,11 +225,12 @@ export default function AboutPage() {
           </a>
           <button
             onClick={() => router.push("/browse")}
-            style={{ padding: "10px 18px", borderRadius: 10, background: "transparent", border: `1px solid ${c.border}`, color: c.text, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}
+            style={{ padding: "10px 18px", borderRadius: 10, background: "transparent", border: `1px solid ${c.border}`, color: c.text, fontSize: 13, cursor: "pointer", transition: "all 0.2s", display: "inline-flex", alignItems: "center", gap: 6 }}
             onMouseEnter={(e) => { e.currentTarget.style.background = c.bgSec; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
-            Browse cards →
+            <span>Browse cards</span>
+            <ArrowRight size={14} />
           </button>
         </div>
       </section>

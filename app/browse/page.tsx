@@ -57,7 +57,6 @@ export default function Home() {
   const [showSelectMenu, setShowSelectMenu] = useState(false);
   const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
   const [showMultiBinderPicker, setShowMultiBinderPicker] = useState(false);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   // ── INLINE BINDER CREATION STATE ──
@@ -424,6 +423,7 @@ export default function Home() {
   const toCardKey = (selectKey: string) => selectKey.split("||").slice(0, 3).join("||");
 
   const enterSelectMode = (selectKey?: string) => {
+    if (!user) return;
     setIsSelectMode(true);
     if (selectKey) setMultiSelected(new Set([selectKey]));
   };
@@ -436,6 +436,7 @@ export default function Home() {
   };
 
   const toggleMultiSelect = (selectKey: string) => {
+    if (!user) return;
     setMultiSelected(prev => {
       const next = new Set(prev);
       if (next.has(selectKey)) next.delete(selectKey);
@@ -461,6 +462,7 @@ export default function Home() {
   };
 
   const handleMultiAddToBinder = async (binderId: string) => {
+    if (!user) return;
     const current = binderCardMap[binderId] ?? [];
     const keys = [...multiSelected].map(toCardKey).filter(k => !current.includes(k));
     if (keys.length === 0) { exitSelectMode(); return; }
@@ -478,14 +480,6 @@ export default function Home() {
     }));
     setBulkProgress(null);
     exitSelectMode();
-  };
-
-  const handleLongPressStart = (selectKey: string) => {
-    longPressTimer.current = setTimeout(() => enterSelectMode(selectKey), 500);
-  };
-
-  const handleLongPressEnd = () => {
-    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
   };
 
   const allSelectKeys = filtered.map((c, i) => `${getCardKey(c)}||${i}`);
@@ -1029,15 +1023,6 @@ export default function Home() {
                     perspective: shouldFlip ? "1000px" : "none",
                     position: "relative",
                   }}
-                  onMouseDown={() => {
-                    if (!isSelectMode) handleLongPressStart(selectKey);
-                  }}
-                  onMouseUp={handleLongPressEnd}
-                  onMouseLeave={handleLongPressEnd}
-                  onTouchStart={() => {
-                    if (!isSelectMode) handleLongPressStart(selectKey);
-                  }}
-                  onTouchEnd={handleLongPressEnd}
                 >
                   <div
                     style={{
@@ -1673,32 +1658,35 @@ export default function Home() {
                 <div
                   className="card-modal-image-pane"
                   style={{
-                    width: "45%",
+                    width: "48%",
                     flexShrink: 0,
                     background: tc.bg.primary,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    padding: 24,
+                    padding: "24px 20px 24px 28px",
                   }}
                 >
-                  <ModalCardImage
-                    key={selected.images?.large ?? selected.images?.small ?? selected.id}
-                    src={selected.images?.large || selected.images?.small || "/card-placeholder.png"}
-                    alt={selected.name}
-                    isLeader={selected.type?.toUpperCase() === "LEADER"}
-                    isDark={isDark}
-                  />
+                  <div style={{ width: "100%", maxWidth: 360, margin: "0 auto" }}>
+                    <ModalCardImage
+                      key={selected.images?.large ?? selected.images?.small ?? selected.id}
+                      src={selected.images?.large || selected.images?.small || "/card-placeholder.png"}
+                      alt={selected.name}
+                      isLeader={selected.type?.toUpperCase() === "LEADER"}
+                      isDark={isDark}
+                    />
+                  </div>
                 </div>
                 <div
                   className="card-modal-details-pane"
                   style={{
                     flex: 1,
+                    minWidth: 0,
                     overflowY: "auto",
-                    padding: 24,
+                    padding: "24px 28px 24px 16px",
                     display: "flex",
                     flexDirection: "column",
-                    gap: 16,
+                    gap: 14,
                   }}
                 >
                   <div
@@ -1729,6 +1717,8 @@ export default function Home() {
                             borderRadius: 10,
                             padding: "10px 14px",
                             border: `1px solid ${colors.border}`,
+                            minWidth: 0,
+                            gridColumn: label === "Set" ? "1 / -1" : undefined,
                           }}
                         >
                           <div
@@ -1748,9 +1738,23 @@ export default function Home() {
                               fontWeight: 600,
                               fontSize: 14,
                               color: colors.text.primary,
+                              lineHeight: 1.4,
+                              wordBreak: "break-word",
+                              overflowWrap: "break-word",
+                              whiteSpace: "normal",
                             }}
                           >
-                            {String(value)}
+                            {label === "Family" && typeof value === "string" && value.includes("/") ? (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                {value.split("/").map((part, idx) => (
+                                  <div key={idx} style={{ lineHeight: 1.35 }}>
+                                    {part.trim()}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              String(value)
+                            )}
                           </div>
                         </div>
                       ))}

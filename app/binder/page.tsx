@@ -22,7 +22,7 @@ import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import { SET_ORDER, SET_NAMES } from "@/lib/sets";
 import { getAllDonCards } from "@/lib/api";
 import ModalCardImage from "@/components/ModalCardImage";
-import { Trash2, Pencil, Check, X, ChevronLeft, ChevronRight, CheckSquare, SlidersHorizontal, Plus } from "lucide-react";
+import { Trash2, Pencil, Check, X, ChevronLeft, ChevronRight, CheckSquare, SlidersHorizontal, Plus, ArrowRight } from "lucide-react";
 
 const sortByCardId = (cards: Card[], setId?: string) => {
   const filterId = (setId ?? "").replace(/-/g, "").toUpperCase();
@@ -167,7 +167,7 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
   };
 
   return (
-    <div className="card-modal-outer" style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => { setModalCard(null); setShowOwnershipPicker(false); }}>
+    <div className="card-modal-outer" style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.78)" : "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => { setModalCard(null); setShowOwnershipPicker(false); }}>
       <div className="card-modal-nav-row" style={{ display: "flex", alignItems: "center", gap: 16, width: "100%", maxWidth: 960 }} onClick={(e) => e.stopPropagation()}>
         {(!isMobile || isLandscape) && (
           <button className="card-modal-prev" onClick={() => { const i = Math.max(modalIndex - 1, 0); setModalIndex(i); setModalCard(modalCards[i]); setShowOwnershipPicker(false); }} disabled={modalIndex <= 0} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: modalIndex > 0 ? "pointer" : "not-allowed", opacity: modalIndex <= 0 ? 0.3 : 1, transition: "all 0.2s", boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
@@ -220,26 +220,38 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
             </div>
           </div>
           <div className="card-modal-body" style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
-            <div className="card-modal-image-pane" style={{ width: "45%", flexShrink: 0, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-              <ModalCardImage
-                key={modalCard.images?.large ?? modalCard.images?.small ?? modalCard.id}
-                src={modalCard.images?.large || modalCard.images?.small || "/card-placeholder.png"}
-                alt={modalCard.name}
-                isLeader={modalCard.type?.toUpperCase() === "LEADER"}
-                isDark={isDark}
-              />
+            <div className="card-modal-image-pane" style={{ width: "48%", flexShrink: 0, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 20px 24px 28px" }}>
+              <div style={{ width: "100%", maxWidth: 360, margin: "0 auto" }}>
+                <ModalCardImage
+                  key={modalCard.images?.large ?? modalCard.images?.small ?? modalCard.id}
+                  src={modalCard.images?.large || modalCard.images?.small || "/card-placeholder.png"}
+                  alt={modalCard.name}
+                  isLeader={modalCard.type?.toUpperCase() === "LEADER"}
+                  isDark={isDark}
+                />
+              </div>
             </div>
-            <div className="card-modal-details-pane" style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div className="card-modal-details-pane" style={{ flex: 1, minWidth: 0, overflowY: "auto", padding: "24px 28px 24px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
               <div className="card-modal-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 {([["Type", modalCard.type], ["Rarity", modalCard.rarity?.replace(/^PR$/i, "P")], ["Color", modalCard.color], ["Cost", modalCard.cost], ["Power", modalCard.power], ["Counter", modalCard.counter], ["Attribute", modalCard.attribute?.name], ["Family", modalCard.family], ["Set", modalCard.set?.name]] as [string, unknown][]).filter(([, v]) => v != null && v !== "" && v !== "-").map(([label, value]) => (
-                  <div key={String(label)} style={{ background: c.bgSec, borderRadius: 10, padding: "10px 14px", border: `1px solid ${c.border}` }}>
+                  <div key={String(label)} style={{ background: c.bgSec, borderRadius: 10, padding: "10px 14px", border: `1px solid ${c.border}`, minWidth: 0, gridColumn: label === "Set" ? "1 / -1" : undefined }}>
                     <div style={{ fontSize: 11, color: c.textTer, marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>{label}</div>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: c.text }}>{String(value)}</div>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: c.text, lineHeight: 1.4, wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal" }}>
+                      {label === "Family" && typeof value === "string" && value.includes("/") ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                          {value.split("/").map((part, idx) => (
+                            <div key={idx} style={{ lineHeight: 1.35 }}>{part.trim()}</div>
+                          ))}
+                        </div>
+                      ) : (
+                        String(value)
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
-              {modalCard.ability && (<div style={{ background: c.bgSec, borderRadius: 10, padding: "12px 14px", border: `1px solid ${c.border}` }}><div style={{ fontSize: 11, color: c.textTer, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Effect</div><div style={{ fontSize: 14, color: c.text, lineHeight: 1.7 }}>{modalCard.ability}</div></div>)}
-              {modalCard.trigger && modalCard.trigger !== "" && (<div style={{ background: isDark ? "rgba(217,119,6,0.1)" : "rgba(251,191,36,0.08)", borderRadius: 10, padding: "12px 14px", border: `1px solid ${isDark ? "rgba(217,119,6,0.2)" : "rgba(251,191,36,0.2)"}` }}><div style={{ fontSize: 11, color: isDark ? "#fbbf24" : "#d97706", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Trigger</div><div style={{ fontSize: 14, color: c.text, lineHeight: 1.7 }}>{modalCard.trigger}</div></div>)}
+              {modalCard.ability && (<div style={{ background: c.bgSec, borderRadius: 10, padding: "12px 14px", border: `1px solid ${c.border}`, wordBreak: "break-word", overflowWrap: "break-word" }}><div style={{ fontSize: 11, color: c.textTer, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Effect</div><div style={{ fontSize: 14, color: c.text, lineHeight: 1.7 }}>{modalCard.ability}</div></div>)}
+              {modalCard.trigger && modalCard.trigger !== "" && (<div style={{ background: isDark ? "rgba(217,119,6,0.1)" : "rgba(251,191,36,0.08)", borderRadius: 10, padding: "12px 14px", border: `1px solid ${isDark ? "rgba(217,119,6,0.2)" : "rgba(251,191,36,0.2)"}`, wordBreak: "break-word", overflowWrap: "break-word" }}><div style={{ fontSize: 11, color: isDark ? "#fbbf24" : "#d97706", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Trigger</div><div style={{ fontSize: 14, color: c.text, lineHeight: 1.7 }}>{modalCard.trigger}</div></div>)}
             </div>
           </div>
           <div className="card-modal-footer" style={{ borderTop: `1px solid ${c.border}`, padding: "10px 24px", textAlign: "center", fontSize: 12, color: c.textTer, flexShrink: 0 }}>{modalIndex + 1} / {modalCards.length}</div>
@@ -271,7 +283,7 @@ function DonCardModal({ card, index, cards, onClose, onNav, c, tc, isDark }: {
   }, [index, cards]);
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={onClose}>
+    <div style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.78)" : "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={onClose}>
       <div style={{ display: "flex", alignItems: "center", gap: 16, width: "100%", maxWidth: 860 }} onClick={(e) => e.stopPropagation()}>
         <button onClick={() => onNav(index - 1)} disabled={index <= 0} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: index > 0 ? "pointer" : "not-allowed", opacity: index <= 0 ? 0.3 : 1, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
           <ChevronLeft size={20} />
@@ -937,7 +949,7 @@ export default function BinderPage() {
             </button>
             <button title="Browse cards" onClick={() => router.push("/browse")} style={{ padding: isMobile ? "7px 12px" : "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", background: tc.accent, color: "#fff", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", transition: "opacity 0.2s" }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
               <span>{isMobile ? "Browse" : "Browse cards"}</span>
-              <span style={{ fontSize: 13 }}>→</span>
+              <ArrowRight size={14} />
             </button>
           </div>
         </div>
@@ -1180,7 +1192,10 @@ export default function BinderPage() {
                         <div className="binder-pct-text" style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.04em", color: c.text }}>{binderCounts[binder.id] ?? 0}</div>
                         <div className="binder-stat-subtext" style={{ fontSize: 12, color: c.textTer, marginTop: 2 }}>cards collected</div>
                       </div>
-                      <div className="binder-stat-subtext" style={{ fontSize: 12, color: c.textTer }}>Open Binder →</div>
+                      <div className="binder-stat-subtext" style={{ fontSize: 12, color: c.textTer, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <span>Open Binder</span>
+                        <ArrowRight size={13} />
+                      </div>
                     </div>
                   </div>
                 );

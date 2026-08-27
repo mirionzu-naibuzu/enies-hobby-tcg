@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo, useSyncExternalStore } from "react";
-import { X, Eye, EyeOff } from "lucide-react";
+import { X, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { useTheme } from "next-themes";
 import { getColors } from "@/lib/themes";
+import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 interface Props {
   onClose: () => void;
@@ -16,6 +17,7 @@ const getMountedSnapshot = () => true;
 const getServerMountedSnapshot = () => false;
 
 export default function AuthModal({ onClose, initialMode = "login" }: Props) {
+  useBodyScrollLock(true);
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,7 +50,7 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [onClose, supabase.auth]);
+  }, [supabase, onClose]);
 
   const tc = getColors(theme, mounted);
   const isDark = tc.isDark;
@@ -56,7 +58,7 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
   const colors = {
     bg: {
       primary: tc.bg.primary,
-      secondary: tc.bg.tertiary,
+      secondary: tc.bg.secondary,
     },
     text: {
       primary: tc.text.primary,
@@ -109,29 +111,34 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
 
       if (error) {
         setError(error.message);
-      } else if (data.user && data.user.identities && data.user.identities.length === 0) {
-        setError("This email is already registered.");
-        setSuggestSignup(true);
-      } else {
+      } else if (data.user) {
         setStep("verify");
       }
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      if (!error) {
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          setError(
+            "Account not found or password incorrect. Would you like to create an account instead?"
+          );
+          setSuggestSignup(true);
+        } else {
+          setError(error.message);
+        }
+      } else if (data.user) {
         onClose();
-      } else if (error.message.includes("Email not confirmed")) {
-        setError("Please confirm your email first. Check your inbox!");
-      } else if (error.message.includes("Invalid login credentials")) {
-        setError("Incorrect email or password. Please try again.");
-        setSuggestSignup(true);
-      } else {
-        setError(error.message);
+        window.location.reload();
       }
     }
 
@@ -144,7 +151,9 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
       style={{
         position: "fixed",
         inset: 0,
-        background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)",
+        background: isDark ? "rgba(0,0,0,0.78)" : "rgba(0,0,0,0.55)",
+        backdropFilter: "blur(6px)",
+        WebkitBackdropFilter: "blur(6px)",
         zIndex: 100,
         display: "flex",
         alignItems: "center",
@@ -448,9 +457,13 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
         fontSize: 13,
         fontWeight: 600,
         minHeight: 44,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
       }}
     >
-      ← Back to sign in
+      <ArrowLeft size={14} />
+      <span>Back to sign in</span>
     </button>
   </div>
   </>

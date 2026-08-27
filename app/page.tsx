@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { X, ChevronLeft, ChevronRight, Palette, Sun, Moon, Menu } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Palette, Sun, Moon, Menu, ArrowRight } from "lucide-react";
 import { useTheme } from "next-themes";
 import AuthModal from "@/components/AuthModal";
 import { createClient } from "@/lib/supabase";
@@ -646,7 +646,7 @@ useEffect(() => {
               <span style={{ background: tc.accent, color: "#fff", fontSize: 9, fontWeight: 500, padding: "3px 8px", borderRadius: 3, letterSpacing: "0.07em", textTransform: "uppercase" as const }}>New</span>
               <span style={{ fontSize: 11, color: c.textTer }}>OP-16 · The Time of Battle just added</span>
             </div>
-            <h1 className="home-hero-title" style={{ fontFamily: "'Impact','Arial Narrow',sans-serif", lineHeight: 0.95, letterSpacing: "0.01em", color: c.text }}>
+            <h1 className="home-hero-title" style={{ fontFamily: "var(--font-display), 'Anton', 'Impact', sans-serif", lineHeight: 0.95, letterSpacing: "0.01em", color: c.text }}>
               {renderHeroTyping(typedCount, tc.accent)}
               {typedCount < HERO_TOTAL_LENGTH && (
                 <span className="typing-cursor" style={{ color: tc.accent }}>|</span>
@@ -656,8 +656,9 @@ useEffect(() => {
               Browse, filter, and collect every English One Piece TCG card across all sets — from Romance Dawn to the latest boosters.
             </p>
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <button className="btn-primary home-hero-cta" onClick={() => handleBrowse()} style={{ padding: "11px 22px", borderRadius: 10, background: c.text, color: c.bg, fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", transition: "opacity 0.2s" }}>
-                Browse cards →
+              <button className="btn-primary home-hero-cta" onClick={() => handleBrowse()} style={{ padding: "11px 22px", borderRadius: 10, background: c.text, color: c.bg, fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", transition: "opacity 0.2s", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span>Browse cards</span>
+                <ArrowRight size={14} />
               </button>
               {mounted && user ? (
                 <button
@@ -775,7 +776,7 @@ useEffect(() => {
           { n: "03", title: "Grid + list views", desc: "Image-first grid or compact list. Navigate cards with arrow keys in the detail view." },
         ].map((f, i) => (
           <div key={f.n} style={{ padding: "22px 24px", borderRight: i < 2 ? `1px solid ${c.border}` : "none" }}>
-            <div style={{ fontFamily: "'Impact','Arial Narrow',sans-serif", fontSize: 13, color: c.textTer, marginBottom: 10, letterSpacing: "0.06em" }}>{f.n}</div>
+            <div style={{ fontFamily: "var(--font-display), 'Anton', 'Impact', sans-serif", fontSize: 13, color: c.textTer, marginBottom: 10, letterSpacing: "0.06em" }}>{f.n}</div>
             <div style={{ fontSize: 13, fontWeight: 600, color: c.text, marginBottom: 5 }}>{f.title}</div>
             <div style={{ fontSize: 11, color: c.textSec, lineHeight: 1.6 }}>{f.desc}</div>
           </div>
@@ -791,7 +792,10 @@ useEffect(() => {
             {FEATURED_SETS.map((s) => (
               <button key={s} onClick={() => { setActiveSet(s); handleBrowse(s); }} className="set-pill home-set-pill" style={{ fontSize: 11, padding: "6px 12px", borderRadius: 99, border: `0.5px solid ${activeSet === s ? c.text : c.border}`, background: activeSet === s ? c.text : "transparent", color: activeSet === s ? c.bg : c.textSec, cursor: "pointer", transition: "all 0.15s" }}>{s}</button>
             ))}
-            <button onClick={() => handleBrowse()} style={{ fontSize: 11, padding: "6px 2px", background: "transparent", border: "none", color: tc.accent, cursor: "pointer", fontWeight: 500 }}>View all sets →</button>
+            <button onClick={() => handleBrowse()} style={{ fontSize: 11, padding: "6px 2px", background: "transparent", border: "none", color: tc.accent, cursor: "pointer", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 3 }}>
+              <span>View all sets</span>
+              <ArrowRight size={12} />
+            </button>
           </div>
         </div>
 
@@ -812,7 +816,10 @@ useEffect(() => {
       <div className="fu3 home-card-strip-section" style={{ padding: "18px 24px", borderBottom: `1px solid ${c.border}` }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <span style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: c.textTer }}>Card preview</span>
-          <span onClick={() => handleBrowse()} style={{ fontSize: 11, color: tc.accent, cursor: "pointer", fontWeight: 500 }}>View all →</span>
+          <span onClick={() => handleBrowse()} style={{ fontSize: 11, color: tc.accent, cursor: "pointer", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 3 }}>
+            <span>View all</span>
+            <ArrowRight size={12} />
+          </span>
         </div>
         <div className="home-card-strip" style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 8 }}>
         {CARD_PREVIEWS.map((meta, i) => {
@@ -871,14 +878,14 @@ useEffect(() => {
 
       {/* RARITY INFO MODAL */}
       {selectedRarity && (
-        <div style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.5)", zIndex: 70, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => setSelectedRarity(null)}>
+        <div style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.78)" : "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", zIndex: 70, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => setSelectedRarity(null)}>
           <div className="modal-in" onClick={(e) => e.stopPropagation()} style={{ background: c.bg, borderRadius: 16, border: `1px solid ${c.border}`, width: "100%", maxWidth: 400, overflow: "hidden", boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.6)" : "0 32px 64px rgba(0,0,0,0.18)" }}>
             <div style={{ padding: "20px 20px 22px" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: 15, fontWeight: 600, color: c.text }}>{selectedRarity.name}</span>
                 </div>
-                <span style={{ display: "inline-flex", width: 50,  alignItems: "center", justifyContent: "center", fontFamily: "'Anton','Impact',sans-serif", fontWeight: 400, fontSize: 18, color: "#000", background: selectedRarity.label === "SEC" ? "#f59e0b" : "#ffffff", border: `1px solid ${selectedRarity.label === "SEC" ? "#92400e" : "#000"}`, borderRadius: 8, padding: "2px 10px", letterSpacing: "0.02em", lineHeight: 1.2 }}>
+                <span style={{ display: "inline-flex", width: 50,  alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display), 'Anton', 'Impact', sans-serif", fontWeight: 400, fontSize: 18, color: "#000", background: selectedRarity.label === "SEC" ? "#f59e0b" : "#ffffff", border: `1px solid ${selectedRarity.label === "SEC" ? "#92400e" : "#000"}`, borderRadius: 8, padding: "2px 10px", letterSpacing: "0.02em", lineHeight: 1.2 }}>
                   {selectedRarity.label}
                 </span>
               </div>
@@ -890,8 +897,9 @@ useEffect(() => {
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={() => setSelectedRarity(null)} style={{ flex: 1, padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 500, border: `0.5px solid ${c.border}`, background: "transparent", color: c.text, cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.background = c.bgSec; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>Dismiss</button>
-                <button onClick={() => { setSelectedRarity(null); router.push(`/browse?rarity=${selectedRarity.label}`); }} style={{ flex: 1, padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 500, border: "none", background: tc.accent, color: "#fff", cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.88"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
-                  View {selectedRarity.label} cards →
+                <button onClick={() => { setSelectedRarity(null); router.push(`/browse?rarity=${selectedRarity.label}`); }} style={{ flex: 1, padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 500, border: "none", background: tc.accent, color: "#fff", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.88"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
+                  <span>View {selectedRarity.label} cards</span>
+                  <ArrowRight size={14} />
                 </button>
               </div>
             </div>
@@ -901,7 +909,7 @@ useEffect(() => {
 
       {/* CARD DETAIL MODAL */}
       {selectedCard && (
-        <div className="card-modal-outer home-card-modal-outer" style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => { setSelectedCard(null); setSelectedIndex(-1); }}>
+        <div className="card-modal-outer home-card-modal-outer" style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.78)" : "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => { setSelectedCard(null); setSelectedIndex(-1); }}>
         <div className="card-modal-nav-row" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, width: "100%", maxWidth: 960 }} onClick={(e) => e.stopPropagation()}>
             {(!isMobile || isLandscape) && (
               <button className="card-modal-prev" onClick={() => { const next = Math.max(selectedIndex - 1, 0); setSelectedIndex(next); setSelectedCard(previewCards[next] ?? null); }} disabled={selectedIndex <= 0} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: selectedIndex > 0 ? "pointer" : "not-allowed", opacity: selectedIndex <= 0 ? 0.3 : 1, transition: "all 0.2s", boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
@@ -924,32 +932,44 @@ useEffect(() => {
                 </button>
               </div>
               <div className="card-modal-body" style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
-                <div className="card-modal-image-pane" style={{ width: "45%", flexShrink: 0, background: tc.bg.primary, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-                  <ModalCardImage
-                    key={selectedCard.images?.large ?? selectedCard.images?.small ?? selectedCard.id}
-                    src={selectedCard.images?.large || selectedCard.images?.small || "/card-placeholder.png"}
-                    alt={selectedCard.name}
-                    isLeader={selectedCard.type?.toUpperCase() === "LEADER"}
-                    isDark={isDark}
-                  />
+                <div className="card-modal-image-pane" style={{ width: "48%", flexShrink: 0, background: tc.bg.primary, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 20px 24px 28px" }}>
+                  <div style={{ width: "100%", maxWidth: 360, margin: "0 auto" }}>
+                    <ModalCardImage
+                      key={selectedCard.images?.large ?? selectedCard.images?.small ?? selectedCard.id}
+                      src={selectedCard.images?.large || selectedCard.images?.small || "/card-placeholder.png"}
+                      alt={selectedCard.name}
+                      isLeader={selectedCard.type?.toUpperCase() === "LEADER"}
+                      isDark={isDark}
+                    />
+                  </div>
                 </div>
-                <div className="card-modal-details-pane" style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+                <div className="card-modal-details-pane" style={{ flex: 1, minWidth: 0, overflowY: "auto", padding: "24px 28px 24px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
                   <div className="card-modal-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                     {([["Type", selectedCard.type],["Rarity", selectedCard.rarity],["Color", selectedCard.color],["Cost", selectedCard.cost],["Power", selectedCard.power],["Counter", selectedCard.counter],["Attribute", selectedCard.attribute?.name],["Family", selectedCard.family],["Set", selectedCard.set?.name]] as [string, unknown][]).filter(([, v]) => v != null && v !== "" && v !== "-").map(([label, value]) => (
-                      <div key={label} style={{ background: c.bgSec, borderRadius: 10, padding: "10px 14px", border: `1px solid ${c.border}` }}>
+                      <div key={label} style={{ background: c.bgSec, borderRadius: 10, padding: "10px 14px", border: `1px solid ${c.border}`, minWidth: 0, gridColumn: label === "Set" ? "1 / -1" : undefined }}>
                         <div style={{ fontSize: 11, color: c.textTer, marginBottom: 3, textTransform: "uppercase" as const, letterSpacing: "0.05em", fontWeight: 700 }}>{label}</div>
-                        <div style={{ fontWeight: 600, fontSize: 14, color: c.text }}>{String(value)}</div>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: c.text, lineHeight: 1.4, wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal" }}>
+                          {label === "Family" && typeof value === "string" && value.includes("/") ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                              {value.split("/").map((part, idx) => (
+                                <div key={idx} style={{ lineHeight: 1.35 }}>{part.trim()}</div>
+                              ))}
+                            </div>
+                          ) : (
+                            String(value)
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
                   {selectedCard.ability && (
-                    <div style={{ background: c.bgSec, borderRadius: 10, padding: "12px 14px", border: `1px solid ${c.border}` }}>
+                    <div style={{ background: c.bgSec, borderRadius: 10, padding: "12px 14px", border: `1px solid ${c.border}`, wordBreak: "break-word", overflowWrap: "break-word" }}>
                       <div style={{ fontSize: 11, color: c.textTer, marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: "0.05em", fontWeight: 700 }}>Effect</div>
                       <div style={{ fontSize: 14, color: c.text, lineHeight: 1.7 }}>{selectedCard.ability}</div>
                     </div>
                   )}
                   {selectedCard.trigger && selectedCard.trigger !== "" && (
-                    <div style={{ background: isDark ? "rgba(217,119,6,0.1)" : "rgba(251,191,36,0.08)", borderRadius: 10, padding: "12px 14px", border: `1px solid ${isDark ? "rgba(251,191,36,0.2)" : "rgba(217,119,6,0.2)"}` }}>
+                    <div style={{ background: isDark ? "rgba(217,119,6,0.1)" : "rgba(251,191,36,0.08)", borderRadius: 10, padding: "12px 14px", border: `1px solid ${isDark ? "rgba(251,191,36,0.2)" : "rgba(217,119,6,0.2)"}`, wordBreak: "break-word", overflowWrap: "break-word" }}>
                       <div style={{ fontSize: 11, color: isDark ? "#fbbf24" : "#d97706", marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: "0.05em", fontWeight: 700 }}>Trigger</div>
                       <div style={{ fontSize: 14, color: c.text, lineHeight: 1.7 }}>{selectedCard.trigger}</div>
                     </div>

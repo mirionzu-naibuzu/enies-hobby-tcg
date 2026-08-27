@@ -72,15 +72,24 @@ export default function DashboardPage() {
   const [isRetrying, setIsRetrying] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
   const hasLoadedRef = useRef(false);
 
   useBodyScrollLock(!!selectedCard);
 
   useEffect(() => {
     setMounted(true);
+    const checkViewport = () => {
+      setIsMobile(window.innerWidth <= 768);
+      setIsLandscape(window.innerWidth > window.innerHeight && window.innerHeight <= 540);
+    };
+    checkViewport();
+    window.addEventListener("resize", checkViewport);
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       setIsOffline(true);
     }
+    return () => window.removeEventListener("resize", checkViewport);
   }, []);
 
   // Keyboard navigation for card modal
@@ -640,7 +649,7 @@ export default function DashboardPage() {
               Set progress, rarity breakdown, and recent pulls across all official releases.
             </p>
           </div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div className="dashboard-header-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button
               type="button"
               className="dashboard-button dashboard-button-secondary"
@@ -761,15 +770,7 @@ export default function DashboardPage() {
                     No Secret Rares or SP cards cataloged yet. Mark your highest-value pulls on the Browse page!
                   </div>
                 ) : (
-                  <div
-                    className="dashboard-showcase-strip"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fill, minmax(105px, 1fr))",
-                      gap: 12,
-                      padding: "0 24px 24px",
-                    }}
-                  >
+                  <div className="dashboard-showcase-strip">
                     {chaseCards.map((card) => (
                       <button
                         key={getCardKey(card)}
@@ -892,15 +893,7 @@ export default function DashboardPage() {
                     <span>No cards on your wishlist yet. Add cards from the Browse page.</span>
                   </div>
                 ) : (
-                  <div
-                    className="dashboard-wishlist-strip"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                      gap: 10,
-                      padding: "0 24px 24px",
-                    }}
-                  >
+                  <div className="dashboard-wishlist-strip">
                     {wishlistCards.map((card) => (
                       <button
                         key={getCardKey(card)}
@@ -1250,57 +1243,88 @@ export default function DashboardPage() {
         )}
       </main>
 
-      {/* ── CARD DETAIL MODAL PREVIEW ── */}
+      {/* ── CARD PREVIEW MODAL (MINIMALIST DASHBOARD VERSION) ── */}
       {selectedCard && (
         <div
-          className="card-modal-outer"
+          className="dashboard-card-modal-outer"
           style={{
             position: "fixed",
-            inset: 0,
-            background: isDark ? "rgba(0, 0, 0, 0.78)" : "rgba(0, 0, 0, 0.58)",
-            backdropFilter: "blur(4px)",
-            WebkitBackdropFilter: "blur(4px)",
-            zIndex: 60,
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: "100vw",
+            height: "100dvh",
+            background: isDark ? "rgba(0, 0, 0, 0.78)" : "rgba(0, 0, 0, 0.55)",
+            backdropFilter: "blur(5px)",
+            WebkitBackdropFilter: "blur(5px)",
+            zIndex: 9999,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: 16,
+            padding: isMobile ? 12 : 20,
+            boxSizing: "border-box",
           }}
           onClick={() => setSelectedCard(null)}
         >
           <div
-            className="card-modal-container"
+            className="dashboard-card-modal-container"
             style={{
               position: "relative",
               width: "100%",
-              maxWidth: 720,
+              maxWidth: 680,
+              maxHeight: isMobile && !isLandscape ? "92vh" : "88vh",
               background: tc.bg.primary,
               borderRadius: 20,
               border: `1px solid ${tc.border}`,
               boxShadow: isDark
-                ? "0 25px 50px -12px rgba(0, 0, 0, 0.7)"
+                ? "0 25px 50px -12px rgba(0, 0, 0, 0.8)"
                 : "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
               overflow: "hidden",
               display: "flex",
               flexDirection: "column",
+              boxSizing: "border-box",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
+            {/* Header */}
             <div
+              className="dashboard-card-modal-header"
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
                 padding: "16px 20px",
                 borderBottom: `1px solid ${tc.border}`,
+                flexShrink: 0,
+                gap: 12,
+                boxSizing: "border-box",
               }}
             >
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 750, color: tc.text.primary }}>
+              <div style={{ minWidth: 0, flex: 1, paddingRight: 12 }}>
+                <div
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 750,
+                    color: tc.text.primary,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
                   {selectedCard.name}
                 </div>
-                <div style={{ fontSize: 12, color: tc.text.tertiary, marginTop: 2 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: tc.text.tertiary,
+                    marginTop: 2,
+                    fontFamily: "monospace",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
                   {selectedCard.id} · {selectedCard.set?.name || "One Piece Card Game"}
                 </div>
               </div>
@@ -1319,42 +1343,80 @@ export default function DashboardPage() {
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: "pointer",
+                  flexShrink: 0,
                 }}
               >
                 <X size={16} />
               </button>
             </div>
 
-            {/* Modal Body */}
+            {/* Body */}
             <div
+              className="dashboard-card-modal-body"
               style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(220px, 280px) 1fr",
-                gap: 24,
-                padding: 24,
-                overflowY: "auto",
-                maxHeight: "calc(85vh - 120px)",
+                display: "flex",
+                flexDirection: isMobile && !isLandscape ? "column" : "row",
+                flex: 1,
+                minHeight: 0,
+                width: "100%",
+                overflowY: isMobile && !isLandscape ? "auto" : "hidden",
+                overflowX: "hidden",
+                padding: isMobile && !isLandscape ? "14px 16px 16px" : "16px 20px 20px",
+                gap: 20,
+                boxSizing: "border-box",
               }}
             >
-              <div>
-                <ModalCardImage
-                  src={selectedCard.images?.large || selectedCard.images?.small}
-                  alt={selectedCard.name}
-                  isDark={isDark}
-                  isLeader={selectedCard.type === "LEADER"}
-                />
+              {/* Card Image */}
+              <div
+                className="dashboard-card-modal-image-pane"
+                style={{
+                  width: isMobile && !isLandscape ? "100%" : "42%",
+                  maxWidth: isMobile && !isLandscape ? 220 : 260,
+                  margin: isMobile && !isLandscape ? "0 auto" : undefined,
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxSizing: "border-box",
+                }}
+              >
+                <div style={{ width: "100%", maxWidth: 260 }}>
+                  <ModalCardImage
+                    key={selectedCard.images?.large || selectedCard.images?.small || selectedCard.id}
+                    src={selectedCard.images?.large || selectedCard.images?.small}
+                    alt={selectedCard.name}
+                    isDark={isDark}
+                    isLeader={selectedCard.type === "LEADER"}
+                  />
+                </div>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {/* Details Pane */}
+              <div
+                className="dashboard-card-modal-details-pane"
+                style={{
+                  flex: isMobile && !isLandscape ? "none" : "1 1 0%",
+                  minWidth: 0,
+                  width: isMobile && !isLandscape ? "100%" : 0,
+                  overflowY: isMobile && !isLandscape ? "visible" : "auto",
+                  overflowX: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                  boxSizing: "border-box",
+                  scrollbarWidth: "thin",
+                }}
+              >
                 {/* Badges */}
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {selectedCard.rarity && (
                     <span
                       style={{
                         padding: "3px 8px",
                         borderRadius: 6,
-                        background: RARITY_COLORS[selectedCard.rarity]?.badgeBg || tc.bg.tertiary,
-                        color: RARITY_COLORS[selectedCard.rarity]?.badgeText || tc.text.primary,
+                        background: RARITY_COLORS[selectedCard.rarity]?.badgeBg || tc.bg.secondary,
+                        border: `1px solid ${tc.border}`,
+                        color: RARITY_COLORS[selectedCard.rarity]?.badgeText || tc.text.secondary,
                         fontSize: 12,
                         fontWeight: 750,
                       }}
@@ -1367,7 +1429,8 @@ export default function DashboardPage() {
                       style={{
                         padding: "3px 8px",
                         borderRadius: 6,
-                        background: tc.bg.tertiary,
+                        background: tc.bg.secondary,
+                        border: `1px solid ${tc.border}`,
                         color: tc.text.secondary,
                         fontSize: 12,
                         fontWeight: 650,
@@ -1381,7 +1444,8 @@ export default function DashboardPage() {
                       style={{
                         padding: "3px 8px",
                         borderRadius: 6,
-                        background: tc.bg.tertiary,
+                        background: tc.bg.secondary,
+                        border: `1px solid ${tc.border}`,
                         color: tc.text.secondary,
                         fontSize: 12,
                         fontWeight: 650,
@@ -1392,72 +1456,143 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* Attributes Grid */}
+                {/* Attributes Panel (Single Unified Card Box) */}
                 <div
+                  className="dashboard-card-modal-attrs"
                   style={{
+                    background: tc.bg.secondary,
+                    borderRadius: 12,
+                    border: `1px solid ${tc.border}`,
+                    padding: "12px 16px",
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
-                    gap: 8,
-                    padding: 12,
-                    borderRadius: 10,
-                    background: tc.bg.secondary,
-                    border: `1px solid ${tc.border}`,
-                    fontSize: 12,
+                    gap: "8px 16px",
+                    boxSizing: "border-box",
                   }}
                 >
-                  <div>
-                    <span style={{ color: tc.text.tertiary }}>Cost:</span>{" "}
-                    <strong style={{ color: tc.text.primary }}>{selectedCard.cost ?? "-"}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: tc.text.tertiary }}>Power:</span>{" "}
-                    <strong style={{ color: tc.text.primary }}>{selectedCard.power ? selectedCard.power.toLocaleString() : "-"}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: tc.text.tertiary }}>Counter:</span>{" "}
-                    <strong style={{ color: tc.text.primary }}>{selectedCard.counter ?? "-"}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: tc.text.tertiary }}>Family:</span>{" "}
-                    <strong style={{ color: tc.text.primary }}>{selectedCard.family ?? "-"}</strong>
-                  </div>
+                  {selectedCard.cost != null && (
+                    <div className="dashboard-card-modal-attr-row" style={{ display: "flex", alignItems: "baseline", gap: 6, fontSize: 13, minWidth: 0 }}>
+                      <span className="dashboard-card-modal-attr-label" style={{ color: tc.text.secondary, fontSize: 12, fontWeight: 500, opacity: 0.75, flexShrink: 0 }}>Cost:</span>
+                      <span className="dashboard-card-modal-attr-value" style={{ color: tc.text.primary, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedCard.cost}</span>
+                    </div>
+                  )}
+                  {selectedCard.power != null && (
+                    <div className="dashboard-card-modal-attr-row" style={{ display: "flex", alignItems: "baseline", gap: 6, fontSize: 13, minWidth: 0 }}>
+                      <span className="dashboard-card-modal-attr-label" style={{ color: tc.text.secondary, fontSize: 12, fontWeight: 500, opacity: 0.75, flexShrink: 0 }}>Power:</span>
+                      <span className="dashboard-card-modal-attr-value" style={{ color: tc.text.primary, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {typeof selectedCard.power === "number" ? selectedCard.power.toLocaleString() : String(selectedCard.power)}
+                      </span>
+                    </div>
+                  )}
+                  {selectedCard.counter != null && (
+                    <div className="dashboard-card-modal-attr-row" style={{ display: "flex", alignItems: "baseline", gap: 6, fontSize: 13, minWidth: 0 }}>
+                      <span className="dashboard-card-modal-attr-label" style={{ color: tc.text.secondary, fontSize: 12, fontWeight: 500, opacity: 0.75, flexShrink: 0 }}>Counter:</span>
+                      <span className="dashboard-card-modal-attr-value" style={{ color: tc.text.primary, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedCard.counter}</span>
+                    </div>
+                  )}
+                  {selectedCard.attribute && (
+                    <div className="dashboard-card-modal-attr-row" style={{ display: "flex", alignItems: "baseline", gap: 6, fontSize: 13, minWidth: 0 }}>
+                      <span className="dashboard-card-modal-attr-label" style={{ color: tc.text.secondary, fontSize: 12, fontWeight: 500, opacity: 0.75, flexShrink: 0 }}>Attribute:</span>
+                      <span className="dashboard-card-modal-attr-value" style={{ color: tc.text.primary, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {typeof selectedCard.attribute === "object" ? selectedCard.attribute?.name : String(selectedCard.attribute)}
+                      </span>
+                    </div>
+                  )}
+                  {selectedCard.family && (
+                    <div className="dashboard-card-modal-attr-row" style={{ gridColumn: "1 / -1", display: "flex", alignItems: "baseline", gap: 6, fontSize: 13, minWidth: 0 }}>
+                      <span className="dashboard-card-modal-attr-label" style={{ color: tc.text.secondary, fontSize: 12, fontWeight: 500, opacity: 0.75, flexShrink: 0 }}>Family:</span>
+                      <span className="dashboard-card-modal-attr-value" style={{ color: tc.text.primary, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedCard.family}</span>
+                    </div>
+                  )}
                 </div>
 
-                {/* Ability text */}
+                {/* Effect Box */}
                 {selectedCard.ability && (
                   <div
+                    className="dashboard-card-modal-effect"
                     style={{
+                      background: tc.bg.secondary,
+                      borderRadius: 12,
+                      border: `1px solid ${tc.border}`,
+                      padding: "12px 16px",
                       fontSize: 13,
                       lineHeight: 1.55,
-                      color: tc.text.secondary,
-                      background: tc.bg.secondary,
-                      padding: 12,
-                      borderRadius: 10,
-                      border: `1px solid ${tc.border}`,
+                      color: tc.text.primary,
+                      wordBreak: "break-word",
+                      overflowWrap: "break-word",
+                      boxSizing: "border-box",
                     }}
                   >
                     {selectedCard.ability}
                   </div>
                 )}
 
-                {/* Actions */}
-                <div style={{ marginTop: "auto", display: "flex", gap: 10, paddingTop: 12 }}>
+                {/* Trigger Box (if any) */}
+                {selectedCard.trigger && selectedCard.trigger !== "" && (
+                  <div
+                    className="dashboard-card-modal-effect"
+                    style={{
+                      background: isDark ? "rgba(217, 119, 6, 0.12)" : "rgba(251, 191, 36, 0.1)",
+                      borderRadius: 12,
+                      border: `1px solid ${isDark ? "rgba(251, 191, 36, 0.25)" : "rgba(217, 119, 6, 0.25)"}`,
+                      padding: "12px 16px",
+                      fontSize: 13,
+                      lineHeight: 1.55,
+                      color: isDark ? "#fbbf24" : "#d97706",
+                      wordBreak: "break-word",
+                      overflowWrap: "break-word",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <div style={{ fontSize: 10, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.04em", marginBottom: 3 }}>
+                      Trigger
+                    </div>
+                    {selectedCard.trigger}
+                  </div>
+                )}
+
+                {/* Actions Footer */}
+                <div className="dashboard-card-modal-footer" style={{ marginTop: "auto", display: "flex", gap: 10, paddingTop: 8, flexShrink: 0 }}>
                   <button
                     type="button"
-                    className="dashboard-button dashboard-button-primary"
-                    style={{ flex: 1 }}
+                    style={{
+                      flex: 1,
+                      height: 42,
+                      borderRadius: 10,
+                      border: "none",
+                      background: isDark ? "#0f172a" : "#0f172a",
+                      color: "#ffffff",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      cursor: "pointer",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                    }}
                     onClick={() => {
                       const id = selectedCard.id;
                       setSelectedCard(null);
                       router.push(`/browse?search=${encodeURIComponent(id)}`);
                     }}
                   >
-                    <Search size={14} />
+                    <Search size={15} />
                     Find in browse
                   </button>
                   <button
                     type="button"
-                    className="dashboard-button dashboard-button-secondary"
+                    style={{
+                      height: 42,
+                      padding: "0 22px",
+                      borderRadius: 10,
+                      border: `1px solid ${tc.border}`,
+                      background: isDark ? tc.bg.secondary : "#ffffff",
+                      color: tc.text.primary,
+                      fontSize: 13,
+                      fontWeight: 650,
+                      cursor: "pointer",
+                    }}
                     onClick={() => setSelectedCard(null)}
                   >
                     Close
