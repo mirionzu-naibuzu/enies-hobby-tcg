@@ -14,6 +14,11 @@ import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import { SET_ORDER } from "@/lib/sets";
 import ModalCardImage from "@/components/ModalCardImage";
 
+const FEATURED_SETS = [
+  ...SET_ORDER.filter((s) => s.startsWith("OP-")).slice(-10),
+  ...SET_ORDER.filter((s) => s.startsWith("ST-")).slice(-5),
+];
+
 const STACK_META = [
   { color: "#ef4444", darkBg: "#7f1d1d", bg: "#fff1f2", rarityColor: "#991b1b", rarityBg: "#fee2e2", rot: -8, top: 0,  left: 12,  z: 1, cls: "card-a" },
   { color: "#3b82f6", darkBg: "#0c2340", bg: "#eff6ff", rarityColor: "#6d28d9", rarityBg: "#ede9fe", rot:  1, top: 28, left: 118, z: 3, cls: "card-b" },
@@ -235,8 +240,6 @@ useEffect(() => {
       style={{ minHeight: "100vh", background: c.bg, color: c.text, transition: "background-color 0.3s" }}
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@400;500;600&display=swap');
         @keyframes floatA { 0%,100%{transform:rotate(-8deg) translateY(0)} 50%{transform:rotate(-8deg) translateY(-10px)} }
         @keyframes floatB { 0%,100%{transform:rotate(1deg)  translateY(0)} 50%{transform:rotate(1deg)  translateY(-7px)}  }
         @keyframes floatC { 0%,100%{transform:rotate(9deg)  translateY(0)} 50%{transform:rotate(9deg)  translateY(-10px)} }
@@ -287,7 +290,8 @@ useEffect(() => {
             className="home-nav-logo"
             src={isDark ? "/logo-dark.png" : "/logo-light.png"}
             alt="Enies Hobby logo"
-            style={{ height: 50, width: "auto", objectFit: "contain" }}
+            style={{ height: 50, width: "auto", objectFit: "contain", cursor: "pointer" }}
+            onClick={() => router.push("/")}
           />
         </div>
 
@@ -295,10 +299,11 @@ useEffect(() => {
         <div style={{ display: "flex", alignItems: "center", gap: 26 }}>
           {/* NAV LINKS */}
           <div className="home-nav-links" style={{ display: "flex", gap: 20, alignItems: "center" }}>
-          {["Cards", "Binder", "Don!!", "About"].map((l) => (
+          {["Dashboard", "Cards", "Binder", "Don!!", "About"].map((l) => (
             <button
               key={l}
               onClick={() => {
+                if (l === "Dashboard") router.push("/dashboard");
                 if (l === "Cards") handleBrowse();
                 if (l === "Binder") router.push("/binder");
                 if (l === "Don!!") router.push("/don");
@@ -319,7 +324,7 @@ useEffect(() => {
               {l}
             </button>
           ))}
-                    </div>
+          </div>
 
           {/* MOBILE MENU BUTTON */}
           <div style={{ position: "relative" }}>
@@ -368,11 +373,12 @@ useEffect(() => {
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {["Cards", "Binder", "Don!!", "About"].map((l) => (
+                  {["Dashboard", "Cards", "Binder", "Don!!", "About"].map((l) => (
                     <button
                       key={l}
                       onClick={() => {
                         setShowMobileNav(false);
+                        if (l === "Dashboard") router.push("/dashboard");
                         if (l === "Cards") handleBrowse();
                         if (l === "Binder") router.push("/binder");
                         if (l === "Don!!") router.push("/don");
@@ -577,10 +583,37 @@ useEffect(() => {
           {/* AUTH / PROFILE */}
           {mounted && user ? (
             <button
-              // onClick={() => router.push("/profile")}
-              style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              onClick={() => router.push("/dashboard")}
+              title="Open Collection Dashboard"
+              style={{
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 2,
+                borderRadius: "50%",
+                transition: "transform 0.15s ease",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.08)")}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
-              <div style={{ width: 34, height: 34, borderRadius: "50%", background: c.text, color: c.bg, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14 }}>
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: "50%",
+                  background: tc.accent,
+                  color: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  boxShadow: `0 0 10px ${tc.accent}40`,
+                }}
+              >
                 {user.email?.[0]?.toUpperCase() ?? "U"}
               </div>
             </button>
@@ -622,19 +655,51 @@ useEffect(() => {
             <p className="home-hero-desc" style={{ fontSize: 13, color: c.textSec, lineHeight: 1.65, maxWidth: 340, marginBottom: 28 }}>
               Browse, filter, and collect every English One Piece TCG card across all sets — from Romance Dawn to the latest boosters.
             </p>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <button className="btn-primary home-hero-cta" onClick={() => handleBrowse()} style={{ padding: "10px 22px", borderRadius: 8, background: c.text, color: c.bg, fontSize: 13, fontWeight: 500, border: "none", cursor: "pointer", transition: "opacity 0.2s" }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <button className="btn-primary home-hero-cta" onClick={() => handleBrowse()} style={{ padding: "11px 22px", borderRadius: 10, background: c.text, color: c.bg, fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", transition: "opacity 0.2s" }}>
                 Browse cards →
               </button>
-              {mounted && !user && (
-                <button className="btn-secondary home-hero-cta" onClick={() => openAuth("signup")} style={{ padding: "10px 22px", borderRadius: 8, border: `0.5px solid ${c.border}`, background: "transparent", color: c.text, fontSize: 13, cursor: "pointer", transition: "background 0.2s" }}>
+              {mounted && user ? (
+                <button
+                  className="btn-secondary home-hero-cta"
+                  onClick={() => router.push("/dashboard")}
+                  style={{
+                    padding: "11px 22px",
+                    borderRadius: 10,
+                    border: `1px solid ${c.border}`,
+                    background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                    color: c.text,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "background 0.2s",
+                  }}
+                >
+                  Open dashboard
+                </button>
+              ) : mounted && !user ? (
+                <button
+                  className="btn-secondary home-hero-cta"
+                  onClick={() => openAuth("signup")}
+                  style={{
+                    padding: "11px 22px",
+                    borderRadius: 10,
+                    border: `1px solid ${c.border}`,
+                    background: "transparent",
+                    color: c.text,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "background 0.2s",
+                  }}
+                >
                   Sign up free
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
           <div className="home-hero-stats" style={{ display: "flex", gap: 16, marginTop: 24 }}>
-            {[cardCount ? `${cardCount.toLocaleString()} cards` : "Loading...", "English only", "Always free"].map((s) => (
+            {[cardCount ? `${cardCount.toLocaleString()} cards` : "3,400+ cards", "English only", "Always free"].map((s) => (
               <span key={s} style={{ fontSize: 11, color: c.textTer }}>{s}</span>
             ))}
           </div>
@@ -721,11 +786,12 @@ useEffect(() => {
       <div className="fu2 home-sets-rarities" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderBottom: `1px solid ${c.border}` }}>
         <div style={{ padding: "20px 24px", borderRight: `1px solid ${c.border}` }}>
           <div style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: c.textTer, marginBottom: 12 }}>Browse by set</div>
-          <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
+          <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, alignItems: "center" }}>
             <button onClick={() => { setActiveSet(null); handleBrowse(); }} className="set-pill home-set-pill" style={{ fontSize: 11, padding: "6px 12px", borderRadius: 99, border: `0.5px solid ${activeSet === null ? c.text : c.border}`, background: activeSet === null ? c.text : "transparent", color: activeSet === null ? c.bg : c.textSec, cursor: "pointer", transition: "all 0.15s" }}>All</button>
-            {SET_ORDER.map((s) => (
+            {FEATURED_SETS.map((s) => (
               <button key={s} onClick={() => { setActiveSet(s); handleBrowse(s); }} className="set-pill home-set-pill" style={{ fontSize: 11, padding: "6px 12px", borderRadius: 99, border: `0.5px solid ${activeSet === s ? c.text : c.border}`, background: activeSet === s ? c.text : "transparent", color: activeSet === s ? c.bg : c.textSec, cursor: "pointer", transition: "all 0.15s" }}>{s}</button>
             ))}
+            <button onClick={() => handleBrowse()} style={{ fontSize: 11, padding: "6px 2px", background: "transparent", border: "none", color: tc.accent, cursor: "pointer", fontWeight: 500 }}>View all sets →</button>
           </div>
         </div>
 

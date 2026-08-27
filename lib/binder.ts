@@ -12,6 +12,7 @@ export const getDonCardKey = (donCard: { card_name: string }) =>
 export interface UserCard {
   card_id: string;
   in_wishlist: boolean;
+  created_at?: string;
 }
 
 export interface Binder {
@@ -35,7 +36,7 @@ export async function getUserCards(userId: string): Promise<UserCard[]> {
   while (true) {
     const { data, error } = await supabase
       .from("user_cards")
-      .select("card_id, in_wishlist")
+      .select("card_id, in_wishlist, created_at")
       .eq("user_id", userId)
       .range(from, from + pageSize - 1);
 

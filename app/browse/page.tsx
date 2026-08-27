@@ -164,13 +164,27 @@ export default function Home() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const rarity = params.get("rarity");
-    const set    = params.get("set");
-    if (rarity || set) {
-      setFilters(prev => ({
+    const rarity      = params.get("rarity");
+    const set         = params.get("set") || params.get("setId");
+    const colorParam  = params.get("color") || params.get("colors");
+    const type        = params.get("type");
+    const searchParam = params.get("search") || params.get("q");
+
+    if (searchParam) {
+      setSearch(searchParam);
+    }
+
+    if (rarity || set || colorParam || type) {
+      const parsedColors = colorParam
+        ? colorParam.split(",").map((c) => c.trim()).filter(Boolean)
+        : undefined;
+
+      setFilters((prev) => ({
         ...prev,
         ...(rarity ? { rarity } : {}),
-        ...(set    ? { setId: set } : {}),
+        ...(set ? { setId: set } : {}),
+        ...(parsedColors && parsedColors.length > 0 ? { colors: parsedColors } : {}),
+        ...(type ? { type } : {}),
       }));
     }
   }, []);

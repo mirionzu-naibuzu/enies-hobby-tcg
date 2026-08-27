@@ -5,7 +5,7 @@ import { useTheme } from "next-themes";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
-import { Menu, PanelLeft, User, BookOpen, Palette, MessageSquare, LogOut, LayoutGrid, Heart, X, Sun, Moon, Check, Bug, Lightbulb, HelpCircle, Coffee } from "lucide-react";
+import { Menu, PanelLeft, User, BookOpen, Palette, MessageSquare, LogOut, LayoutGrid, LayoutDashboard, Heart, X, Sun, Moon, Check, Bug, Lightbulb, HelpCircle, Coffee } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
 import { getColors, ALL_THEMES } from "@/lib/themes";
 
@@ -76,6 +76,7 @@ export default function Sidebar() {
 
   const menuItems = [
     { icon: User,        label: "Sign In",  action: () => { setAuthMode("login"); setShowAuth(true); }, show: !user },
+    { icon: LayoutDashboard, label: "Dashboard", action: () => router.push("/dashboard"), show: !!user },
     { icon: LayoutGrid,  label: "Browse",   action: () => router.push("/browse"),   show: true },
     { icon: BookOpen,    label: "Binder",   action: () => router.push("/binder"),   show: true, badge: "New"},
     { icon: Menu,        label: "DON!!",    action: () => router.push("/don"),       show: true },
@@ -171,7 +172,7 @@ export default function Sidebar() {
           >
             <PanelLeft size={20} />
           </button>
-          {pathname !== "/browse" && (
+          {pathname !== "/browse" && pathname !== "/don" && pathname !== "/binder" && (
             <img
               src={colors.isDark ? "/sidebar-logo.png" : "/logo-light.png"}
               alt="Enies Hobby"
