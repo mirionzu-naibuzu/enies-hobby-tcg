@@ -6,7 +6,7 @@ import { getAllCards, getAllSets } from "@/lib/api";
 import CardItem from "@/components/CardItem";
 const FilterBar = dynamic(() => import("@/components/FilterBar"));
 const Sidebar = dynamic(() => import("@/components/Sidebar"));
-import { Search, X, ChevronLeft, ChevronRight, BookmarkPlus, Check, BookOpen, ArrowDownWideNarrow, ArrowUpNarrowWide, CheckSquare, Plus, CopyCheck, SlidersHorizontal, MoreVertical, PanelLeft } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, BookmarkPlus, Check, BookOpen, ArrowDownWideNarrow, ArrowUpNarrowWide, CheckSquare, Plus, CopyCheck, SlidersHorizontal, MoreVertical, PanelLeft, Star } from "lucide-react";
 import { useTheme } from "next-themes";
 import { createClient } from "@/lib/supabase";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -1519,7 +1519,7 @@ export default function Home() {
                                 }}
                               >
                                 {wishlistSet.has(getCardKey(selected)) && (
-                                  <span style={{ color: "#fff" }}>★</span>
+                                  <Star size={10} fill="#fff" color="#fff" />
                                 )}
                               </div>
                               Add to wishlist

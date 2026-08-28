@@ -5,7 +5,7 @@ import { useTheme } from "next-themes";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
-import { Menu, PanelLeft, User, BookOpen, Palette, MessageSquare, LogOut, LayoutGrid, LayoutDashboard, Heart, X, Sun, Moon, Check, Bug, Lightbulb, HelpCircle, Coffee } from "lucide-react";
+import { Menu, PanelLeft, User, BookOpen, Palette, MessageSquare, LogOut, LayoutGrid, LayoutDashboard, Heart, X, Sun, Moon, Check, Bug, Lightbulb, HelpCircle, Coffee, Sparkles } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
 import { getColors, ALL_THEMES } from "@/lib/themes";
 
@@ -626,10 +626,12 @@ export default function Sidebar() {
               </div>
 
               {feedbackStatus === "sent" ? (
-                <div style={{ textAlign: "center", padding: "24px 0" }}>
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>🎉</div>
-                  <div style={{ fontWeight: 600, fontSize: 15, color: colors.text.primary }}>Thanks!</div>
-                  <div style={{ fontSize: 13, color: colors.text.secondary, marginTop: 4 }}>Your feedback was sent.</div>
+                <div style={{ textAlign: "center", padding: "28px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: isDark ? "rgba(239,68,68,0.15)" : "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12, color: "#ef4444" }}>
+                    <Sparkles size={26} />
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: colors.text.primary }}>Thanks for your feedback!</div>
+                  <div style={{ fontSize: 13, color: colors.text.secondary, marginTop: 4 }}>We appreciate you helping us improve Enies Hobby.</div>
                 </div>
               ) : (
                 <>

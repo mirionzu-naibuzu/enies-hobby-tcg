@@ -22,7 +22,7 @@ import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import { SET_ORDER, SET_NAMES } from "@/lib/sets";
 import { getAllDonCards } from "@/lib/api";
 import ModalCardImage from "@/components/ModalCardImage";
-import { Trash2, Pencil, Check, X, ChevronLeft, ChevronRight, CheckSquare, SlidersHorizontal, Plus, ArrowRight } from "lucide-react";
+import { Trash2, Pencil, Check, X, ChevronLeft, ChevronRight, CheckSquare, SlidersHorizontal, Plus, ArrowRight, BookOpen, Star, Search } from "lucide-react";
 
 const sortByCardId = (cards: Card[], setId?: string) => {
   const filterId = (setId ?? "").replace(/-/g, "").toUpperCase();
@@ -59,17 +59,66 @@ function AuthGate({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: () =
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const tc = getColors(theme, mounted);
+
+  const themeVars = useMemo(
+    () =>
+      ({
+        "--dashboard-bg": tc.bg.primary,
+        "--dashboard-surface": tc.bg.secondary,
+        "--dashboard-muted": tc.bg.tertiary,
+        "--dashboard-text": tc.text.primary,
+        "--dashboard-secondary-text": tc.text.secondary,
+        "--dashboard-tertiary-text": tc.text.tertiary,
+        "--dashboard-border": tc.border,
+        "--dashboard-accent": tc.accent,
+      } as React.CSSProperties),
+    [tc]
+  );
+
   return (
-    <div suppressHydrationWarning className="binder-auth-gate" style={{ minHeight: "100vh", background: tc.bg.primary, marginLeft: 70, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ maxWidth: 380, width: "100%", padding: "0 24px", textAlign: "center" }}>
-        <div style={{ width: 48, height: 48, borderRadius: 12, border: `0.5px solid ${tc.border}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", fontSize: 22 }}>📁</div>
-        <h1 style={{ fontSize: 22, fontWeight: 500, color: tc.text.primary, letterSpacing: "-0.02em", marginBottom: 8 }}>Your binder</h1>
-        <p style={{ fontSize: 14, color: tc.text.tertiary, lineHeight: 1.6, marginBottom: 32 }}>Sign in to track your collection, mark cards as owned, and build custom binders.</p>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={onSignIn} style={{ flex: 1, padding: "14px 0", borderRadius: 8, background: tc.text.primary, color: tc.bg.primary, fontSize: 13, fontWeight: 500, border: "none", cursor: "pointer" }}>Sign in</button>
-          <button onClick={onSignUp} style={{ flex: 1, padding: "14px 0", borderRadius: 8, background: "transparent", color: tc.text.primary, fontSize: 13, fontWeight: 500, border: `0.5px solid ${tc.border}`, cursor: "pointer" }}>Sign up free</button>
-        </div>
-      </div>
+    <div
+      suppressHydrationWarning
+      className="dashboard-page dashboard-wrapper"
+      style={themeVars}
+    >
+      <Sidebar />
+      <main
+        className="dashboard-main"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <section className="dashboard-arrival dashboard-auth-gate">
+          <div className="dashboard-arrival-copy">
+            <span className="dashboard-eyebrow">Collection Binder</span>
+            <h1>Track your collection, mark cards as owned, and build custom binders.</h1>
+            <p>
+              Sign in to track your collection progress in real-time, mark cards as owned, build custom binders, and manage your chase wishlist.
+            </p>
+            <div className="dashboard-arrival-actions">
+              <button
+                type="button"
+                className="dashboard-button dashboard-button-primary"
+                onClick={onSignIn}
+              >
+                Sign in
+              </button>
+              <button
+                type="button"
+                className="dashboard-button dashboard-button-secondary"
+                onClick={onSignUp}
+              >
+                Create free account
+              </button>
+            </div>
+          </div>
+          <div className="dashboard-arrival-mark" aria-hidden="true">
+            <BookOpen size={42} strokeWidth={1.75} />
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
@@ -194,7 +243,7 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
                     background: owned ? (isDark ? "rgba(22,163,74,0.15)" : "rgba(22,163,74,0.08)") : wished ? (isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.08)") : "transparent",
                     color: owned ? "#16a34a" : wished ? "#d97706" : c.textTer }}
                 >
-                  {owned ? <Check size={13} /> : wished ? <span style={{ fontSize: 13, lineHeight: 1 }}>★</span> : null}
+                  {owned ? <Check size={13} /> : wished ? <Star size={13} fill="currentColor" /> : null}
                   {owned ? "Owned" : wished ? "Wishlist" : "Not owned"}
                 </button>
                 {showOwnershipPicker && (
@@ -207,8 +256,8 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
                         I own this card
                       </button>
                       <button onClick={() => { onToggleWishlist(cardKey); setShowOwnershipPicker(false); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, textAlign: "left" as const, transition: "all 0.15s", background: wished ? (isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.08)") : "transparent", color: wished ? "#d97706" : c.text }} onMouseEnter={(e) => { if (!wished) e.currentTarget.style.background = c.bgSec; }} onMouseLeave={(e) => { if (!wished) e.currentTarget.style.background = "transparent"; }}>
-                        <div style={{ width: 18, height: 18, borderRadius: "50%", border: `1.5px solid ${wished ? "#d97706" : c.border}`, background: wished ? "#f59e0b" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 10 }}>
-                          {wished && <span style={{ color: "#fff" }}>★</span>}
+                        <div style={{ width: 18, height: 18, borderRadius: "50%", border: `1.5px solid ${wished ? "#d97706" : c.border}`, background: wished ? "#f59e0b" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          {wished && <Star size={10} fill="#fff" color="#fff" />}
                         </div>
                         Add to wishlist
                       </button>
@@ -546,7 +595,6 @@ export default function BinderPage() {
 
   if (!user) return (
     <>
-      <Sidebar />
       <AuthGate onSignIn={() => { setAuthMode("login"); setShowAuthModal(true); }} onSignUp={() => { setAuthMode("signup"); setShowAuthModal(true); }} />
       {showAuthModal && <AuthModal initialMode={authMode} onClose={() => setShowAuthModal(false)} />}
     </>
@@ -890,7 +938,9 @@ export default function BinderPage() {
                       </div>
                     </div>
                     {wished && !owned && (i >= 18 || flipDone) && (
-                      <div style={{ position: "absolute", top: 8, left: 8, width: 20, height: 20, borderRadius: "50%", background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>★</div>
+                      <div style={{ position: "absolute", top: 8, left: 8, width: 20, height: 20, borderRadius: "50%", background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>
+                        <Star size={11} fill="#fff" color="#fff" />
+                      </div>
                     )}
                   </div>
                 </div>
@@ -898,10 +948,13 @@ export default function BinderPage() {
             );
           })}
           {setCards.length === 0 && (
-            <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "64px 0", color: c.textTer }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
-              <div style={{ fontSize: 14, color: c.textSec }}>No cards match these filters.</div>
-              <button onClick={() => setSetViewFilters({})} style={{ marginTop: 12, fontSize: 13, color: tc.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>Clear filters</button>
+            <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "64px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: c.bgSec, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14, color: c.textTer }}>
+                <Search size={26} strokeWidth={1.75} />
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: c.text, marginBottom: 4 }}>No cards match these filters</div>
+              <div style={{ fontSize: 13, color: c.textTer }}>Try adjusting or resetting your filter criteria.</div>
+              <button onClick={() => setSetViewFilters({})} style={{ marginTop: 14, fontSize: 13, color: tc.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 600, padding: "4px 8px" }}>Clear filters</button>
             </div>
           )}
         </div>
@@ -1216,7 +1269,9 @@ export default function BinderPage() {
           const wishlistCards = sortByCardId(allCards.filter(card => wishlistSet.has(getCardKey(card))));
           return wishlistCards.length === 0 ? (
             <div style={{ textAlign: "center", padding: "50px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div style={{ fontSize: 40, marginBottom: 16 }}>★</div>
+              <div style={{ width: 60, height: 60, borderRadius: "50%", background: isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.1)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, color: "#f59e0b" }}>
+                <Star size={30} fill="#f59e0b" />
+              </div>
               <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.04em", color: c.text, marginBottom: 8 }}>No wishlist cards yet</div>
               <div style={{ fontSize: 14, color: c.textTer }}>Add cards to your wishlist from the browse page.</div>
             </div>
@@ -1237,7 +1292,9 @@ export default function BinderPage() {
                           <img src={card.images?.small || "/card-placeholder.png"} alt={card.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }} />
                         </div>
                       </div>
-                      <div style={{ position: "absolute", top: 8, left: 8, width: 20, height: 20, borderRadius: "50%", background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>★</div>
+                      <div style={{ position: "absolute", top: 8, left: 8, width: 20, height: 20, borderRadius: "50%", background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>
+                        <Star size={11} fill="#fff" color="#fff" />
+                      </div>
                     </div>
                   );
                 })}

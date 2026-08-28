@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useSyncExternalStore } from "react";
-import { X, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { X, Eye, EyeOff, ArrowLeft, Mail, KeyRound } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { useTheme } from "next-themes";
 import { getColors } from "@/lib/themes";
@@ -207,106 +207,136 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
         </div>
 
         {resetSent ? (
-  <div style={{ textAlign: "center", padding: "10px 0" }}>
-    <div style={{ fontSize: 48, marginBottom: 16 }}>🔐</div>
+          <div style={{ textAlign: "center", padding: "10px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: "50%",
+                background: isDark ? "rgba(239,68,68,0.15)" : "rgba(239,68,68,0.08)",
+                border: "1px solid rgba(239,68,68,0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 16,
+                color: tc.accent,
+              }}
+            >
+              <KeyRound size={30} strokeWidth={1.8} />
+            </div>
 
-    <div
-      style={{
-        fontWeight: 700,
-        fontSize: 16,
-        color: colors.text.primary,
-        marginBottom: 8,
-      }}
-    >
-      Password reset sent
-    </div>
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: 18,
+                color: colors.text.primary,
+                marginBottom: 8,
+              }}
+            >
+              Password reset sent
+            </div>
 
-    <div
-      style={{
-        fontSize: 13,
-        color: colors.text.secondary,
-        marginBottom: 24,
-        lineHeight: 1.6,
-      }}
-    >
-      We sent a password reset link to <strong>{email}</strong>.
-      Check your inbox and follow the instructions to reset your password.
-    </div>
+            <div
+              style={{
+                fontSize: 13,
+                color: colors.text.secondary,
+                marginBottom: 24,
+                lineHeight: 1.6,
+              }}
+            >
+              We sent a password reset link to <strong>{email}</strong>.
+              Check your inbox and follow the instructions to reset your password.
+            </div>
 
-    <button
-      onClick={() => {
-        setResetSent(false);
-        setForgotPassword(false);
-        setMode("login");
-        setPassword("");
-        setError("");
-      }}
-      style={{
-        width: "100%",
-        background: tc.accent,
-        color: "white",
-        border: "none",
-        borderRadius: 8,
-        padding: "12px 0",
-        fontSize: 14,
-        fontWeight: 700,
-        cursor: "pointer",
-        minHeight: 44,
-      }}
-    >
-      Back to Sign in
-    </button>
-  </div>
-) : step === "verify" ? (
-  <div style={{ textAlign: "center", padding: "10px 0" }}>
-    <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
+            <button
+              onClick={() => {
+                setResetSent(false);
+                setForgotPassword(false);
+                setMode("login");
+                setPassword("");
+                setError("");
+              }}
+              style={{
+                width: "100%",
+                background: tc.accent,
+                color: "white",
+                border: "none",
+                borderRadius: 8,
+                padding: "12px 0",
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: "pointer",
+                minHeight: 44,
+              }}
+            >
+              Back to Sign in
+            </button>
+          </div>
+        ) : step === "verify" ? (
+          <div style={{ textAlign: "center", padding: "10px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: "50%",
+                background: isDark ? "rgba(239,68,68,0.15)" : "rgba(239,68,68,0.08)",
+                border: "1px solid rgba(239,68,68,0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 16,
+                color: tc.accent,
+              }}
+            >
+              <Mail size={30} strokeWidth={1.8} />
+            </div>
 
-    <div
-      style={{
-        fontWeight: 700,
-        fontSize: 16,
-        color: colors.text.primary,
-        marginBottom: 8,
-      }}
-    >
-      Check your inbox!
-    </div>
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: 18,
+                color: colors.text.primary,
+                marginBottom: 8,
+              }}
+            >
+              Check your inbox!
+            </div>
 
-    <div
-      style={{
-        fontSize: 13,
-        color: colors.text.secondary,
-        marginBottom: 24,
-        lineHeight: 1.6,
-      }}
-    >
-      We sent a confirmation link to <strong>{email}</strong>.
-      Click the link to activate your account then come back to sign in.
-    </div>
+            <div
+              style={{
+                fontSize: 13,
+                color: colors.text.secondary,
+                marginBottom: 24,
+                lineHeight: 1.6,
+              }}
+            >
+              We sent a confirmation link to <strong>{email}</strong>.
+              Click the link to activate your account then come back to sign in.
+            </div>
 
-    <button
-      onClick={() => {
-        setStep("form");
-        setMode("login");
-        setError("");
-      }}
-      style={{
-        width: "100%",
-        background: tc.accent,
-        color: "white",
-        border: "none",
-        borderRadius: 8,
-        padding: "12px 0",
-        fontSize: 14,
-        fontWeight: 700,
-        cursor: "pointer",
-        minHeight: 44,
-      }}
-    >
-      Go to Sign in
-    </button>
-  </div>
-) : (
+            <button
+              onClick={() => {
+                setStep("form");
+                setMode("login");
+                setError("");
+              }}
+              style={{
+                width: "100%",
+                background: tc.accent,
+                color: "white",
+                border: "none",
+                borderRadius: 8,
+                padding: "12px 0",
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: "pointer",
+                minHeight: 44,
+              }}
+            >
+              Back to Sign in
+            </button>
+          </div>
+        ) : (
           <div>
             {/* Tab Navigation */}
             <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>

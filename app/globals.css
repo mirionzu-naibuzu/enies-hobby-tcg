@@ -2871,17 +2871,94 @@ body {
     box-sizing: border-box;
   }
 
-  .dashboard-header h1,
-  .dashboard-arrival h1 {
-    font-size: 26px;
-    margin-top: 4px;
+  .dashboard-arrival {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    gap: 0 !important;
+    padding: 28px 20px 24px !important;
+    min-height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    border-radius: 18px !important;
   }
 
-  .dashboard-header p,
+  .dashboard-arrival-mark {
+    order: -1 !important;
+    width: 58px !important;
+    height: 58px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .dashboard-arrival-mark svg {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .dashboard-arrival-copy {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .dashboard-arrival h1 {
+    font-size: 24px !important;
+    line-height: 1.15 !important;
+    letter-spacing: -0.035em !important;
+    margin-top: 6px !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+
   .dashboard-arrival p {
-    font-size: 13px;
-    margin-top: 4px;
-    line-height: 1.45;
+    font-size: 13.5px !important;
+    line-height: 1.55 !important;
+    margin-top: 10px !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    color: var(--dashboard-secondary-text) !important;
+  }
+
+  .dashboard-arrival-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+    margin-top: 22px !important;
+  }
+
+  .dashboard-arrival-actions .dashboard-button {
+    width: 100% !important;
+    min-height: 44px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    justify-content: center !important;
+    border-radius: 10px !important;
+  }
+
+  .dashboard-state {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+    padding: 24px 18px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    border-radius: 16px !important;
+  }
+
+  .dashboard-state-actions {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .dashboard-state-actions .dashboard-button {
+    width: 100% !important;
+    justify-content: center !important;
   }
 
   .dashboard-header-actions {
@@ -3023,8 +3100,36 @@ body {
 
 @media (max-width: 420px) {
   .dashboard-main { padding-right: 12px !important; padding-left: 12px !important; }
-  .dashboard-header h1,
-  .dashboard-arrival h1 { font-size: 24px; }
+  .dashboard-header h1 { font-size: 24px; }
+  .dashboard-arrival {
+    padding: 22px 16px 20px !important;
+    border-radius: 16px !important;
+  }
+  .dashboard-arrival-mark {
+    width: 50px !important;
+    height: 50px !important;
+    margin-bottom: 14px !important;
+  }
+  .dashboard-arrival-mark svg {
+    width: 24px !important;
+    height: 24px !important;
+  }
+  .dashboard-arrival h1 {
+    font-size: 21px !important;
+    line-height: 1.18 !important;
+  }
+  .dashboard-arrival p {
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+  }
+  .dashboard-arrival-actions {
+    margin-top: 18px !important;
+    gap: 8px !important;
+  }
+  .dashboard-arrival-actions .dashboard-button {
+    min-height: 42px !important;
+    font-size: 13px !important;
+  }
   .dashboard-progress-copy,
   .dashboard-next-set { padding-right: 14px; padding-left: 14px; }
   .dashboard-progress-meta { font-size: 11px; }
