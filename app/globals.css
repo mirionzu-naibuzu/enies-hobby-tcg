@@ -781,16 +781,16 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════
-   LANDING PAGE — Base / Desktop Defaults
+   LANDING PAGE — Base & Desktop (1025px+)
    ══════════════════════════════════════════════════════════ */
 .home-hero {
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) !important;
-  min-height: 420px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) !important;
+  min-height: 460px;
 }
 
 .home-hero-title {
   font-family: var(--font-display) !important;
-  font-size: clamp(34px, 8vw, 72px);
+  font-size: clamp(38px, 5.2vw, 72px);
   margin-bottom: clamp(10px, 2vw, 18px);
 }
 
@@ -799,12 +799,80 @@ body {
 }
 
 .home-hero-desc {
-  max-width: 340px;
+  max-width: 440px;
+}
+
+.home-hero-cards {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 64px 32px 24px;
+  overflow: visible;
 }
 
 .home-hero-card-stack {
+  width: 440px;
+  height: 320px;
   margin: 0 auto;
-  transition: transform 0.3s ease;
+  transform: scale(1.0);
+  transform-origin: center center;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Large Desktop (1280px+) */
+@media (min-width: 1280px) {
+  .home-hero {
+    min-height: 500px;
+  }
+  .home-hero-cards {
+    padding: 32px 80px 32px 32px;
+  }
+  .home-hero-card-stack {
+    transform: scale(1.08);
+    transform-origin: center center;
+  }
+}
+
+/* Extra Large / Wide Screens (1536px+) */
+@media (min-width: 1536px) {
+  .home-hero {
+    min-height: 540px;
+  }
+  .home-hero-cards {
+    padding: 32px 110px 32px 40px;
+  }
+  .home-hero-card-stack {
+    transform: scale(1.16);
+    transform-origin: center center;
+  }
+}
+
+.home-hero-search-form:focus-within {
+  border-color: var(--accent, #3b82f6) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+
+.home-quick-tag:hover {
+  border-color: var(--accent, #3b82f6) !important;
+  color: var(--accent, #3b82f6) !important;
+  background: rgba(59, 130, 246, 0.08) !important;
+}
+
+.home-feature-item:hover {
+  background: rgba(128, 128, 128, 0.04);
+}
+
+.home-feature-item:hover .feature-arrow {
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+}
+
+.hero-fan-card {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease;
+}
+
+.home-quick-tags-container::-webkit-scrollbar {
+  display: none !important;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -813,22 +881,59 @@ body {
    ══════════════════════════════════════════════════════════ */
 @media (max-width: 1024px) and (min-width: 769px) {
   .home-hero {
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr) !important;
-    min-height: 360px !important;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) !important;
+    min-height: 380px !important;
   }
 
   .home-hero-text {
-    padding: 18px 20px 28px !important;
+    padding: 20px 24px 32px !important;
   }
 
   .home-hero-cards {
-    padding: 12px 8px !important;
+    padding: 20px 16px 28px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    overflow: visible !important;
+    height: 260px !important;
+    min-height: 260px !important;
   }
 
   .home-hero-card-stack {
-    transform: scale(0.72) !important;
-    transform-origin: center center !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 350px !important;
+    height: 235px !important;
     margin: 0 auto !important;
+    transform: none !important;
+  }
+
+  .hero-fan-card {
+    width: 145px !important;
+    height: 203px !important;
+    border-radius: 11px !important;
+  }
+
+  .hero-fan-card-0 {
+    left: calc(50% - 76px) !important;
+    transform: translateX(-50%) rotate(-8deg) !important;
+  }
+
+  .hero-fan-card-1 {
+    left: 50% !important;
+    transform: translateX(-50%) rotate(0deg) !important;
+  }
+
+  .hero-fan-card-2 {
+    left: calc(50% + 76px) !important;
+    transform: translateX(-50%) rotate(8deg) !important;
+  }
+
+  .home-flagship-sets-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 10px !important;
   }
 
   .home-card-strip {
@@ -842,98 +947,128 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════
-   LANDING PAGE — Wide Phone / Fold Inner / Small Tablet (541px – 768px)
-   iPhone landscape, Galaxy Fold inner portrait
+   LANDING PAGE — Wide Phone / Small Tablet (541px – 768px)
    ══════════════════════════════════════════════════════════ */
 @media (max-width: 768px) and (min-width: 541px) {
   .home-nav-header {
-    padding: 10px 16px !important;
-    gap: 8px !important;
+    padding: 12px 18px !important;
+    gap: 10px !important;
   }
 
   .home-nav-logo {
-    height: 36px !important;
+    height: 38px !important;
   }
 
   .home-nav-links {
     display: none !important;
   }
 
-  .home-nav-header > div:last-child {
-    gap: 10px !important;
-  }
-
   .home-hero {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-columns: 1fr !important;
     min-height: unset !important;
   }
 
   .home-hero-text {
-    padding: 16px 14px 20px !important;
+    padding: 20px 20px 24px !important;
   }
 
   .home-hero-cards {
-    padding: 8px 4px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 16px 0 24px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+    height: 245px !important;
+    min-height: 245px !important;
   }
 
   .home-hero-card-stack {
-    transform: scale(0.56) !important;
-    transform-origin: center center !important;
-    margin: -40px auto !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 320px !important;
+    height: 220px !important;
+    margin: 0 auto !important;
+    transform: none !important;
+    overflow: visible !important;
   }
 
-  .home-hero-stats {
+  .hero-fan-card {
+    width: 132px !important;
+    height: 185px !important;
+    border-radius: 10px !important;
+  }
+
+  .hero-fan-card-0 {
+    left: calc(50% - 66px) !important;
+    transform: translateX(-50%) rotate(-8deg) !important;
+  }
+
+  .hero-fan-card-1 {
+    left: 50% !important;
+    transform: translateX(-50%) rotate(0deg) !important;
+  }
+
+  .hero-fan-card-2 {
+    left: calc(50% + 66px) !important;
+    transform: translateX(-50%) rotate(8deg) !important;
+  }
+
+  .home-flagship-sets-grid {
+    display: flex !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
     gap: 10px !important;
-    flex-wrap: wrap !important;
-    margin-top: 14px !important;
+    padding: 2px 0 8px !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .home-flagship-sets-grid::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .home-flagship-sets-grid > .flagship-set-card {
+    flex: 0 0 210px !important;
+    scroll-snap-align: start !important;
   }
 
   .home-features {
-    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-columns: 1fr !important;
   }
 
   .home-features > div {
-    padding: 14px 14px !important;
+    border-right: none !important;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+    padding: 16px 18px !important;
+  }
+
+  .home-features > div:last-child {
+    border-bottom: none;
   }
 
   .home-sets-rarities {
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: 1fr !important;
   }
 
-  .home-rarity-grid {
-    grid-template-columns: repeat(4, 1fr) !important;
-    gap: 5px !important;
+  .home-sets-rarities > div {
+    border-right: none !important;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+    padding: 18px 20px !important;
+  }
+
+  .home-sets-rarities > div:last-child {
+    border-bottom: none;
   }
 
   .home-card-strip {
     grid-template-columns: repeat(4, 1fr) !important;
-    gap: 6px !important;
+    gap: 8px !important;
   }
 
   .home-card-strip > div:last-child {
     display: none !important;
-  }
-
-  .home-card-strip-section {
-    padding: 14px 16px !important;
-  }
-
-  .home-footer {
-    padding: 12px 16px !important;
-  }
-
-  .home-theme-popover {
-    position: absolute !important;
-    top: calc(100% + 8px) !important;
-    right: 0 !important;
-    left: auto !important;
-    bottom: auto !important;
-    transform: none !important;
-    width: min(280px, calc(100vw - 24px)) !important;
-    max-height: calc(100vh - 72px) !important;
-    overflow-y: auto !important;
-    scrollbar-width: thin !important;
-    z-index: 55 !important;
   }
 }
 
@@ -945,6 +1080,8 @@ body {
   .home-nav-header {
     padding: 10px 14px !important;
     gap: 6px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .home-nav-logo {
@@ -955,45 +1092,156 @@ body {
     display: none !important;
   }
 
+  .home-nav-auth {
+    display: flex !important;
+    gap: 3px !important;
+    align-items: center !important;
+  }
+
+  .home-nav-auth button:first-child {
+    font-size: 12.5px !important;
+    padding: 5px 6px !important;
+  }
+
+  .home-nav-auth button:last-child {
+    font-size: 12px !important;
+    padding: 7px 11px !important;
+    border-radius: 8px !important;
+  }
+
   .home-nav-header > div:last-child {
-    gap: 8px !important;
+    gap: 6px !important;
   }
 
   .home-hero {
     grid-template-columns: 1fr !important;
     min-height: unset !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 
   .home-hero-text {
-    padding: 18px 16px 20px !important;
+    padding: 18px 14px 20px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .home-hero-title {
+    font-size: clamp(26px, 7.8vw, 36px) !important;
+    line-height: 1.02 !important;
+    margin-bottom: 12px !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+
+  .home-hero-desc {
+    max-width: 100% !important;
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+    margin-bottom: 16px !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+
+  .home-hero-search-form {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    margin-bottom: 10px !important;
+  }
+
+  .home-quick-tags-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin-bottom: 18px !important;
+  }
+
+  .home-hero-cta {
+    padding: 11px 16px !important;
+    font-size: 12.5px !important;
+  }
+
+  .home-hero-stats {
+    gap: 6px 12px !important;
+    flex-wrap: wrap !important;
+    margin-top: 14px !important;
+    font-size: 10.5px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .home-hero-cards {
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
-    padding: 0 12px 18px !important;
-    overflow: hidden !important;
+    padding: 14px 0 22px !important;
+    height: 225px !important;
+    min-height: 225px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+    position: relative !important;
+  }
+
+  .home-hero-card-stack {
+    position: relative !important;
+    width: 100% !important;
+    max-width: 290px !important;
+    height: 205px !important;
+    margin: 0 auto !important;
+    transform: none !important;
+  }
+
+  .hero-fan-card {
+    width: clamp(112px, 32vw, 126px) !important;
+    height: clamp(157px, 44.8vw, 176px) !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16) !important;
+  }
+
+  .hero-fan-card-0 {
+    left: calc(50% - clamp(48px, 13.5vw, 58px)) !important;
+    transform: translateX(-50%) rotate(-8deg) !important;
+  }
+
+  .hero-fan-card-1 {
+    left: 50% !important;
+    transform: translateX(-50%) rotate(0deg) !important;
+  }
+
+  .hero-fan-card-2 {
+    left: calc(50% + clamp(48px, 13.5vw, 58px)) !important;
+    transform: translateX(-50%) rotate(8deg) !important;
+  }
+
+  .home-flagship-sets-grid {
+    display: flex !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    gap: 10px !important;
+    padding: 2px 0 8px !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
     width: 100% !important;
     box-sizing: border-box !important;
   }
 
-  .home-hero-card-stack {
-    transform: scale(0.62) !important;
-    transform-origin: center center !important;
-    margin: -32px auto !important;
+  .home-flagship-sets-grid::-webkit-scrollbar {
+    display: none !important;
   }
 
-  .home-hero-desc {
-    max-width: none !important;
-    font-size: 13px !important;
-    margin-bottom: 20px !important;
-  }
-
-  .home-hero-stats {
-    gap: 10px !important;
-    flex-wrap: wrap !important;
-    margin-top: 16px !important;
+  .home-flagship-sets-grid > .flagship-set-card {
+    flex: 0 0 190px !important;
+    scroll-snap-align: start !important;
+    min-height: 94px !important;
   }
 
   .home-features {
@@ -1060,17 +1308,17 @@ body {
   }
 
   .home-theme-popover {
-    position: absolute !important;
-    top: calc(100% + 8px) !important;
-    right: 0 !important;
-    left: auto !important;
-    bottom: auto !important;
-    transform: none !important;
-    width: min(280px, calc(100vw - 20px)) !important;
-    max-height: calc(100vh - 68px) !important;
+    position: fixed !important;
+    bottom: 24px !important;
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    transform: translateX(-50%) !important;
+    width: min(300px, calc(100vw - 32px)) !important;
+    max-height: calc(100vh - 80px) !important;
     overflow-y: auto !important;
     scrollbar-width: thin !important;
-    z-index: 55 !important;
+    z-index: 100 !important;
   }
 
 }
@@ -1081,8 +1329,16 @@ body {
    ══════════════════════════════════════════════════════════ */
 @media (max-width: 400px) {
   .home-theme-popover {
-    width: min(260px, calc(100vw - 16px)) !important;
+    position: fixed !important;
+    bottom: 16px !important;
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    transform: translateX(-50%) !important;
+    width: min(280px, calc(100vw - 20px)) !important;
     padding: 12px !important;
+    max-height: calc(100vh - 60px) !important;
+    z-index: 100 !important;
   }
 
   .theme-popover-mobile {
@@ -1091,10 +1347,41 @@ body {
     padding: 12px !important;
   }
 
+  .home-hero-cards {
+    height: 210px !important;
+    min-height: 210px !important;
+    padding: 12px 0 18px !important;
+    overflow: visible !important;
+  }
+
   .home-hero-card-stack {
-    transform: scale(0.50) !important;
-    transform-origin: center center !important;
-    margin: -44px auto !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 265px !important;
+    height: 190px !important;
+    margin: 0 auto !important;
+    transform: none !important;
+  }
+
+  .hero-fan-card {
+    width: clamp(104px, 29vw, 116px) !important;
+    height: clamp(146px, 40.6vw, 162px) !important;
+    border-radius: 9px !important;
+  }
+
+  .hero-fan-card-0 {
+    left: calc(50% - clamp(42px, 12vw, 50px)) !important;
+    transform: translateX(-50%) rotate(-8deg) !important;
+  }
+
+  .hero-fan-card-1 {
+    left: 50% !important;
+    transform: translateX(-50%) rotate(0deg) !important;
+  }
+
+  .hero-fan-card-2 {
+    left: calc(50% + clamp(42px, 12vw, 50px)) !important;
+    transform: translateX(-50%) rotate(8deg) !important;
   }
 
   .home-set-pill {
@@ -1136,10 +1423,16 @@ body {
    ══════════════════════════════════════════════════════════ */
 @media (max-width: 320px) {
   .home-theme-popover {
-    width: min(240px, calc(100vw - 10px)) !important;
-    right: -4px !important;
+    position: fixed !important;
+    bottom: 12px !important;
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    transform: translateX(-50%) !important;
+    width: min(260px, calc(100vw - 16px)) !important;
     padding: 10px !important;
-    max-height: calc(100vh - 56px) !important;
+    max-height: calc(100vh - 50px) !important;
+    z-index: 100 !important;
   }
 
   .theme-popover-mobile {
@@ -1162,10 +1455,41 @@ body {
     padding: 14px 12px 16px !important;
   }
 
+  .home-hero-cards {
+    height: 180px !important;
+    min-height: 180px !important;
+    padding: 8px 0 14px !important;
+    overflow: visible !important;
+  }
+
   .home-hero-card-stack {
-    transform: scale(0.38) !important;
-    transform-origin: center center !important;
-    margin: -56px auto !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 225px !important;
+    height: 160px !important;
+    margin: 0 auto !important;
+    transform: none !important;
+  }
+
+  .hero-fan-card {
+    width: 95px !important;
+    height: 133px !important;
+    border-radius: 8px !important;
+  }
+
+  .hero-fan-card-0 {
+    left: calc(50% - 38px) !important;
+    transform: translateX(-50%) rotate(-8deg) !important;
+  }
+
+  .hero-fan-card-1 {
+    left: 50% !important;
+    transform: translateX(-50%) rotate(0deg) !important;
+  }
+
+  .hero-fan-card-2 {
+    left: calc(50% + 38px) !important;
+    transform: translateX(-50%) rotate(8deg) !important;
   }
 
   .home-hero-desc {
@@ -1313,9 +1637,15 @@ body {
   }
 
   .home-theme-popover {
-    top: calc(100% + 4px) !important;
-    max-height: calc(100vh - 48px) !important;
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    bottom: auto !important;
+    right: auto !important;
+    transform: translate(-50%, -50%) !important;
+    max-height: calc(100vh - 24px) !important;
     padding: 12px !important;
+    z-index: 100 !important;
   }
 
   .theme-popover-mobile {

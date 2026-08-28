@@ -240,7 +240,7 @@ export default function AboutPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ position: "relative", height: 30, width: 120 }}>
               <Image
-                src={isDark ? "/logo-dark.png" : "/logo-light.png"}
+                src={isDark ? "/logo-light.png" : "/logo-light.png"}
                 alt="Enies Hobby logo"
                 fill
                 style={{ objectFit: "contain" }}

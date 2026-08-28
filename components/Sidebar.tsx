@@ -78,7 +78,7 @@ export default function Sidebar() {
     { icon: User,        label: "Sign In",  action: () => { setAuthMode("login"); setShowAuth(true); }, show: !user },
     { icon: LayoutDashboard, label: "Dashboard", action: () => router.push("/dashboard"), show: !!user },
     { icon: LayoutGrid,  label: "Browse",   action: () => router.push("/browse"),   show: true },
-    { icon: BookOpen,    label: "Binder",   action: () => router.push("/binder"),   show: true, badge: "New"},
+    { icon: BookOpen,    label: "Binder",   action: () => router.push("/binder"),   show: true },
     { icon: Menu,        label: "DON!!",    action: () => router.push("/don"),       show: true },
   ];
 
@@ -180,7 +180,7 @@ export default function Sidebar() {
           </button>
           {pathname !== "/browse" && pathname !== "/don" && pathname !== "/binder" && pathname !== "/dashboard" && (
             <img
-              src={colors.isDark ? "/sidebar-logo.png" : "/logo-light.png"}
+              src="/logo-light.png"
               alt="Enies Hobby"
               onClick={() => router.push("/")}
               style={{ height: 32, objectFit: "contain", cursor: "pointer" }}
@@ -263,7 +263,7 @@ export default function Sidebar() {
               }}
             >
               <img
-                src={colors.isDark ? "/sidebar-logo.png" : "/logo-light.png"}
+                src="/logo-light.png"
                 alt="Enies Hobby Logo"
                 style={{
                   height: 32,
@@ -405,22 +405,6 @@ export default function Sidebar() {
                     <span style={{ fontSize: 14, fontWeight: 500 }}>
                       {item.label}
                     </span>
-                    {item.badge && (
-                      <span
-                        style={{
-                          fontSize: 9,
-                          lineHeight: 1,
-                          padding: "2px 5px",
-                          borderRadius: 999,
-                          background: "#ef4444",
-                          color: "#fff",
-                          fontWeight: 700,
-                          transform: "translateY(-4px)",
-                        }}
-                      >
-                        {item.badge}
-                      </span>
-                    )}
                   </div>
                 </button>
               );
