@@ -27,8 +27,8 @@ import AuthModal from "@/components/AuthModal";
 import ModalCardImage from "@/components/ModalCardImage";
 import { createClient } from "@/lib/supabase";
 import { getColors } from "@/lib/themes";
-import { getAllCards } from "@/lib/api";
-import { getUserCards, getCardKey, type UserCard } from "@/lib/binder";
+import { getAllCards, getAllDonCards } from "@/lib/api";
+import { getUserCards, getCardKey, getDonCardKey, type UserCard } from "@/lib/binder";
 import { Card } from "@/types/card";
 import { SET_ORDER, SET_NAMES } from "@/lib/sets";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
@@ -66,6 +66,7 @@ export default function DashboardPage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [allCards, setAllCards] = useState<Card[]>([]);
+  const [allDonCards, setAllDonCards] = useState<any[]>([]);
   const [userCards, setUserCards] = useState<UserCard[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -128,12 +129,14 @@ export default function DashboardPage() {
     }
     setError(null);
     try {
-      const [cards, uc] = await Promise.all([
+      const [cards, uc, don] = await Promise.all([
         getAllCards(),
         getUserCards(userId),
+        getAllDonCards().catch(() => []),
       ]);
       setAllCards(cards);
       setUserCards(uc);
+      setAllDonCards(don);
     } catch (err: any) {
       console.error("Dashboard fetch error:", err);
       setError(
@@ -217,8 +220,21 @@ export default function DashboardPage() {
     for (const card of allCards) {
       map.set(getCardKey(card), card);
     }
+    for (const don of allDonCards) {
+      const donCard: Card = {
+        ...don,
+        id: don.card_name,
+        name: don.card_name,
+        set: { name: "DON!!" },
+        images: {
+          small: don.card_image || "/card-placeholder.png",
+          large: don.card_image || "/card-placeholder.png",
+        },
+      };
+      map.set(getDonCardKey(don), donCard);
+    }
     return map;
-  }, [allCards]);
+  }, [allCards, allDonCards]);
 
   const totalOwned = useMemo(
     () => allCards.filter((c) => ownedSet.has(getCardKey(c))).length,

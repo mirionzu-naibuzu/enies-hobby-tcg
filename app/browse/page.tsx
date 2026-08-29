@@ -938,7 +938,7 @@ export default function Home() {
               <strong style={{ color: colors.text.primary }}>
                 {filtered.length}
               </strong>{" "}
-              cards
+              {filtered.length === 1 ? "card" : "cards"}
             </>
           )}
         </span>
@@ -1338,16 +1338,20 @@ export default function Home() {
                         </div>
                       )}
                       <button
+                        className="card-modal-btn"
                         onClick={() => {
                           const next = !showBinderPicker;
                           setShowBinderPicker(next);
                           if (!next) resetInlineCreation();
                         }}
+                        title="Add to binder"
+                        aria-label="Add to binder"
                         style={{
                           display: "flex",
                           alignItems: "center",
+                          justifyContent: "center",
                           gap: 6,
-                          padding: "7px 12px",
+                          padding: isMobile ? "7px 9px" : "7px 12px",
                           borderRadius: 8,
                           fontSize: 12,
                           fontWeight: 500,
@@ -1358,8 +1362,8 @@ export default function Home() {
                           color: colors.text.tertiary,
                         }}
                       >
-                        <BookmarkPlus size={14} />
-                        Add to binder
+                        <BookmarkPlus size={15} />
+                        {!isMobile && <span className="card-modal-btn-label">Add to binder</span>}
                       </button>
                       {showBinderPicker && (
                         <div

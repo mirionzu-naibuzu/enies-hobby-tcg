@@ -142,7 +142,8 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
   const [showOwnershipPicker, setShowOwnershipPicker] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
-  const cardKey = getCardKey(modalCard);
+  const isDon = modalCard.set?.name === "DON!!" || !(modalCard.id?.includes("-"));
+  const cardKey = isDon ? getDonCardKey({ card_name: (modalCard as any).card_name || modalCard.name }) : getCardKey(modalCard);
   const owned = ownedSet.has(cardKey);
   const wished = wishlistSet.has(cardKey);
 
@@ -232,39 +233,89 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
           <div className="card-modal-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: `1px solid ${c.border}`, flexShrink: 0 }}>
             <div>
               <div style={{ fontWeight: 900, fontSize: 22, color: c.text, letterSpacing: "-0.02em" }}>{modalCard.name}</div>
-              <div style={{ fontSize: 12, color: c.textTer, fontFamily: "monospace", marginTop: 2 }}>{modalCard.id}</div>
+              <div style={{ fontSize: 12, color: c.textTer, fontFamily: "monospace", marginTop: 2 }}>{isDon ? "DON!!" : modalCard.id}</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ position: "relative" }}>
+              {isDon ? (
                 <button
-                  onClick={() => setShowOwnershipPicker(p => !p)}
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s",
-                    border: `1px solid ${owned ? "#16a34a" : wished ? "#f59e0b" : c.border}`,
-                    background: owned ? (isDark ? "rgba(22,163,74,0.15)" : "rgba(22,163,74,0.08)") : wished ? (isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.08)") : "transparent",
-                    color: owned ? "#16a34a" : wished ? "#d97706" : c.textTer }}
+                  className="card-modal-btn"
+                  onClick={() => onToggleWishlist(cardKey)}
+                  title={wished ? "Wishlist" : "Add to wishlist"}
+                  aria-label={wished ? "Wishlist" : "Add to wishlist"}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    padding: isMobile ? "7px 9px" : "7px 12px",
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    border: `1px solid ${wished ? "#f59e0b" : c.border}`,
+                    background: wished
+                      ? (isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.08)")
+                      : "transparent",
+                    color: wished ? "#d97706" : c.textTer,
+                  }}
                 >
-                  {owned ? <Check size={13} /> : wished ? <Star size={13} fill="currentColor" /> : null}
-                  {owned ? "Owned" : wished ? "Wishlist" : "Not owned"}
+                  <Star size={13} fill={wished ? "currentColor" : "none"} />
+                  {!isMobile && (
+                    <span className="card-modal-btn-label">
+                      {wished ? "Wishlist" : "Add to wishlist"}
+                    </span>
+                  )}
                 </button>
-                {showOwnershipPicker && (
-                  <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: 200, background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, overflow: "hidden", boxShadow: isDark ? "0 16px 40px rgba(0,0,0,0.5)" : "0 16px 40px rgba(0,0,0,0.12)", zIndex: 10 }} onClick={(e) => e.stopPropagation()}>
-                    <div style={{ padding: "6px 8px" }}>
-                      <button onClick={() => { onToggleOwned(cardKey); setShowOwnershipPicker(false); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, textAlign: "left" as const, transition: "all 0.15s", background: owned ? (isDark ? "rgba(22,163,74,0.15)" : "rgba(22,163,74,0.08)") : "transparent", color: owned ? "#16a34a" : c.text }} onMouseEnter={(e) => { if (!owned) e.currentTarget.style.background = c.bgSec; }} onMouseLeave={(e) => { if (!owned) e.currentTarget.style.background = "transparent"; }}>
-                        <div style={{ width: 18, height: 18, borderRadius: "50%", border: `1.5px solid ${owned ? "#16a34a" : c.border}`, background: owned ? "#16a34a" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          {owned && <Check size={10} color="#fff" strokeWidth={3} />}
-                        </div>
-                        I own this card
-                      </button>
-                      <button onClick={() => { onToggleWishlist(cardKey); setShowOwnershipPicker(false); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, textAlign: "left" as const, transition: "all 0.15s", background: wished ? (isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.08)") : "transparent", color: wished ? "#d97706" : c.text }} onMouseEnter={(e) => { if (!wished) e.currentTarget.style.background = c.bgSec; }} onMouseLeave={(e) => { if (!wished) e.currentTarget.style.background = "transparent"; }}>
-                        <div style={{ width: 18, height: 18, borderRadius: "50%", border: `1.5px solid ${wished ? "#d97706" : c.border}`, background: wished ? "#f59e0b" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          {wished && <Star size={10} fill="#fff" color="#fff" />}
-                        </div>
-                        Add to wishlist
-                      </button>
+              ) : (
+                <div style={{ position: "relative" }}>
+                  <button
+                    className="card-modal-btn"
+                    onClick={() => setShowOwnershipPicker(p => !p)}
+                    title={owned ? "Owned" : wished ? "Wishlist" : "Not owned"}
+                    aria-label={owned ? "Owned" : wished ? "Wishlist" : "Not owned"}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      padding: isMobile ? "7px 9px" : "7px 12px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      border: `1px solid ${owned ? "#16a34a" : wished ? "#f59e0b" : c.border}`,
+                      background: owned ? (isDark ? "rgba(22,163,74,0.15)" : "rgba(22,163,74,0.08)") : wished ? (isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.08)") : "transparent",
+                      color: owned ? "#16a34a" : wished ? "#d97706" : c.textTer }}
+                  >
+                    {owned ? <Check size={13} /> : wished ? <Star size={13} fill="currentColor" /> : null}
+                    {!isMobile && (
+                      <span className="card-modal-btn-label">
+                        {owned ? "Owned" : wished ? "Wishlist" : "Not owned"}
+                      </span>
+                    )}
+                  </button>
+                  {showOwnershipPicker && (
+                    <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: 200, background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, overflow: "hidden", boxShadow: isDark ? "0 16px 40px rgba(0,0,0,0.5)" : "0 16px 40px rgba(0,0,0,0.12)", zIndex: 10 }} onClick={(e) => e.stopPropagation()}>
+                      <div style={{ padding: "6px 8px" }}>
+                        <button onClick={() => { onToggleOwned(cardKey); setShowOwnershipPicker(false); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, textAlign: "left" as const, transition: "all 0.15s", background: owned ? (isDark ? "rgba(22,163,74,0.15)" : "rgba(22,163,74,0.08)") : "transparent", color: owned ? "#16a34a" : c.text }} onMouseEnter={(e) => { if (!owned) e.currentTarget.style.background = c.bgSec; }} onMouseLeave={(e) => { if (!owned) e.currentTarget.style.background = "transparent"; }}>
+                          <div style={{ width: 18, height: 18, borderRadius: "50%", border: `1.5px solid ${owned ? "#16a34a" : c.border}`, background: owned ? "#16a34a" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            {owned && <Check size={10} color="#fff" strokeWidth={3} />}
+                          </div>
+                          I own this card
+                        </button>
+                        <button onClick={() => { onToggleWishlist(cardKey); setShowOwnershipPicker(false); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, textAlign: "left" as const, transition: "all 0.15s", background: wished ? (isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.08)") : "transparent", color: wished ? "#d97706" : c.text }} onMouseEnter={(e) => { if (!wished) e.currentTarget.style.background = c.bgSec; }} onMouseLeave={(e) => { if (!wished) e.currentTarget.style.background = "transparent"; }}>
+                          <div style={{ width: 18, height: 18, borderRadius: "50%", border: `1.5px solid ${wished ? "#d97706" : c.border}`, background: wished ? "#f59e0b" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            {wished && <Star size={10} fill="#fff" color="#fff" />}
+                          </div>
+                          Add to wishlist
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
               <button onClick={() => { setModalCard(null); setShowOwnershipPicker(false); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}><X size={20} color={c.textTer} /></button>
             </div>
           </div>
@@ -277,6 +328,7 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
                   alt={modalCard.name}
                   isLeader={modalCard.type?.toUpperCase() === "LEADER"}
                   isDark={isDark}
+                  backSrc={isDon ? "/don-back.png" : undefined}
                 />
               </div>
             </div>
@@ -847,7 +899,7 @@ export default function BinderPage() {
         )}
 
         <div style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 12, paddingBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `1px solid ${c.border}` }}>
-          <span style={{ fontSize: 14, color: c.textTer }}>Showing <strong style={{ color: c.text }}>{setCards.length}</strong> cards</span>
+          <span style={{ fontSize: 14, color: c.textTer }}>Showing <strong style={{ color: c.text }}>{setCards.length}</strong> {setCards.length === 1 ? "card" : "cards"}</span>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {hasActiveFilters && (
               <button onClick={() => setSetViewFilters({})} style={{ fontSize: 12, color: tc.accent, fontWeight: 600, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.7"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
@@ -1266,7 +1318,17 @@ export default function BinderPage() {
         )}
 
         {tab === "wishlist" && (() => {
-          const wishlistCards = sortByCardId(allCards.filter(card => wishlistSet.has(getCardKey(card))));
+          const regularWishlistCards = allCards.filter(card => wishlistSet.has(getCardKey(card)));
+          const donWishlistCards = allDonCards
+            .filter(card => wishlistSet.has(getDonCardKey(card)))
+            .map(card => ({
+              ...card,
+              images: { small: card.card_image || "/card-placeholder.png", large: card.card_image || "/card-placeholder.png" },
+              id: card.card_name,
+              name: card.card_name,
+              set: { name: "DON!!" },
+            }));
+          const wishlistCards = [...sortByCardId(regularWishlistCards), ...donWishlistCards] as Card[];
           return wishlistCards.length === 0 ? (
             <div style={{ textAlign: "center", padding: "50px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
               <div style={{ width: 60, height: 60, borderRadius: "50%", background: isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.1)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, color: "#f59e0b" }}>
