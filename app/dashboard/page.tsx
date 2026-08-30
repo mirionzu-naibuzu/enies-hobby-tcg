@@ -1576,7 +1576,7 @@ export default function DashboardPage() {
                       height: 42,
                       borderRadius: 10,
                       border: "none",
-                      background: isDark ? "#0f172a" : "#0f172a",
+                      background: tc.accent,
                       color: "#ffffff",
                       fontSize: 13,
                       fontWeight: 700,
@@ -1585,15 +1585,18 @@ export default function DashboardPage() {
                       justifyContent: "center",
                       gap: 8,
                       cursor: "pointer",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+                      transition: "all 0.15s ease",
                     }}
+                    onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
                     onClick={() => {
                       const id = selectedCard.id;
                       setSelectedCard(null);
                       router.push(`/browse?search=${encodeURIComponent(id)}`);
                     }}
                   >
-                    <Search size={15} />
+                    <Search size={15} strokeWidth={2.5} />
                     Find in browse
                   </button>
                   <button
@@ -1603,12 +1606,15 @@ export default function DashboardPage() {
                       padding: "0 22px",
                       borderRadius: 10,
                       border: `1px solid ${tc.border}`,
-                      background: isDark ? tc.bg.secondary : "#ffffff",
+                      background: isDark ? "rgba(255,255,255,0.06)" : tc.bg.secondary,
                       color: tc.text.primary,
                       fontSize: 13,
                       fontWeight: 650,
                       cursor: "pointer",
+                      transition: "all 0.15s ease",
                     }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.1)" : tc.border; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.06)" : tc.bg.secondary; }}
                     onClick={() => setSelectedCard(null)}
                   >
                     Close

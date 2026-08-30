@@ -19,7 +19,7 @@ export const SET_NAMES: Record<string, string> = {
     "OP-10": "Royal Blood", "OP-11": "A Fist of Divine Speed",
     "OP-12": "Legacy of the Master", "OP-13": "Alliance Rising",
     "OP-14": "The Four Emperors", "OP-15": "Adventure on KAMI's Island",
-    "OP-16": "The Time of Battle", "OP-17": "",
+    "OP-16": "The Time of Battle", "OP-17": "The World's Strongest Warriors",
     "ST-01": "Straw Hat Crew", "ST-02": "Worst Generation",
     "ST-03": "The Seven Warlords of the Sea", "ST-04": "Animal Kingdom Pirates",
     "ST-05": "One Piece Film Edition", "ST-06": "Absolute Justice",

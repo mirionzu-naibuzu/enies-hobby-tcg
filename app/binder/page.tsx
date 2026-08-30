@@ -23,7 +23,7 @@ import { SET_ORDER, SET_NAMES } from "@/lib/sets";
 import { getAllDonCards } from "@/lib/api";
 import ModalCardImage from "@/components/ModalCardImage";
 import Toast, { ToastData, ToastType } from "@/components/Toast";
-import { Trash2, Pencil, Check, X, ChevronLeft, ChevronRight, CheckSquare, SlidersHorizontal, Plus, ArrowRight, BookOpen, Star, Search, ArrowUp, Tag, MoreVertical, Crown } from "lucide-react";
+import { Trash2, Pencil, Check, X, ChevronLeft, ChevronRight, CheckSquare, SlidersHorizontal, Plus, ArrowRight, BookOpen, Star, Search, ArrowUp, Tag, MoreVertical, Crown, ChevronDown } from "lucide-react";
 
 const sortByCardId = (cards: Card[], setId?: string) => {
   const filterId = (setId ?? "").replace(/-/g, "").toUpperCase();
@@ -454,6 +454,7 @@ export default function BinderPage() {
   const [binderPreviewCards, setBinderPreviewCards] = useState<Record<string, Card[]>>({});
 
   const [creatingBinder, setCreatingBinder] = useState(false);
+  const [creatingBinderLoading, setCreatingBinderLoading] = useState(false);
   const [newBinderName, setNewBinderName] = useState("");
   const [binderPlaceholder, setBinderPlaceholder] = useState("My legendary collection...");
 
@@ -463,8 +464,10 @@ export default function BinderPage() {
     setCreatingBinder(true);
   };
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renamingLoading, setRenamingLoading] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deletingLoading, setDeletingLoading] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedCardKeys, setSelectedCardKeys] = useState<Set<string>>(new Set());
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
@@ -486,8 +489,10 @@ export default function BinderPage() {
   }>({});
   const [binderFiltersOpen, setBinderFiltersOpen] = useState(false);
   const [wishlistSearch, setWishlistSearch] = useState("");
-  const [wishlistColor, setWishlistColor] = useState<string | null>(null);
+  const [wishlistColors, setWishlistColors] = useState<string[]>([]);
   const [wishlistSetId, setWishlistSetId] = useState<string | null>(null);
+  const [wishlistSetDropdownOpen, setWishlistSetDropdownOpen] = useState(false);
+  const wishlistSearchInputRef = useRef<HTMLInputElement>(null);
   const [activeMenuBinderId, setActiveMenuBinderId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
@@ -509,11 +514,40 @@ export default function BinderPage() {
 
   useEffect(() => { setMounted(true); }, []);
 
+  // Global search shortcut (/) when on wishlist tab
   useEffect(() => {
-    if (!activeMenuBinderId) return;
-    const handleOutsideClick = () => setActiveMenuBinderId(null);
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === "/" &&
+        tab === "wishlist" &&
+        !openSetId &&
+        !openBinderId &&
+        !modalCard &&
+        !creatingBinder &&
+        !renamingId &&
+        !deleteConfirmId &&
+        document.activeElement?.tagName !== "INPUT" &&
+        document.activeElement?.tagName !== "TEXTAREA"
+      ) {
+        e.preventDefault();
+        wishlistSearchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [tab, openSetId, openBinderId, modalCard, creatingBinder, renamingId, deleteConfirmId]);
+
+  useEffect(() => {
+    if (!activeMenuBinderId && !wishlistSetDropdownOpen) return;
+    const handleOutsideClick = () => {
+      setActiveMenuBinderId(null);
+      setWishlistSetDropdownOpen(false);
+    };
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setActiveMenuBinderId(null);
+      if (e.key === "Escape") {
+        setActiveMenuBinderId(null);
+        setWishlistSetDropdownOpen(false);
+      }
     };
     window.addEventListener("click", handleOutsideClick);
     window.addEventListener("keydown", handleEscape);
@@ -521,7 +555,7 @@ export default function BinderPage() {
       window.removeEventListener("click", handleOutsideClick);
       window.removeEventListener("keydown", handleEscape);
     };
-  }, [activeMenuBinderId]);
+  }, [activeMenuBinderId, wishlistSetDropdownOpen]);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 1024px)");
@@ -675,32 +709,58 @@ export default function BinderPage() {
   };
 
   const handleCreateBinder = async () => {
-    if (!user || !newBinderName.trim()) return;
-    const b = await createBinder(user.id, newBinderName.trim());
-    if (b) {
-      setBinders(prev => [...prev, b]);
-      setBinderCounts(prev => ({ ...prev, [b.id]: 0 }));
-      showToast(`Binder "${b.name}" created!`, "celebrate");
+    if (!user || !newBinderName.trim() || creatingBinderLoading) return;
+    setCreatingBinderLoading(true);
+    try {
+      const b = await createBinder(user.id, newBinderName.trim());
+      if (b) {
+        setBinders(prev => [...prev, b]);
+        setBinderCounts(prev => ({ ...prev, [b.id]: 0 }));
+        showToast(`Binder "${b.name}" created!`, "celebrate");
+      }
+      setNewBinderName("");
+      setCreatingBinder(false);
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to create binder", "delete");
+    } finally {
+      setCreatingBinderLoading(false);
     }
-    setNewBinderName("");
-    setCreatingBinder(false);
   };
 
   const handleDeleteBinder = async (id: string) => {
-    const bName = binders.find(b => b.id === id)?.name;
-    await deleteBinder(id);
-    setBinders(prev => prev.filter(b => b.id !== id));
-    if (openBinderId === id) setOpenBinderId(null);
-    showToast(bName ? `Binder "${bName}" deleted` : "Binder deleted", "delete");
+    if (deletingLoading) return;
+    setDeletingLoading(true);
+    try {
+      const bName = binders.find(b => b.id === id)?.name;
+      await deleteBinder(id);
+      setBinders(prev => prev.filter(b => b.id !== id));
+      if (openBinderId === id) setOpenBinderId(null);
+      showToast(bName ? `Binder "${bName}" deleted` : "Binder deleted", "delete");
+      setDeleteConfirmId(null);
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to delete binder", "delete");
+    } finally {
+      setDeletingLoading(false);
+    }
   };
 
   const handleRenameBinder = async (id: string) => {
-    if (!renameValue.trim()) return;
-    await renameBinder(id, renameValue.trim());
-    setBinders(prev => prev.map(b => b.id === id ? { ...b, name: renameValue.trim() } : b));
-    showToast(`Binder renamed to "${renameValue.trim()}"`, "success");
-    setRenamingId(null);
-    setRenameValue("");
+    if (!renameValue.trim() || renamingLoading) return;
+    setRenamingLoading(true);
+    try {
+      await renameBinder(id, renameValue.trim());
+      setBinders(prev => prev.map(b => b.id === id ? { ...b, name: renameValue.trim() } : b));
+      showToast(`Binder renamed to "${renameValue.trim()}"`, "success");
+      setRenamingId(null);
+      setRenameValue("");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to rename binder", "delete");
+    } finally {
+      setRenamingLoading(false);
+    }
   };
 
   if (loadingUser) return (
@@ -1053,9 +1113,9 @@ export default function BinderPage() {
                         <Image src={card.images?.small || "/card-placeholder.png"} alt={card.name} fill sizes="(max-width: 540px) 45vw, (max-width: 1024px) 22vw, 175px" style={{ objectFit: "cover" }} onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }} />
                       </div>
                     </div>
-                    {wished && !owned && (i >= 18 || flipDone) && (
-                      <div style={{ position: "absolute", top: 8, left: 8, width: 20, height: 20, borderRadius: "50%", background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>
-                        <Star size={11} fill="#fff" color="#fff" />
+                    {wished && (i >= 18 || flipDone) && (
+                      <div style={{ position: "absolute", top: 8, left: 8, width: 22, height: 22, borderRadius: "50%", background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.3)", pointerEvents: "none", zIndex: 5 }}>
+                        <Star size={12} fill="#fff" color="#fff" />
                       </div>
                     )}
                   </div>
@@ -1565,6 +1625,25 @@ export default function BinderPage() {
             })
           )).sort();
 
+          // Color filter handler supporting 2 colors selection (matching Browse page)
+          const handleWishlistColorClick = (color: string) => {
+            const multicolorActive = wishlistColors.includes("Multicolor");
+            if (color === "Multicolor") {
+              setWishlistColors(multicolorActive ? [] : ["Multicolor"]);
+              return;
+            }
+            if (multicolorActive) {
+              setWishlistColors([color]);
+              return;
+            }
+            if (wishlistColors.includes(color)) {
+              setWishlistColors(wishlistColors.filter((c) => c !== color));
+            } else {
+              const next = wishlistColors.length >= 2 ? [wishlistColors[1], color] : [...wishlistColors, color];
+              setWishlistColors(next);
+            }
+          };
+
           // Apply filters
           const filteredWishlistCards = rawWishlistCards.filter(card => {
             if (wishlistSearch.trim()) {
@@ -1574,11 +1653,13 @@ export default function BinderPage() {
               const matchesSet = (card.set?.name ?? "").toLowerCase().includes(q);
               if (!matchesName && !matchesId && !matchesSet) return false;
             }
-            if (wishlistColor) {
-              if (wishlistColor === "Multicolor") {
+            if (wishlistColors.length > 0) {
+              if (wishlistColors.includes("Multicolor")) {
                 if (!card.color?.includes(" ")) return false;
               } else {
-                if (!card.color?.includes(wishlistColor)) return false;
+                for (const col of wishlistColors) {
+                  if (!card.color?.includes(col)) return false;
+                }
               }
             }
             if (wishlistSetId) {
@@ -1593,7 +1674,7 @@ export default function BinderPage() {
             return true;
           });
 
-          const hasWishlistFilters = !!wishlistSearch.trim() || !!wishlistColor || !!wishlistSetId;
+          const hasWishlistFilters = !!wishlistSearch.trim() || wishlistColors.length > 0 || !!wishlistSetId;
 
           return rawWishlistCards.length === 0 ? (
             <div style={{ textAlign: "center", padding: "50px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -1659,9 +1740,10 @@ export default function BinderPage() {
                       }}
                     />
                     <input
+                      ref={wishlistSearchInputRef}
                       value={wishlistSearch}
                       onChange={(e) => setWishlistSearch(e.target.value)}
-                      placeholder="Search wishlist..."
+                      placeholder="Search wishlist (/)"
                       style={{
                         width: "100%",
                         padding: "7px 28px 7px 30px",
@@ -1675,7 +1757,10 @@ export default function BinderPage() {
                     />
                     {wishlistSearch && (
                       <button
-                        onClick={() => setWishlistSearch("")}
+                        onClick={() => {
+                          setWishlistSearch("");
+                          wishlistSearchInputRef.current?.focus();
+                        }}
                         aria-label="Clear search"
                         style={{
                           position: "absolute",
@@ -1695,41 +1780,162 @@ export default function BinderPage() {
                     )}
                   </div>
 
-                  {/* Set Selector Dropdown */}
-                  {wishlistAvailableSets.length > 1 && (
-                    <select
-                      value={wishlistSetId || ""}
-                      onChange={(e) => setWishlistSetId(e.target.value || null)}
-                      aria-label="Filter by set"
-                      style={{
-                        padding: "7px 10px",
-                        borderRadius: 8,
-                        border: `1px solid ${c.border}`,
-                        background: c.bg,
-                        color: c.text,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        outline: "none",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <option value="">All Sets</option>
-                      {wishlistAvailableSets.map(s => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
+                  {/* Custom Set Selector Dropdown */}
+                  {wishlistAvailableSets.length > 0 && (
+                    <div style={{ position: "relative" }}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setWishlistSetDropdownOpen((prev) => !prev);
+                        }}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          height: 34,
+                          padding: "0 12px",
+                          borderRadius: 8,
+                          border: `1px solid ${wishlistSetId ? tc.accent : c.border}`,
+                          background: wishlistSetId
+                            ? (isDark ? "rgba(239,68,68,0.12)" : "rgba(239,68,68,0.06)")
+                            : c.bg,
+                          color: wishlistSetId ? tc.accent : c.text,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <span>
+                          {wishlistSetId
+                            ? (SET_NAMES[wishlistSetId]
+                              ? `${wishlistSetId} · ${SET_NAMES[wishlistSetId]}`
+                              : wishlistSetId)
+                            : "All Sets"}
+                        </span>
+                        <ChevronDown
+                          size={13}
+                          style={{
+                            transform: wishlistSetDropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+                            transition: "transform 0.2s ease",
+                            opacity: 0.7,
+                          }}
+                        />
+                      </button>
+
+                      {wishlistSetDropdownOpen && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "calc(100% + 6px)",
+                            left: 0,
+                            zIndex: 70,
+                            minWidth: 200,
+                            maxWidth: "min(280px, calc(100vw - 32px))",
+                            maxHeight: 260,
+                            overflowY: "auto",
+                            background: c.bg,
+                            border: `1px solid ${c.border}`,
+                            borderRadius: 12,
+                            boxShadow: isDark
+                              ? "0 12px 32px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.4)"
+                              : "0 12px 32px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.06)",
+                            padding: 4,
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {/* Option: All Sets */}
+                          <div
+                            onClick={() => {
+                              setWishlistSetId(null);
+                              setWishlistSetDropdownOpen(false);
+                            }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              padding: "8px 10px",
+                              borderRadius: 8,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              background: !wishlistSetId
+                                ? (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)")
+                                : "transparent",
+                              color: !wishlistSetId ? tc.accent : c.text,
+                              transition: "background 0.15s",
+                            }}
+                            onMouseEnter={(e) => {
+                              if (wishlistSetId) e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)";
+                            }}
+                            onMouseLeave={(e) => {
+                              if (wishlistSetId) e.currentTarget.style.background = "transparent";
+                            }}
+                          >
+                            <span>All Sets</span>
+                            {!wishlistSetId && <Check size={13} strokeWidth={2.5} />}
+                          </div>
+
+                          <div style={{ height: 1, background: c.border, margin: "4px 0" }} />
+
+                          {/* Available sets */}
+                          {wishlistAvailableSets.map((s) => {
+                            const isSelected = wishlistSetId === s;
+                            const fullName = SET_NAMES[s];
+                            return (
+                              <div
+                                key={s}
+                                onClick={() => {
+                                  setWishlistSetId(s);
+                                  setWishlistSetDropdownOpen(false);
+                                }}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  padding: "8px 10px",
+                                  borderRadius: 8,
+                                  fontSize: 12,
+                                  fontWeight: isSelected ? 700 : 500,
+                                  cursor: "pointer",
+                                  background: isSelected
+                                    ? (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)")
+                                    : "transparent",
+                                  color: isSelected ? tc.accent : c.text,
+                                  transition: "background 0.15s",
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!isSelected) e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)";
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!isSelected) e.currentTarget.style.background = "transparent";
+                                }}
+                              >
+                                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                                  <span style={{ fontSize: 12, fontWeight: 650 }}>{s}</span>
+                                  {fullName && <span style={{ fontSize: 10, color: c.textTer }}>{fullName}</span>}
+                                </div>
+                                {isSelected && <Check size={13} strokeWidth={2.5} />}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {/* Color Dot Filters */}
                   <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     {[...FILTER_COLORS, "Multicolor"].map(color => {
                       const isMulti = color === "Multicolor";
-                      const active = wishlistColor === color;
+                      const active = wishlistColors.includes(color);
                       return (
                         <button
                           key={color}
                           title={color}
-                          onClick={() => setWishlistColor(prev => prev === color ? null : color)}
+                          onClick={() => handleWishlistColorClick(color)}
                           style={{
                             width: 22,
                             height: 22,
@@ -1742,7 +1948,7 @@ export default function BinderPage() {
                             outline: active ? `2px solid ${isMulti ? "#808080" : COLOR_DOT[color]}` : "none",
                             outlineOffset: 2,
                             transform: active ? "scale(1.15)" : "scale(1)",
-                            opacity: active || !wishlistColor ? 1 : 0.4,
+                            opacity: active || wishlistColors.length === 0 ? 1 : 0.35,
                             transition: "all 0.15s ease",
                           }}
                         />
@@ -1755,7 +1961,7 @@ export default function BinderPage() {
                     <button
                       onClick={() => {
                         setWishlistSearch("");
-                        setWishlistColor(null);
+                        setWishlistColors([]);
                         setWishlistSetId(null);
                       }}
                       style={{
@@ -1825,27 +2031,6 @@ export default function BinderPage() {
                           />
                         </div>
                       </div>
-
-                      {/* Top Left Star Badge */}
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: 8,
-                          left: 8,
-                          width: 22,
-                          height: 22,
-                          borderRadius: "50%",
-                          background: "#f59e0b",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#fff",
-                          boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-                          pointerEvents: "none",
-                        }}
-                      >
-                        <Star size={12} fill="#fff" color="#fff" />
-                      </div>
                     </div>
                   );
                 })}
@@ -1887,7 +2072,7 @@ export default function BinderPage() {
                   <button
                     onClick={() => {
                       setWishlistSearch("");
-                      setWishlistColor(null);
+                      setWishlistColors([]);
                       setWishlistSetId(null);
                     }}
                     style={{
@@ -1912,15 +2097,34 @@ export default function BinderPage() {
       {modalCard && <CardModal modalCard={modalCard} modalIndex={modalIndex} modalCards={modalCards} setModalCard={setModalCard} setModalIndex={setModalIndex} c={c} tc={tc} isDark={isDark} ownedSet={ownedSet} wishlistSet={wishlistSet} onToggleOwned={handleToggleOwned} onToggleWishlist={handleToggleWishlist} />}
       
       {deleteConfirmId && (
-        <div style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setDeleteConfirmId(null)}>
+        <div
+          style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          onClick={() => { if (!deletingLoading) setDeleteConfirmId(null); }}
+        >
           <div style={{ background: c.bg, borderRadius: 16, padding: 32, width: "100%", maxWidth: 320, boxShadow: isDark ? "0 25px 50px rgba(0,0,0,0.5)" : "0 25px 50px rgba(0,0,0,0.2)", border: `1px solid ${c.border}` }} onClick={(e) => e.stopPropagation()}>
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontWeight: 900, fontSize: 20, color: c.text, marginBottom: 8 }}>Delete binder?</div>
               <div style={{ fontSize: 14, color: c.textSec }}>"{binders.find(b => b.id === deleteConfirmId)?.name}" will be permanently deleted.</div>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => setDeleteConfirmId(null)} style={{ flex: 1, padding: "12px 0", fontSize: 14, fontWeight: 600, border: `1.5px solid ${c.border}`, background: "transparent", color: c.text, borderRadius: 8, cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.background = c.bgSec; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>Cancel</button>
-              <button onClick={() => { handleDeleteBinder(deleteConfirmId); setDeleteConfirmId(null); }} style={{ flex: 1, padding: "12px 0", fontSize: 14, fontWeight: 600, border: "none", background: "#ef4444", color: "white", borderRadius: 8, cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>Delete</button>
+              <button
+                disabled={deletingLoading}
+                onClick={() => setDeleteConfirmId(null)}
+                style={{ flex: 1, padding: "12px 0", fontSize: 14, fontWeight: 600, border: `1.5px solid ${c.border}`, background: "transparent", color: c.text, borderRadius: 8, cursor: deletingLoading ? "not-allowed" : "pointer", opacity: deletingLoading ? 0.5 : 1 }}
+                onMouseEnter={(e) => { if (!deletingLoading) e.currentTarget.style.background = c.bgSec; }}
+                onMouseLeave={(e) => { if (!deletingLoading) e.currentTarget.style.background = "transparent"; }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={deletingLoading}
+                onClick={() => handleDeleteBinder(deleteConfirmId)}
+                style={{ flex: 1, padding: "12px 0", fontSize: 14, fontWeight: 600, border: "none", background: "#ef4444", color: "white", borderRadius: 8, cursor: deletingLoading ? "not-allowed" : "pointer", opacity: deletingLoading ? 0.6 : 1, transition: "all 0.2s" }}
+                onMouseEnter={(e) => { if (!deletingLoading) e.currentTarget.style.opacity = "0.9"; }}
+                onMouseLeave={(e) => { if (!deletingLoading) e.currentTarget.style.opacity = "1"; }}
+              >
+                {deletingLoading ? "Deleting..." : "Delete"}
+              </button>
             </div>
           </div>
         </div>
@@ -1956,23 +2160,50 @@ export default function BinderPage() {
 
       {/* Create Binder Modal */}
       {creatingBinder && (
-        <div style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setCreatingBinder(false)}>
+        <div
+          style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          onClick={() => { if (!creatingBinderLoading) { setCreatingBinder(false); setNewBinderName(""); } }}
+        >
           <div style={{ background: c.bg, borderRadius: 24, padding: 24, width: "100%", maxWidth: 360, boxShadow: "0 25px 50px rgba(0,0,0,0.25)", border: `1px solid ${c.border}` }} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 800, fontSize: 20, color: c.text, marginBottom: 16 }}>Create Binder</div>
             <input 
               autoFocus 
+              disabled={creatingBinderLoading}
               value={newBinderName} 
               onChange={(e) => setNewBinderName(e.target.value)} 
               onKeyDown={(e) => { 
                 if (e.key === "Enter") handleCreateBinder(); 
-                if (e.key === "Escape") { setCreatingBinder(false); setNewBinderName(""); } 
+                if (e.key === "Escape" && !creatingBinderLoading) { setCreatingBinder(false); setNewBinderName(""); } 
               }} 
               placeholder={binderPlaceholder} 
-              style={{ width: "100%", background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)", border: `1px solid ${c.border}`, borderRadius: 12, padding: "14px 16px", outline: "none", fontSize: 16, color: c.text, fontFamily: "inherit", marginBottom: 20 }} 
+              style={{ width: "100%", background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)", border: `1px solid ${c.border}`, borderRadius: 12, padding: "14px 16px", outline: "none", fontSize: 16, color: c.text, fontFamily: "inherit", marginBottom: 20, opacity: creatingBinderLoading ? 0.6 : 1 }} 
             />
             <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-              <button onClick={() => { setCreatingBinder(false); setNewBinderName(""); }} style={{ padding: "10px 16px", fontSize: 14, fontWeight: 600, border: "none", background: "transparent", color: c.textSec, cursor: "pointer", borderRadius: 8 }}>Cancel</button>
-              <button onClick={handleCreateBinder} style={{ padding: "10px 20px", fontSize: 14, fontWeight: 600, border: "none", background: tc.accent, color: "white", borderRadius: 8, cursor: "pointer" }}>Create</button>
+              <button
+                disabled={creatingBinderLoading}
+                onClick={() => { setCreatingBinder(false); setNewBinderName(""); }}
+                style={{ padding: "10px 16px", fontSize: 14, fontWeight: 600, border: "none", background: "transparent", color: c.textSec, cursor: creatingBinderLoading ? "not-allowed" : "pointer", borderRadius: 8, opacity: creatingBinderLoading ? 0.5 : 1 }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={!newBinderName.trim() || creatingBinderLoading}
+                onClick={handleCreateBinder}
+                style={{
+                  padding: "10px 20px",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  border: "none",
+                  background: tc.accent,
+                  color: "white",
+                  borderRadius: 8,
+                  cursor: (!newBinderName.trim() || creatingBinderLoading) ? "not-allowed" : "pointer",
+                  opacity: (!newBinderName.trim() || creatingBinderLoading) ? 0.6 : 1,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {creatingBinderLoading ? "Creating..." : "Create"}
+              </button>
             </div>
           </div>
         </div>
@@ -1991,7 +2222,7 @@ export default function BinderPage() {
             justifyContent: "center",
             padding: 16,
           }}
-          onClick={() => { setRenamingId(null); setRenameValue(""); }}
+          onClick={() => { if (!renamingLoading) { setRenamingId(null); setRenameValue(""); } }}
         >
           <div
             style={{
@@ -2008,11 +2239,12 @@ export default function BinderPage() {
             <div style={{ fontWeight: 800, fontSize: 20, color: c.text, marginBottom: 16 }}>Rename Binder</div>
             <input
               autoFocus
+              disabled={renamingLoading}
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleRenameBinder(renamingId);
-                if (e.key === "Escape") { setRenamingId(null); setRenameValue(""); }
+                if (e.key === "Escape" && !renamingLoading) { setRenamingId(null); setRenameValue(""); }
               }}
               placeholder="Binder name..."
               style={{
@@ -2026,10 +2258,12 @@ export default function BinderPage() {
                 color: c.text,
                 fontFamily: "inherit",
                 marginBottom: 20,
+                opacity: renamingLoading ? 0.6 : 1,
               }}
             />
             <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
               <button
+                disabled={renamingLoading}
                 onClick={() => { setRenamingId(null); setRenameValue(""); }}
                 style={{
                   padding: "10px 16px",
@@ -2038,13 +2272,15 @@ export default function BinderPage() {
                   border: "none",
                   background: "transparent",
                   color: c.textSec,
-                  cursor: "pointer",
+                  cursor: renamingLoading ? "not-allowed" : "pointer",
                   borderRadius: 8,
+                  opacity: renamingLoading ? 0.5 : 1,
                 }}
               >
                 Cancel
               </button>
               <button
+                disabled={!renameValue.trim() || renamingLoading}
                 onClick={() => handleRenameBinder(renamingId)}
                 style={{
                   padding: "10px 20px",
@@ -2054,10 +2290,12 @@ export default function BinderPage() {
                   background: tc.accent,
                   color: "white",
                   borderRadius: 8,
-                  cursor: "pointer",
+                  cursor: (!renameValue.trim() || renamingLoading) ? "not-allowed" : "pointer",
+                  opacity: (!renameValue.trim() || renamingLoading) ? 0.6 : 1,
+                  transition: "all 0.15s ease",
                 }}
               >
-                Save
+                {renamingLoading ? "Saving..." : "Save"}
               </button>
             </div>
           </div>

@@ -918,14 +918,10 @@ export default function HomePage() {
         <div
           className="home-hero-cards"
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "24px 16px",
+            position: "relative",
             width: "100%",
             maxWidth: "100%",
             boxSizing: "border-box",
-            position: "relative",
           }}
         >
           <div

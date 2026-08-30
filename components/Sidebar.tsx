@@ -8,6 +8,7 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { Menu, PanelLeft, User, BookOpen, Palette, MessageSquare, LogOut, LayoutGrid, LayoutDashboard, Heart, X, Sun, Moon, Check, Bug, Lightbulb, HelpCircle, Coffee, Sparkles } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
 import Toast, { ToastData, ToastType } from "@/components/Toast";
+import DonIcon from "@/components/DonIcon";
 import { getColors, ALL_THEMES } from "@/lib/themes";
 
 export default function Sidebar() {
@@ -93,7 +94,7 @@ export default function Sidebar() {
     { icon: LayoutDashboard, label: "Dashboard", action: () => router.push("/dashboard"), show: !!user },
     { icon: LayoutGrid,  label: "Browse",   action: () => router.push("/browse"),   show: true },
     { icon: BookOpen,    label: "Binder",   action: () => router.push("/binder"),   show: true },
-    { icon: Menu,        label: "DON!!",    action: () => router.push("/don"),       show: true },
+    { icon: DonIcon,     label: "DON!!",    action: () => router.push("/don"),       show: true },
   ];
 
   const FEEDBACK_CATEGORIES = [

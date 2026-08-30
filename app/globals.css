@@ -835,47 +835,48 @@ body {
 }
 
 .home-hero-cards {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 64px 32px 24px;
-  overflow: visible;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  padding: 58px 48px 32px !important;
+  overflow: visible !important;
 }
 
 .home-hero-card-stack {
-  width: 440px;
-  height: 320px;
-  margin: 0 auto;
-  transform: scale(1.0);
-  transform-origin: center center;
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100% !important;
+  max-width: 440px !important;
+  height: 320px !important;
+  margin: 0 auto !important;
+  transform: scale(1.0) !important;
+  transform-origin: top center !important;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 /* Large Desktop (1280px+) */
 @media (min-width: 1280px) {
   .home-hero {
-    min-height: 500px;
+    min-height: 500px !important;
   }
   .home-hero-cards {
-    padding: 32px 80px 32px 32px;
+    padding: 58px 64px 32px !important;
   }
   .home-hero-card-stack {
-    transform: scale(1.08);
-    transform-origin: center center;
+    transform: scale(1.08) !important;
+    transform-origin: top center !important;
   }
 }
 
 /* Extra Large / Wide Screens (1536px+) */
 @media (min-width: 1536px) {
   .home-hero {
-    min-height: 540px;
+    min-height: 540px !important;
   }
   .home-hero-cards {
-    padding: 32px 110px 32px 40px;
+    padding: 58px 90px 32px !important;
   }
   .home-hero-card-stack {
-    transform: scale(1.16);
-    transform-origin: center center;
+    transform: scale(1.16) !important;
+    transform-origin: top center !important;
   }
 }
 
@@ -922,14 +923,14 @@ body {
   }
 
   .home-hero-cards {
-    padding: 20px 16px 28px !important;
+    padding: 48px 16px 28px !important;
     width: 100% !important;
     box-sizing: border-box !important;
     display: flex !important;
     justify-content: center !important;
-    align-items: center !important;
+    align-items: flex-start !important;
     overflow: visible !important;
-    height: 260px !important;
+    height: auto !important;
     min-height: 260px !important;
   }
 
@@ -939,7 +940,8 @@ body {
     max-width: 350px !important;
     height: 235px !important;
     margin: 0 auto !important;
-    transform: none !important;
+    transform: scale(0.95) !important;
+    transform-origin: top center !important;
   }
 
   .hero-fan-card {
@@ -1588,38 +1590,78 @@ body {
    LANDING PAGE — Mobile Landscape (orientation: landscape, height ≤ 520px)
    iPhone / Android landscape, fold phone landscape
    ══════════════════════════════════════════════════════════ */
-@media (orientation: landscape) and (max-height: 520px) {
+@media (orientation: landscape) and (max-height: 540px) {
   .home-hero {
     grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr) !important;
     min-height: unset !important;
+    align-items: stretch !important;
   }
 
   .home-hero-text {
-    padding: 12px 18px 16px !important;
+    padding: 14px 20px 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
   }
 
   .home-hero-title {
-    font-size: 36px !important;
+    font-size: 34px !important;
+    line-height: 0.98 !important;
     margin-bottom: 6px !important;
   }
 
   .home-hero-desc {
-    font-size: 11px !important;
+    font-size: 11.5px !important;
+    line-height: 1.45 !important;
     margin-bottom: 10px !important;
     max-width: none !important;
+  }
+
+  .home-hero-search-form {
+    margin-bottom: 0 !important;
   }
 
   .home-hero-cards {
     display: flex !important;
     justify-content: center !important;
-    align-items: center !important;
-    padding: 4px !important;
+    align-items: flex-start !important;
+    padding: 34px 16px 16px !important;
+    height: auto !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
   }
 
   .home-hero-card-stack {
-    transform: scale(0.48) !important;
-    transform-origin: center center !important;
-    margin: -50px auto !important;
+    width: 100% !important;
+    max-width: 320px !important;
+    height: 220px !important;
+    margin: 0 auto !important;
+    transform: scale(0.78) !important;
+    transform-origin: top center !important;
+  }
+
+  .hero-fan-card {
+    width: 124px !important;
+    height: 174px !important;
+    border-radius: 9px !important;
+  }
+
+  .hero-fan-card-0 {
+    left: calc(50% - 66px) !important;
+    top: 10px !important;
+    transform: translateX(-50%) rotate(-8deg) !important;
+  }
+
+  .hero-fan-card-1 {
+    left: 50% !important;
+    top: 26px !important;
+    transform: translateX(-50%) rotate(0deg) !important;
+  }
+
+  .hero-fan-card-2 {
+    left: calc(50% + 66px) !important;
+    top: 10px !important;
+    transform: translateX(-50%) rotate(8deg) !important;
   }
 
   .home-hero-stats {

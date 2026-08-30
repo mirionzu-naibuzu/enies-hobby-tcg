@@ -59,6 +59,7 @@ export default function Home() {
   const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
   const [showMultiBinderPicker, setShowMultiBinderPicker] = useState(false);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // ── INLINE BINDER CREATION STATE ──
   const [creatingBinderInline, setCreatingBinderInline] = useState(false);
@@ -343,6 +344,25 @@ export default function Home() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [selectedIndex, showBinderPicker, isSelectMode]);
 
+  // Global search shortcut (/)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === "/" &&
+        document.activeElement?.tagName !== "INPUT" &&
+        document.activeElement?.tagName !== "TEXTAREA" &&
+        selectedIndex < 0 &&
+        !showBinderPicker &&
+        !showMultiBinderPicker
+      ) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [selectedIndex, showBinderPicker, showMultiBinderPicker]);
+
   // ── BINDER ACTIONS ──
   const ownedSet = useMemo(() =>
     new Set(userCards.filter(u => !u.in_wishlist).map(u => u.card_id)), [userCards]);
@@ -619,10 +639,11 @@ export default function Home() {
               }}
             />
             <input
+              ref={searchInputRef}
               className="browse-search-input"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search card"
+              placeholder="Search card (/)"
               style={{
                 width: "100%",
                 paddingLeft: 36,
@@ -650,7 +671,11 @@ export default function Home() {
             />
             {search && (
               <button
-                onClick={() => setSearch("")}
+                onClick={() => {
+                  setSearch("");
+                  searchInputRef.current?.focus();
+                }}
+                aria-label="Clear search"
                 style={{
                   position: "absolute",
                   right: 8,
@@ -1041,8 +1066,10 @@ export default function Home() {
             {filtered.slice(0, visibleCards).map((card, i) => {
               const shouldFlip = isAnimating && i < 10;
               const isLastFlip = i === Math.min(9, filtered.length - 1);
-              const isOwned = ownedSet.has(getCardKey(card));
-              const selectKey = `${getCardKey(card)}||${i}`;
+              const cardKey = getCardKey(card);
+              const isOwned = ownedSet.has(cardKey);
+              const isWishlisted = wishlistSet.has(cardKey);
+              const selectKey = `${cardKey}||${i}`;
               const isMultiChecked = multiSelected.has(selectKey);
               return (
                 <div
@@ -1114,20 +1141,42 @@ export default function Home() {
                     <div
                       style={{
                         position: "absolute",
-                        bottom: 10,
-                        right: 10,
-                        width: 20,
-                        height: 20,
+                        top: 10,
+                        left: 10,
+                        width: 22,
+                        height: 22,
                         borderRadius: "50%",
                         background: "#16a34a",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         zIndex: 10,
-                        boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+                        pointerEvents: "none",
                       }}
                     >
-                      <Check size={11} color="#fff" strokeWidth={3} />
+                      <Check size={12} color="#fff" strokeWidth={3} />
+                    </div>
+                  )}
+                  {isWishlisted && !isSelectMode && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 10,
+                        left: isOwned ? 36 : 10,
+                        width: 22,
+                        height: 22,
+                        borderRadius: "50%",
+                        background: "#f59e0b",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 10,
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      <Star size={12} fill="#fff" color="#fff" />
                     </div>
                   )}
                   {isSelectMode && (
@@ -1361,6 +1410,22 @@ export default function Home() {
                           }}
                         >
                           <Check size={11} color="#fff" strokeWidth={3} />
+                        </div>
+                      )}
+                      {wishlistSet.has(getCardKey(selected)) && (
+                        <div
+                          style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: "50%",
+                            background: "#f59e0b",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Star size={11} fill="#fff" color="#fff" />
                         </div>
                       )}
                       <button
