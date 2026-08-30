@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { Menu, PanelLeft, User, BookOpen, Palette, MessageSquare, LogOut, LayoutGrid, LayoutDashboard, Heart, X, Sun, Moon, Check, Bug, Lightbulb, HelpCircle, Coffee, Sparkles } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
+import Toast, { ToastData, ToastType } from "@/components/Toast";
 import { getColors, ALL_THEMES } from "@/lib/themes";
 
 export default function Sidebar() {
@@ -26,10 +27,23 @@ export default function Sidebar() {
   const [feedbackCategory, setFeedbackCategory] = useState<string | null>(null);
   const [feedbackMood, setFeedbackMood] = useState(2);
   const [feedbackMoodTouched, setFeedbackMoodTouched] = useState(false);
-  const [feedbackStatus, setFeedbackStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-    const [showSupport, setShowSupport] = useState(false);
+  const [feedbackStatus, setFeedbackStatus] = useState<"idle" | "sending" | "error">("idle");
+  const [showSupport, setShowSupport] = useState(false);
   const [supportTab, setSupportTab] = useState<"gcash" | "kofi">("gcash");
   const [isMobile, setIsMobile] = useState(false);
+  const [toast, setToast] = useState<ToastData | null>(null);
+
+  const showToast = (message: string, type: ToastType = "success") => {
+    setToast({ message, type });
+  };
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, toast.type === "celebrate" ? 3200 : 2500);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -141,8 +155,8 @@ export default function Sidebar() {
         }),
       });
       if (res.ok) {
-        setFeedbackStatus("sent");
-        setTimeout(() => { closeFeedback(); }, 2000);
+        closeFeedback();
+        showToast("Thanks for your feedback!", "celebrate");
       } else {
         setFeedbackStatus("error");
       }
@@ -625,130 +639,118 @@ export default function Sidebar() {
                 <div style={{ fontSize: 13, color: colors.text.secondary }}>Help us improve Enies Hobby.</div>
               </div>
 
-              {feedbackStatus === "sent" ? (
-                <div style={{ textAlign: "center", padding: "28px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: isDark ? "rgba(239,68,68,0.15)" : "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12, color: "#ef4444" }}>
-                    <Sparkles size={26} />
-                  </div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: colors.text.primary }}>Thanks for your feedback!</div>
-                  <div style={{ fontSize: 13, color: colors.text.secondary, marginTop: 4 }}>We appreciate you helping us improve Enies Hobby.</div>
-                </div>
-              ) : (
-                <>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: colors.text.secondary, marginBottom: 8 }}>What&apos;s this about?</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 20 }}>
-                    {FEEDBACK_CATEGORIES.map((cat) => {
-                      const Icon = cat.icon;
-                      const active = feedbackCategory === cat.value;
-                      return (
-                        <button
-                          key={cat.value}
-                          onClick={() => setFeedbackCategory(cat.value)}
-                          style={{
-                            display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-                            padding: "12px 4px", borderRadius: 10, cursor: "pointer",
-                            border: active ? "1.5px solid #ef4444" : `1px solid ${colors.border}`,
-                            background: active ? (isDark ? "rgba(239,68,68,0.15)" : "rgba(239,68,68,0.08)") : "transparent",
-                            transition: "all 0.15s",
-                          }}
-                        >
-                          <Icon size={18} color={active ? "#ef4444" : colors.text.secondary} />
-                          <span style={{ fontSize: 11, fontWeight: 500, color: active ? "#ef4444" : colors.text.secondary }}>{cat.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <style>{`
-                    .feedback-mood-range {
-                      -webkit-appearance: none;
-                      appearance: none;
-                      width: 100%;
-                      height: 4px;
-                      border-radius: 999px;
-                      background: ${colors.border};
-                      outline: none;
-                      cursor: pointer;
-                    }
-                    .feedback-mood-range::-webkit-slider-thumb {
-                      -webkit-appearance: none;
-                      appearance: none;
-                      width: 20px;
-                      height: 20px;
-                      border-radius: 50%;
-                      background: ${colors.bg.primary};
-                      border: 1.5px solid ${colors.border};
-                      cursor: pointer;
-                    }
-                    .feedback-mood-range::-moz-range-thumb {
-                      width: 20px;
-                      height: 20px;
-                      border-radius: 50%;
-                      background: ${colors.bg.primary};
-                      border: 1.5px solid ${colors.border};
-                      cursor: pointer;
-                      box-sizing: border-box;
-                    }
-                    .feedback-mood-range::-moz-range-track {
-                      height: 4px;
-                      border-radius: 999px;
-                      background: ${colors.border};
-                    }
-                  `}</style>
-
-                  <div style={{ fontSize: 12, fontWeight: 600, color: colors.text.secondary, marginBottom: 10 }}>
-                    How do you feel? <span style={{ color: colors.text.secondary, fontWeight: 400 }}>(optional)</span>
-                  </div>
-                  <div style={{ textAlign: "center", fontSize: 13, fontWeight: 600, color: colors.text.primary, marginBottom: 8 }}>
-                    {MOOD_LABELS[feedbackMood]}
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={4}
-                    step={1}
-                    value={feedbackMood}
-                    onChange={(e) => { setFeedbackMood(Number(e.target.value)); setFeedbackMoodTouched(true); }}
-                    className="feedback-mood-range"
-                    style={{ marginBottom: 6 }}
-                  />
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: colors.text.secondary, marginBottom: 20 }}>
-                    <span>Frustrated</span>
-                    <span>Delighted</span>
-                  </div>
-
-                  <div style={{ fontSize: 12, fontWeight: 600, color: colors.text.secondary, marginBottom: 8 }}>Tell us more</div>
-                  <textarea
-                    value={feedbackText}
-                    onChange={(e) => setFeedbackText(e.target.value)}
-                    placeholder="Type your feedback here..."
-                    rows={4}
-                    style={{ width: "100%", padding: "12px 14px", fontSize: 13, borderRadius: 10, border: `1px solid ${colors.border}`, background: colors.bg.secondary, color: colors.text.primary, resize: "none", outline: "none", marginBottom: 20, lineHeight: 1.6, fontFamily: "inherit", transition: "border-color 0.2s" }}
-                    onFocus={(e) => { e.currentTarget.style.borderColor = "#ef4444"; }}
-                    onBlur={(e) => { e.currentTarget.style.borderColor = colors.border; }}
-                  />
-
-                  {feedbackStatus === "error" && (
-                    <div style={{ fontSize: 12, color: "#ef4444", marginBottom: 10 }}>Something went wrong. Try again.</div>
-                  )}
-
-                  <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: colors.text.secondary, marginBottom: 8 }}>What&apos;s this about?</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 20 }}>
+                {FEEDBACK_CATEGORIES.map((cat) => {
+                  const Icon = cat.icon;
+                  const active = feedbackCategory === cat.value;
+                  return (
                     <button
-                      onClick={closeFeedback}
-                      style={{ flex: 1, padding: "11px 0", fontSize: 13, fontWeight: 600, border: `1.5px solid ${colors.border}`, background: "transparent", color: colors.text.primary, borderRadius: 8, cursor: "pointer" }}
+                      key={cat.value}
+                      onClick={() => setFeedbackCategory(cat.value)}
+                      style={{
+                        display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+                        padding: "12px 4px", borderRadius: 10, cursor: "pointer",
+                        border: active ? "1.5px solid #ef4444" : `1px solid ${colors.border}`,
+                        background: active ? (isDark ? "rgba(239,68,68,0.15)" : "rgba(239,68,68,0.08)") : "transparent",
+                        transition: "all 0.15s",
+                      }}
                     >
-                      Cancel
+                      <Icon size={18} color={active ? "#ef4444" : colors.text.secondary} />
+                      <span style={{ fontSize: 11, fontWeight: 500, color: active ? "#ef4444" : colors.text.secondary }}>{cat.label}</span>
                     </button>
-                    <button
-                      onClick={handleFeedbackSubmit}
-                      disabled={!feedbackText.trim() || !feedbackCategory || feedbackStatus === "sending"}
-                      style={{ flex: 1, padding: "11px 0", fontSize: 13, fontWeight: 600, border: "none", background: (feedbackText.trim() && feedbackCategory) ? "#ef4444" : (isDark ? "#374151" : "#e5e7eb"), color: (feedbackText.trim() && feedbackCategory) ? "#fff" : colors.text.secondary, borderRadius: 8, cursor: (feedbackText.trim() && feedbackCategory) ? "pointer" : "not-allowed", transition: "all 0.2s" }}
-                    >
-                      {feedbackStatus === "sending" ? "Sending..." : "Send"}
-                    </button>
-                  </div>
-                </>
+                  );
+                })}
+              </div>
+
+              <style>{`
+                .feedback-mood-range {
+                  -webkit-appearance: none;
+                  appearance: none;
+                  width: 100%;
+                  height: 4px;
+                  border-radius: 999px;
+                  background: ${colors.border};
+                  outline: none;
+                  cursor: pointer;
+                }
+                .feedback-mood-range::-webkit-slider-thumb {
+                  -webkit-appearance: none;
+                  appearance: none;
+                  width: 20px;
+                  height: 20px;
+                  border-radius: 50%;
+                  background: ${colors.bg.primary};
+                  border: 1.5px solid ${colors.border};
+                  cursor: pointer;
+                }
+                .feedback-mood-range::-moz-range-thumb {
+                  width: 20px;
+                  height: 20px;
+                  border-radius: 50%;
+                  background: ${colors.bg.primary};
+                  border: 1.5px solid ${colors.border};
+                  cursor: pointer;
+                  box-sizing: border-box;
+                }
+                .feedback-mood-range::-moz-range-track {
+                  height: 4px;
+                  border-radius: 999px;
+                  background: ${colors.border};
+                }
+              `}</style>
+
+              <div style={{ fontSize: 12, fontWeight: 600, color: colors.text.secondary, marginBottom: 10 }}>
+                How do you feel? <span style={{ color: colors.text.secondary, fontWeight: 400 }}>(optional)</span>
+              </div>
+              <div style={{ textAlign: "center", fontSize: 13, fontWeight: 600, color: colors.text.primary, marginBottom: 8 }}>
+                {MOOD_LABELS[feedbackMood]}
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={4}
+                step={1}
+                value={feedbackMood}
+                onChange={(e) => { setFeedbackMood(Number(e.target.value)); setFeedbackMoodTouched(true); }}
+                className="feedback-mood-range"
+                style={{ marginBottom: 6 }}
+              />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: colors.text.secondary, marginBottom: 20 }}>
+                <span>Frustrated</span>
+                <span>Delighted</span>
+              </div>
+
+              <div style={{ fontSize: 12, fontWeight: 600, color: colors.text.secondary, marginBottom: 8 }}>Tell us more</div>
+              <textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder="Type your feedback here..."
+                rows={4}
+                style={{ width: "100%", padding: "12px 14px", fontSize: 13, borderRadius: 10, border: `1px solid ${colors.border}`, background: colors.bg.secondary, color: colors.text.primary, resize: "none", outline: "none", marginBottom: 20, lineHeight: 1.6, fontFamily: "inherit", transition: "border-color 0.2s" }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "#ef4444"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = colors.border; }}
+              />
+
+              {feedbackStatus === "error" && (
+                <div style={{ fontSize: 12, color: "#ef4444", marginBottom: 10 }}>Something went wrong. Try again.</div>
               )}
+
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={closeFeedback}
+                  style={{ flex: 1, padding: "11px 0", fontSize: 13, fontWeight: 600, border: `1.5px solid ${colors.border}`, background: "transparent", color: colors.text.primary, borderRadius: 8, cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleFeedbackSubmit}
+                  disabled={!feedbackText.trim() || !feedbackCategory || feedbackStatus === "sending"}
+                  style={{ flex: 1, padding: "11px 0", fontSize: 13, fontWeight: 600, border: "none", background: (feedbackText.trim() && feedbackCategory) ? "#ef4444" : (isDark ? "#374151" : "#e5e7eb"), color: (feedbackText.trim() && feedbackCategory) ? "#fff" : colors.text.secondary, borderRadius: 8, cursor: (feedbackText.trim() && feedbackCategory) ? "pointer" : "not-allowed", transition: "all 0.2s" }}
+                >
+                  {feedbackStatus === "sending" ? "Sending..." : "Send"}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -845,6 +847,7 @@ export default function Sidebar() {
           </div>
         </div>
       )}
+      <Toast toast={toast} isDark={isDark} />
     </>
   );
 }

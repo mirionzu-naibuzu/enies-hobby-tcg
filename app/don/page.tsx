@@ -16,6 +16,7 @@ import {
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import { getAllDonCards } from "@/lib/api";
 import ModalCardImage from "@/components/ModalCardImage";
+import Toast, { ToastData, ToastType } from "@/components/Toast";
 
 interface DonCard {
   card_name: string;
@@ -80,6 +81,19 @@ export default function DonCardsPage() {
   const [creatingBinderInline, setCreatingBinderInline] = useState(false);
   const [newBinderNameInline, setNewBinderNameInline] = useState("");
   const [creatingBinderLoading, setCreatingBinderLoading] = useState(false);
+  const [toast, setToast] = useState<ToastData | null>(null);
+
+  const showToast = (message: string, type: ToastType = "success") => {
+    setToast({ message, type });
+  };
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, toast.type === "celebrate" ? 3200 : 2500);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const tc = getColors(theme, mounted);
   const isDark = tc.isDark;
@@ -245,21 +259,26 @@ export default function DonCardsPage() {
     if (!user) return;
     if (wishlistSet.has(cardKey)) {
       setUserCards(prev => prev.filter(u => u.card_id !== cardKey));
+      showToast("Removed from wishlist", "info");
       await removeUserCard(user.id, cardKey);
     } else {
       setUserCards(prev => [...prev.filter(u => u.card_id !== cardKey), { card_id: cardKey, in_wishlist: true }]);
+      showToast("Added to wishlist", "wishlist");
       await addUserCard(user.id, cardKey, true);
     }
   };
 
   const handleToggleBinderCard = async (binderId: string, cardKey: string) => {
     const current = binderCardMap[binderId] ?? [];
+    const bName = binders.find(b => b.id === binderId)?.name;
     if (current.includes(cardKey)) {
       await removeCardFromBinder(binderId, cardKey);
       setBinderCardMap(prev => ({ ...prev, [binderId]: prev[binderId].filter(id => id !== cardKey) }));
+      showToast(bName ? `Removed from "${bName}"` : "Removed from binder", "info");
     } else {
       await addCardToBinder(binderId, cardKey);
       setBinderCardMap(prev => ({ ...prev, [binderId]: [...(prev[binderId] ?? []), cardKey] }));
+      showToast(bName ? `Added to "${bName}"` : "Added to binder", "success");
     }
   };
 
@@ -271,6 +290,7 @@ export default function DonCardsPage() {
       setBinders(prev => [...prev, b]);
       await addCardToBinder(b.id, cardKey);
       setBinderCardMap(prev => ({ ...prev, [b.id]: [cardKey] }));
+      showToast(`Binder "${b.name}" created!`, "celebrate");
     }
     setNewBinderNameInline("");
     setCreatingBinderInline(false);
@@ -880,6 +900,7 @@ export default function DonCardsPage() {
           <ArrowUp size={20} strokeWidth={2.5} />
         </button>
       )}
+      <Toast toast={toast} isDark={isDark} />
     </div>
   );
 }

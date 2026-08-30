@@ -20,6 +20,9 @@ export interface Card {
   images: { small: string; large: string };
   set: { name: string };
   setType?: CardSetType;
+  price?: number;
+  market_price?: number;
+  inventory_price?: number;
 }
 
 export interface CardSet {

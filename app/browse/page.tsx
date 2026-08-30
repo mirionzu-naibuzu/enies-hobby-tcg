@@ -21,6 +21,7 @@ import Image from "next/image";
 import { getColors } from "@/lib/themes";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import ModalCardImage from "@/components/ModalCardImage";
+import Toast, { ToastData, ToastType } from "@/components/Toast";
 
 function isLimitedProductCard(card: Card) {
   return card.setType === "limited_product";
@@ -64,6 +65,19 @@ export default function Home() {
   const [newBinderNameInline, setNewBinderNameInline] = useState("");
   const [creatingBinderLoading, setCreatingBinderLoading] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+  const [toast, setToast] = useState<ToastData | null>(null);
+
+  const showToast = (message: string, type: ToastType = "success") => {
+    setToast({ message, type });
+  };
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, toast.type === "celebrate" ? 3200 : 2500);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const tc = getColors(theme, mounted);
   const isDark = tc.isDark;
@@ -339,9 +353,11 @@ export default function Home() {
     if (!user) return;
     if (ownedSet.has(cardId)) {
       setUserCards(prev => prev.filter(u => u.card_id !== cardId));
+      showToast("Removed from collection", "info");
       await removeUserCard(user.id, cardId);
     } else {
       setUserCards(prev => [...prev.filter(u => u.card_id !== cardId), { card_id: cardId, in_wishlist: false }]);
+      showToast("Added to collection", "success");
       await addUserCard(user.id, cardId, false);
     }
   };
@@ -350,21 +366,26 @@ export default function Home() {
     if (!user) return;
     if (wishlistSet.has(cardId)) {
       setUserCards(prev => prev.filter(u => u.card_id !== cardId));
+      showToast("Removed from wishlist", "info");
       await removeUserCard(user.id, cardId);
     } else {
       setUserCards(prev => [...prev.filter(u => u.card_id !== cardId), { card_id: cardId, in_wishlist: true }]);
+      showToast("Added to wishlist", "wishlist");
       await addUserCard(user.id, cardId, true);
     }
   };
 
   const handleToggleBinderCard = async (binderId: string, cardId: string) => {
     const current = binderCardMap[binderId] ?? [];
+    const bName = binders.find(b => b.id === binderId)?.name;
     if (current.includes(cardId)) {
       await removeCardFromBinder(binderId, cardId);
       setBinderCardMap(prev => ({ ...prev, [binderId]: prev[binderId].filter(id => id !== cardId) }));
+      showToast(bName ? `Removed from "${bName}"` : "Removed from binder", "info");
     } else {
       await addCardToBinder(binderId, cardId);
       setBinderCardMap(prev => ({ ...prev, [binderId]: [...(prev[binderId] ?? []), cardId] }));
+      showToast(bName ? `Added to "${bName}"` : "Added to binder", "success");
       if (!ownedSet.has(cardId) && user) {
         await addUserCard(user.id, cardId, false);
         setUserCards(prev => [...prev.filter(u => u.card_id !== cardId), { card_id: cardId, in_wishlist: false }]);
@@ -381,6 +402,7 @@ export default function Home() {
       setBinders(prev => [...prev, b]);
       await addCardToBinder(b.id, cardId);
       setBinderCardMap(prev => ({ ...prev, [b.id]: [cardId] }));
+      showToast(`Binder "${b.name}" created!`, "celebrate");
       if (!ownedSet.has(cardId) && user) {
         await addUserCard(user.id, cardId, false);
         setUserCards(prev => [...prev.filter(u => u.card_id !== cardId), { card_id: cardId, in_wishlist: false }]);
@@ -412,6 +434,7 @@ export default function Home() {
         setBulkProgress({ done, total: keys.length });
       }));
       setBinderCardMap(prev => ({ ...prev, [b.id]: addedKeys }));
+      showToast(`Binder "${b.name}" created with ${keys.length} cards!`, "celebrate");
     }
     setBulkProgress(null);
     resetInlineCreation();
@@ -458,12 +481,14 @@ export default function Home() {
       setUserCards(prev => [...prev.filter(u => u.card_id !== cardKey), { card_id: cardKey, in_wishlist: false }]);
     }));
     setBulkProgress(null);
+    showToast(`${keys.length} cards marked as owned`, "success");
     exitSelectMode();
   };
 
   const handleMultiAddToBinder = async (binderId: string) => {
     if (!user) return;
     const current = binderCardMap[binderId] ?? [];
+    const bName = binders.find(b => b.id === binderId)?.name;
     const keys = [...multiSelected].map(toCardKey).filter(k => !current.includes(k));
     if (keys.length === 0) { exitSelectMode(); return; }
     setBulkProgress({ done: 0, total: keys.length });
@@ -479,6 +504,7 @@ export default function Home() {
       setBinderCardMap(prev => ({ ...prev, [binderId]: [...(prev[binderId] ?? []), cardKey] }));
     }));
     setBulkProgress(null);
+    showToast(bName ? `${keys.length} cards added to "${bName}"` : `${keys.length} cards added to binder`, "success");
     exitSelectMode();
   };
 
@@ -2243,6 +2269,7 @@ export default function Home() {
           </button>
         </div>
       )}
+      <Toast toast={toast} isDark={isDark} />
     </div>
   );
 }

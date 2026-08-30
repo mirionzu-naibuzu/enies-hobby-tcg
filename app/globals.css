@@ -3284,10 +3284,56 @@ body {
   transform: scale(0.94) !important;
 }
 
-.don-scroll-top:hover {
+.don-scroll-top:hover,
+.binder-scroll-top:hover {
   transform: translateX(-50%) translateY(-2px) !important;
 }
 
-.don-scroll-top:active {
+.don-scroll-top:active,
+.binder-scroll-top:active {
   transform: translateX(-50%) translateY(0) scale(0.96) !important;
+}
+
+/* ── 100% Master Set Completion Shimmer Sweep ── */
+@keyframes completionSweep {
+  0% { transform: translateX(-100%); }
+  50%, 100% { transform: translateX(200%); }
+}
+
+.binder-completion-shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  animation: completionSweep 3s infinite ease-in-out;
+  pointer-events: none;
+}
+
+/* ── Toast Notification Animation ── */
+@keyframes toastIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -12px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes impeccableToastIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -10px) scale(0.94);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, 1px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
 }

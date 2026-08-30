@@ -22,7 +22,8 @@ import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import { SET_ORDER, SET_NAMES } from "@/lib/sets";
 import { getAllDonCards } from "@/lib/api";
 import ModalCardImage from "@/components/ModalCardImage";
-import { Trash2, Pencil, Check, X, ChevronLeft, ChevronRight, CheckSquare, SlidersHorizontal, Plus, ArrowRight, BookOpen, Star, Search } from "lucide-react";
+import Toast, { ToastData, ToastType } from "@/components/Toast";
+import { Trash2, Pencil, Check, X, ChevronLeft, ChevronRight, CheckSquare, SlidersHorizontal, Plus, ArrowRight, BookOpen, Star, Search, ArrowUp, Tag, MoreVertical, Crown } from "lucide-react";
 
 const sortByCardId = (cards: Card[], setId?: string) => {
   const filterId = (setId ?? "").replace(/-/g, "").toUpperCase();
@@ -43,6 +44,16 @@ const COLOR_DOT: Record<string, string> = {
   Red: "#ef4444", Green: "#22c55e", Blue: "#3b82f6",
   Purple: "#a855f7", Black: "#374151", Yellow: "#eab308",
 };
+
+const BINDER_PLACEHOLDERS = [
+  "Straw Hat Grand Fleet...",
+  "Manga Chase Grails...",
+  "Wano Arc Masterpieces...",
+  "Yonko Heavy Hitters...",
+  "OP-05 Tournament Core...",
+  "DON!! Foil Collection...",
+  "Secret Rares & Alts...",
+];
 const FILTER_COLORS   = ["Red", "Green", "Blue", "Purple", "Black", "Yellow"];
 const FILTER_TYPES    = ["LEADER", "CHARACTER", "EVENT", "STAGE"];
 const FILTER_RARITIES = ["SEC", "SR", "R", "UC", "C", "P", "TR"];
@@ -126,7 +137,7 @@ function AuthGate({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: () =
 function ProgressBar({ value, total, color = "#111827" }: { value: number; total: number; color?: string }) {
   const pct = total === 0 ? 0 : Math.floor((value / total) * 100);
   return (
-    <div style={{ height: 2, background: "#e5e7eb", borderRadius: 99, overflow: "hidden", marginTop: 8 }}>
+    <div style={{ height: 5, background: "rgba(128,128,128,0.18)", borderRadius: 99, overflow: "hidden", marginTop: 10 }}>
       <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 99, transition: "width 0.4s ease" }} />
     </div>
   );
@@ -444,6 +455,13 @@ export default function BinderPage() {
 
   const [creatingBinder, setCreatingBinder] = useState(false);
   const [newBinderName, setNewBinderName] = useState("");
+  const [binderPlaceholder, setBinderPlaceholder] = useState("My legendary collection...");
+
+  const openCreateBinder = () => {
+    const random = BINDER_PLACEHOLDERS[Math.floor(Math.random() * BINDER_PLACEHOLDERS.length)];
+    setBinderPlaceholder(random);
+    setCreatingBinder(true);
+  };
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -467,12 +485,43 @@ export default function BinderPage() {
     colors?: string[]; type?: string; rarity?: string; spOnly?: boolean; owned?: "owned" | "not_owned";
   }>({});
   const [binderFiltersOpen, setBinderFiltersOpen] = useState(false);
+  const [wishlistSearch, setWishlistSearch] = useState("");
+  const [wishlistColor, setWishlistColor] = useState<string | null>(null);
+  const [wishlistSetId, setWishlistSetId] = useState<string | null>(null);
+  const [activeMenuBinderId, setActiveMenuBinderId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [toast, setToast] = useState<ToastData | null>(null);
+
+  const showToast = (message: string, type: ToastType = "success") => {
+    setToast({ message, type });
+  };
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, toast.type === "celebrate" ? 3200 : 2500);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   //scroll lock
   useBodyScrollLock(!!modalCard || donModalIndex >= 0 || binderFiltersOpen);
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (!activeMenuBinderId) return;
+    const handleOutsideClick = () => setActiveMenuBinderId(null);
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setActiveMenuBinderId(null);
+    };
+    window.addEventListener("click", handleOutsideClick);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("click", handleOutsideClick);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [activeMenuBinderId]);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 1024px)");
@@ -581,9 +630,11 @@ export default function BinderPage() {
     if (!user) return;
     if (ownedSet.has(cardId)) {
       setUserCards(prev => prev.filter(u => u.card_id !== cardId));
+      showToast("Removed from collection", "info");
       await removeUserCard(user.id, cardId);
     } else {
       setUserCards(prev => [...prev.filter(u => u.card_id !== cardId), { card_id: cardId, in_wishlist: false }]);
+      showToast("Added to collection", "success");
       await addUserCard(user.id, cardId, false);
     }
   };
@@ -592,9 +643,11 @@ export default function BinderPage() {
     if (!user) return;
     if (wishlistSet.has(cardId)) {
       setUserCards(prev => prev.filter(u => u.card_id !== cardId));
+      showToast("Removed from wishlist", "info");
       await removeUserCard(user.id, cardId);
     } else {
       setUserCards(prev => [...prev.filter(u => u.card_id !== cardId), { card_id: cardId, in_wishlist: true }]);
+      showToast("Added to wishlist", "wishlist");
       await addUserCard(user.id, cardId, true);
     }
   };
@@ -605,12 +658,14 @@ export default function BinderPage() {
       setOpenBinderCards(prev => prev.filter(id => id !== cardId));
       setBinderCounts(prev => ({ ...prev, [openBinderId]: Math.max((prev[openBinderId] ?? 1) - 1, 0) }));
       setBinderPreviewCards(prev => ({ ...prev, [openBinderId]: (prev[openBinderId] ?? []).filter(c => getCardKey(c) !== cardId) }));
+      showToast("Card removed from binder", "info");
       await removeCardFromBinder(openBinderId, cardId);
     } else {
       setOpenBinderCards(prev => [...prev, cardId]);
       setBinderCounts(prev => ({ ...prev, [openBinderId]: (prev[openBinderId] ?? 0) + 1 }));
       const card = allCards.find(c => getCardKey(c) === cardId);
       if (card) setBinderPreviewCards(prev => ({ ...prev, [openBinderId]: [...(prev[openBinderId] ?? []), card].slice(0, 4) }));
+      showToast("Card added to binder", "success");
       await addCardToBinder(openBinderId, cardId);
       if (!ownedSet.has(cardId) && user) {
         setUserCards(prev => [...prev.filter(u => u.card_id !== cardId), { card_id: cardId, in_wishlist: false }]);
@@ -622,21 +677,30 @@ export default function BinderPage() {
   const handleCreateBinder = async () => {
     if (!user || !newBinderName.trim()) return;
     const b = await createBinder(user.id, newBinderName.trim());
-    if (b) { setBinders(prev => [...prev, b]); setBinderCounts(prev => ({ ...prev, [b.id]: 0 })); }
-    setNewBinderName(""); setCreatingBinder(false);
+    if (b) {
+      setBinders(prev => [...prev, b]);
+      setBinderCounts(prev => ({ ...prev, [b.id]: 0 }));
+      showToast(`Binder "${b.name}" created!`, "celebrate");
+    }
+    setNewBinderName("");
+    setCreatingBinder(false);
   };
 
   const handleDeleteBinder = async (id: string) => {
+    const bName = binders.find(b => b.id === id)?.name;
     await deleteBinder(id);
     setBinders(prev => prev.filter(b => b.id !== id));
     if (openBinderId === id) setOpenBinderId(null);
+    showToast(bName ? `Binder "${bName}" deleted` : "Binder deleted", "delete");
   };
 
   const handleRenameBinder = async (id: string) => {
     if (!renameValue.trim()) return;
     await renameBinder(id, renameValue.trim());
     setBinders(prev => prev.map(b => b.id === id ? { ...b, name: renameValue.trim() } : b));
+    showToast(`Binder renamed to "${renameValue.trim()}"`, "success");
     setRenamingId(null);
+    setRenameValue("");
   };
 
   if (loadingUser) return (
@@ -1013,8 +1077,11 @@ export default function BinderPage() {
 
         {modalCard && <CardModal modalCard={modalCard} modalIndex={modalIndex} modalCards={modalCards} setModalCard={setModalCard} setModalIndex={setModalIndex} c={c} tc={tc} isDark={isDark} ownedSet={ownedSet} wishlistSet={wishlistSet} onToggleOwned={handleToggleOwned} onToggleWishlist={handleToggleWishlist} />}
         {showScrollTop && !modalCard && (
-          <button className="binder-scroll-top" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ position: "fixed", bottom: 32, left: "50%", transform: "translateX(-50%)", width: 56, height: 56, borderRadius: "50%", background: c.bgTer, color: c.text, border: `1px solid ${c.border}`, cursor: "pointer", fontSize: 22, fontWeight: 700, boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.4)" : "0 4px 20px rgba(0,0,0,0.3)", zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>↑</button>
+          <button className="binder-scroll-top" aria-label="Scroll to top" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ position: "fixed", bottom: 32, left: "50%", transform: "translateX(-50%)", width: 48, height: 48, borderRadius: "50%", background: c.bgTer, color: c.text, border: `1px solid ${c.border}`, cursor: "pointer", boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.4)" : "0 4px 20px rgba(0,0,0,0.3)", zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+            <ArrowUp size={20} strokeWidth={2.5} />
+          </button>
         )}
+        <Toast toast={toast} isDark={isDark} />
       </div>
     );
   }
@@ -1134,11 +1201,13 @@ export default function BinderPage() {
               <div style={{ display: "flex", gap: 12 }}>
                 <button onClick={() => setBulkDeleteConfirm(false)} style={{ flex: 1, padding: "12px 0", fontSize: 14, fontWeight: 600, border: `1.5px solid ${c.border}`, background: "transparent", color: c.text, borderRadius: 8, cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.background = c.bgSec; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>Cancel</button>
                 <button onClick={async () => {
+                  const count = selectedCardKeys.size;
                   for (const cardKey of selectedCardKeys) { await removeCardFromBinder(openBinderId!, cardKey); }
                   setOpenBinderCards(prev => prev.filter(id => !selectedCardKeys.has(id)));
                   setBinderCounts(prev => ({ ...prev, [openBinderId!]: Math.max((prev[openBinderId!] ?? selectedCardKeys.size) - selectedCardKeys.size, 0) }));
                   setBinderPreviewCards(prev => ({ ...prev, [openBinderId!]: (prev[openBinderId!] ?? []).filter(c => !selectedCardKeys.has(getCardKey(c))) }));
                   setSelectedCardKeys(new Set()); setSelectionMode(false); setBulkDeleteConfirm(false);
+                  showToast(`${count} card${count > 1 ? "s" : ""} removed from binder`);
                 }} style={{ flex: 1, padding: "12px 0", fontSize: 14, fontWeight: 600, border: "none", background: "#ef4444", color: "white", borderRadius: 8, cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>Remove</button>
               </div>
             </div>
@@ -1159,8 +1228,11 @@ export default function BinderPage() {
           />
         )}
         {showScrollTop && !modalCard && donModalIndex < 0 && (
-          <button className="binder-scroll-top" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ position: "fixed", bottom: 32, left: "50%", transform: "translateX(-50%)", width: 56, height: 56, borderRadius: "50%", background: c.bgTer, color: c.text, border: `1px solid ${c.border}`, cursor: "pointer", fontSize: 22, fontWeight: 700, boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.4)" : "0 4px 20px rgba(0,0,0,0.3)", zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>↑</button>
+          <button className="binder-scroll-top" aria-label="Scroll to top" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ position: "fixed", bottom: 32, left: "50%", transform: "translateX(-50%)", width: 48, height: 48, borderRadius: "50%", background: c.bgTer, color: c.text, border: `1px solid ${c.border}`, cursor: "pointer", boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.4)" : "0 4px 20px rgba(0,0,0,0.3)", zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+            <ArrowUp size={20} strokeWidth={2.5} />
+          </button>
         )}
+        <Toast toast={toast} isDark={isDark} />
       </div>
     );
   }
@@ -1216,8 +1288,13 @@ export default function BinderPage() {
                   <div>
                     <div className="binder-stats-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10 }}>
                       <div>
-                        <div className="binder-pct-text" style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.04em", color: c.text }}>{pct}%</div>
-                        <div className="binder-stat-subtext" style={{ fontSize: 12, color: c.textTer, marginTop: 2 }}>collection complete</div>
+                        <div className="binder-pct-text" style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.04em", color: pct === 100 ? "#22c55e" : c.text, display: "flex", alignItems: "center", gap: 6 }}>
+                          <span>{pct}%</span>
+                          {pct === 100 && <Crown size={16} color="#eab308" fill="#eab308" />}
+                        </div>
+                        <div className="binder-stat-subtext" style={{ fontSize: 12, color: pct === 100 ? "#22c55e" : c.textTer, marginTop: 2, fontWeight: pct === 100 ? 600 : 400 }}>
+                          {pct === 100 ? "Master Set Complete!" : "collection complete"}
+                        </div>
                       </div>
                       <div style={{ textAlign: "right" }}>
                         <div className="binder-count-text" style={{ fontSize: 14, fontWeight: 600, color: c.text }}>{ownedCount} / {setCards.length}</div>
@@ -1225,7 +1302,9 @@ export default function BinderPage() {
                       </div>
                     </div>
                     <div className="binder-progress-bar" style={{ position: "relative", height: 6, borderRadius: 999, overflow: "hidden", background: isDark ? "rgba(255,255,255,0.06)" : tc.bg.tertiary }}>
-                      <div style={{ width: `${pct}%`, height: "100%", borderRadius: 999, background: pct === 100 ? "linear-gradient(90deg,#22c55e,#4ade80)" : `linear-gradient(90deg,${tc.accent},${tc.accent}aa)`, boxShadow: pct === 100 ? "0 0 20px rgba(34,197,94,0.5)" : `0 0 24px ${tc.accent}66`, transition: "all 0.4s ease" }} />
+                      <div style={{ width: `${pct}%`, height: "100%", borderRadius: 999, background: pct === 100 ? "linear-gradient(90deg,#22c55e,#4ade80)" : `linear-gradient(90deg,${tc.accent},${tc.accent}aa)`, boxShadow: pct === 100 ? "0 0 20px rgba(34,197,94,0.5)" : `0 0 24px ${tc.accent}66`, transition: "all 0.4s ease", position: "relative", overflow: "hidden" }}>
+                        {pct === 100 && <div className="binder-completion-shimmer" />}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1236,28 +1315,31 @@ export default function BinderPage() {
 
         {tab === "custom" && (
           <div>
-              {!isMobile && (
-                <div style={{ marginBottom: 28 }}>
+              {!isMobile && binders.length > 0 && (
+                <div style={{ marginBottom: 24 }}>
                   <button 
-                    onClick={() => setCreatingBinder(true)} 
-                  style={{ 
-                    padding: "16px 22px", 
-                    borderRadius: 999, 
-                    border: "none", 
-                    cursor: "pointer", 
-                    background: `linear-gradient(90deg,${tc.accent},${tc.accent}bb)`, 
-                    color: "#fff", 
-                    fontSize: 14, 
-                    fontWeight: 600, 
-                    boxShadow: `0 10px 30px ${tc.accent}55`, 
-                    transition: "all 0.2s ease" 
-                  }} 
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; }} 
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0px)"; }}
-                >
-                  <Plus size={16} style={{ display: "inline-block", marginRight: 8, verticalAlign: "-3px" }} />
-                  Create Binder
-                </button>
+                    onClick={openCreateBinder} 
+                    style={{ 
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "10px 18px", 
+                      borderRadius: 10, 
+                      border: "none", 
+                      cursor: "pointer", 
+                      background: tc.accent, 
+                      color: "#fff", 
+                      fontSize: 13, 
+                      fontWeight: 600, 
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.12)", 
+                      transition: "all 0.2s ease" 
+                    }} 
+                    onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; e.currentTarget.style.transform = "translateY(-1px)"; }} 
+                    onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
+                  >
+                    <Plus size={15} />
+                    <span>Create Binder</span>
+                  </button>
                 </div>
               )}
 
@@ -1267,20 +1349,138 @@ export default function BinderPage() {
                 return (
                   <div key={binder.id} className="binder-deck-card" onClick={() => { if (renamingId !== binder.id) { savedScrollY.current = window.scrollY; setOpenBinderId(binder.id); window.scrollTo(0, 0); } }} style={{ position: "relative", overflow: "hidden", borderRadius: 24, padding: "26px 26px", cursor: "pointer", background: isDark ? `radial-gradient(circle at top right, ${tc.accent}22, transparent 35%), linear-gradient(180deg, ${tc.bg.secondary}, ${tc.bg.primary})` : tc.bg.secondary, border: `1px solid ${tc.border}`, boxShadow: "0 10px 40px rgba(0,0,0,0.35)", transition: "all 0.25s ease" }} onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px) scale(1.015)"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0px) scale(1)"; }}>
                     <div style={{ position: "absolute", width: 240, height: 240, borderRadius: "50%", background: `${tc.accent}22`, filter: "blur(90px)", top: -120, right: -80, pointerEvents: "none" }} />
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-                      <div>
-                        {renamingId === binder.id ? (
-                          <input autoFocus value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter") handleRenameBinder(binder.id); if (e.key === "Escape") setRenamingId(null); }} onClick={(e) => e.stopPropagation()} style={{ background: "transparent", border: "none", outline: "none", fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em", color: c.text, fontFamily: "inherit" }} />
-                        ) : (
-                          <>
-                            <div className="binder-set-code" style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: c.textTer, marginBottom: 8, fontWeight: 600 }}>Custom Binder</div>
-                            <div className="binder-set-title" style={{ fontSize: 26, lineHeight: 1.15, fontWeight: 800, letterSpacing: "-0.03em", color: c.text, maxWidth: "100%" }}>{binder.name}</div>
-                          </>
-                        )}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, minHeight: 34, gap: 10 }}>
+                      <div className="binder-set-title" style={{ fontSize: 24, lineHeight: 1.2, fontWeight: 800, letterSpacing: "-0.03em", color: c.text, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: "1 1 auto" }}>
+                        {binder.name}
                       </div>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button onClick={(e) => { e.stopPropagation(); setRenamingId(binder.id); setRenameValue(binder.name); }} style={{ width: 34, height: 34, borderRadius: 999, border: "none", background: isDark ? "rgba(255,255,255,0.06)" : tc.bg.tertiary, color: c.textTer, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Pencil size={14} /></button>
-                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(binder.id); }} style={{ width: 34, height: 34, borderRadius: 999, border: "none", background: "rgba(239,68,68,0.12)", color: "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={14} /></button>
+                      {/* Kebab Action Menu */}
+                      <div style={{ position: "relative", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMenuBinderId(prev => prev === binder.id ? null : binder.id);
+                          }}
+                          aria-label={`Options for ${binder.name}`}
+                          aria-haspopup="true"
+                          aria-expanded={activeMenuBinderId === binder.id}
+                          style={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: 8,
+                            border: `1px solid ${activeMenuBinderId === binder.id ? tc.accent : "transparent"}`,
+                            background: activeMenuBinderId === binder.id
+                              ? isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"
+                              : isDark ? "rgba(255,255,255,0.04)" : tc.bg.tertiary,
+                            color: activeMenuBinderId === binder.id ? c.text : c.textTer,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            transition: "all 0.15s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = c.text;
+                            e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
+                          }}
+                          onMouseLeave={(e) => {
+                            if (activeMenuBinderId !== binder.id) {
+                              e.currentTarget.style.color = c.textTer;
+                              e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.04)" : tc.bg.tertiary;
+                            }
+                          }}
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+
+                        {/* Dropdown Menu */}
+                        {activeMenuBinderId === binder.id && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: 40,
+                              right: 0,
+                              minWidth: 150,
+                              background: c.bg,
+                              border: `1px solid ${c.border}`,
+                              borderRadius: 12,
+                              boxShadow: isDark
+                                ? "0 16px 36px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.3)"
+                                : "0 16px 36px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06)",
+                              padding: "6px",
+                              zIndex: 60,
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 2,
+                            }}
+                          >
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenuBinderId(null);
+                                setRenamingId(binder.id);
+                                setRenameValue(binder.name);
+                              }}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                padding: "8px 10px",
+                                width: "100%",
+                                borderRadius: 8,
+                                border: "none",
+                                background: "transparent",
+                                color: c.text,
+                                fontSize: 13,
+                                fontWeight: 500,
+                                cursor: "pointer",
+                                textAlign: "left",
+                                transition: "background 0.15s",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "transparent";
+                              }}
+                            >
+                              <Pencil size={14} style={{ color: c.textTer }} />
+                              <span>Rename</span>
+                            </button>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenuBinderId(null);
+                                setDeleteConfirmId(binder.id);
+                              }}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                padding: "8px 10px",
+                                width: "100%",
+                                borderRadius: 8,
+                                border: "none",
+                                background: "transparent",
+                                color: "#ef4444",
+                                fontSize: 13,
+                                fontWeight: 500,
+                                cursor: "pointer",
+                                textAlign: "left",
+                                transition: "background 0.15s",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "rgba(239, 68, 68, 0.12)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "transparent";
+                              }}
+                            >
+                              <Trash2 size={14} style={{ color: "#ef4444" }} />
+                              <span>Delete binder</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="binder-mini-cards-wrap" style={{ position: "relative", height: 140, marginBottom: 24 }}>
@@ -1309,9 +1509,34 @@ export default function BinderPage() {
 
             {binders.length === 0 && !creatingBinder && (
               <div style={{ textAlign: "center", padding: "50px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                <img src="/no-binder.png" alt="No custom binders" style={{ width: 200, height: 200, borderBottom: "solid 1px", opacity: isDark ? 0.92 : 1 }} />
-                <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.04em", color: c.text, marginBottom: 8 }}>No custom binders yet</div>
-                <div style={{ fontSize: 14, color: c.textTer }}>Build your own themed collections.</div>
+                <img src="/no-binder.png" alt="No custom binders" style={{ width: 180, height: 180, objectFit: "contain", opacity: isDark ? 0.92 : 1, marginBottom: 12 }} />
+                <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em", color: c.text, marginBottom: 6 }}>No custom collections yet</div>
+                <div style={{ fontSize: 14, color: c.textTer, maxWidth: 360, lineHeight: 1.5, marginBottom: 20 }}>
+                  Build themed binders for your favorite crews, manga chase grails, or tournament deck cores.
+                </div>
+                <button
+                  onClick={openCreateBinder}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "10px 20px",
+                    borderRadius: 12,
+                    border: "none",
+                    background: tc.accent,
+                    color: "#fff",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    boxShadow: "0 4px 14px rgba(0,0,0,0.18)",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
+                >
+                  <Plus size={16} />
+                  <span>Create your first binder</span>
+                </button>
               </div>
             )}
           </div>
@@ -1327,40 +1552,359 @@ export default function BinderPage() {
               id: card.card_name,
               name: card.card_name,
               set: { name: "DON!!" },
+              color: "Yellow",
             }));
-          const wishlistCards = [...sortByCardId(regularWishlistCards), ...donWishlistCards] as Card[];
-          return wishlistCards.length === 0 ? (
+          const rawWishlistCards = [...sortByCardId(regularWishlistCards), ...donWishlistCards] as Card[];
+
+          // Extract available sets from wishlist cards
+          const wishlistAvailableSets = Array.from(new Set(
+            rawWishlistCards.map(c => {
+              if (c.set?.name === "DON!!" || !(c.id?.includes("-"))) return "DON!!";
+              const bracket = c.set?.name?.match(/\[([^\]]+)\]/);
+              return bracket ? bracket[1] : (c.id?.split("-")[0] || c.set?.name || "Other");
+            })
+          )).sort();
+
+          // Apply filters
+          const filteredWishlistCards = rawWishlistCards.filter(card => {
+            if (wishlistSearch.trim()) {
+              const q = wishlistSearch.toLowerCase();
+              const matchesName = (card.name ?? "").toLowerCase().includes(q);
+              const matchesId = (card.id ?? "").toLowerCase().includes(q);
+              const matchesSet = (card.set?.name ?? "").toLowerCase().includes(q);
+              if (!matchesName && !matchesId && !matchesSet) return false;
+            }
+            if (wishlistColor) {
+              if (wishlistColor === "Multicolor") {
+                if (!card.color?.includes(" ")) return false;
+              } else {
+                if (!card.color?.includes(wishlistColor)) return false;
+              }
+            }
+            if (wishlistSetId) {
+              if (wishlistSetId === "DON!!") {
+                if (card.set?.name !== "DON!!" && card.id?.includes("-")) return false;
+              } else {
+                const prefix = (card.id ?? "").split("-")[0].toUpperCase();
+                const setMatch = (card.set?.name ?? "").toUpperCase().includes(wishlistSetId.toUpperCase());
+                if (prefix !== wishlistSetId.toUpperCase() && !setMatch) return false;
+              }
+            }
+            return true;
+          });
+
+          const hasWishlistFilters = !!wishlistSearch.trim() || !!wishlistColor || !!wishlistSetId;
+
+          return rawWishlistCards.length === 0 ? (
             <div style={{ textAlign: "center", padding: "50px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div style={{ width: 60, height: 60, borderRadius: "50%", background: isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.1)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, color: "#f59e0b" }}>
-                <Star size={30} fill="#f59e0b" />
+              <div style={{ width: 64, height: 64, borderRadius: "50%", background: isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.1)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, color: "#f59e0b" }}>
+                <Star size={32} fill="#f59e0b" />
               </div>
-              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.04em", color: c.text, marginBottom: 8 }}>No wishlist cards yet</div>
-              <div style={{ fontSize: 14, color: c.textTer }}>Add cards to your wishlist from the browse page.</div>
+              <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em", color: c.text, marginBottom: 6 }}>Your treasure hunt hasn't started yet</div>
+              <div style={{ fontSize: 14, color: c.textTer, maxWidth: 380, lineHeight: 1.5 }}>
+                Star your favorite cards while exploring the database to curate your personal wishlist.
+              </div>
             </div>
           ) : (
-            <div className="binder-wishlist-wrap">
-              <div className="binder-card-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 22 }}>
-                {wishlistCards.map((card, i) => {
-                  const cardKey = getCardKey(card);
+            <div className="binder-wishlist-wrap" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              {/* Wishlist Header Toolbar & Metrics */}
+              <div
+                className="binder-wishlist-toolbar"
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  padding: "14px 18px",
+                  borderRadius: 14,
+                  background: c.bgSec,
+                  border: `1px solid ${c.border}`,
+                }}
+              >
+                {/* Left: Summary Metrics */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: c.text,
+                      background: c.bgTer,
+                      padding: "5px 12px",
+                      borderRadius: 8,
+                      border: `1px solid ${c.border}`,
+                    }}
+                  >
+                    <Star size={13} fill="#f59e0b" color="#f59e0b" />
+                    <span>{rawWishlistCards.length} {rawWishlistCards.length === 1 ? "card" : "cards"}</span>
+                  </div>
+                </div>
+
+                {/* Right: Search & Quick Filters */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", flex: isMobile ? "1 1 100%" : "0 1 auto" }}>
+                  {/* Search Box */}
+                  <div style={{ position: "relative", minWidth: isMobile ? "100%" : 200, flex: isMobile ? "1 1 100%" : "0 1 auto" }}>
+                    <Search
+                      size={14}
+                      style={{
+                        position: "absolute",
+                        left: 10,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: c.textTer,
+                        pointerEvents: "none",
+                      }}
+                    />
+                    <input
+                      value={wishlistSearch}
+                      onChange={(e) => setWishlistSearch(e.target.value)}
+                      placeholder="Search wishlist..."
+                      style={{
+                        width: "100%",
+                        padding: "7px 28px 7px 30px",
+                        borderRadius: 8,
+                        border: `1px solid ${c.border}`,
+                        background: c.bg,
+                        color: c.text,
+                        outline: "none",
+                        fontSize: 13,
+                      }}
+                    />
+                    {wishlistSearch && (
+                      <button
+                        onClick={() => setWishlistSearch("")}
+                        aria-label="Clear search"
+                        style={{
+                          position: "absolute",
+                          right: 6,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: c.textTer,
+                          padding: 2,
+                          display: "flex",
+                        }}
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Set Selector Dropdown */}
+                  {wishlistAvailableSets.length > 1 && (
+                    <select
+                      value={wishlistSetId || ""}
+                      onChange={(e) => setWishlistSetId(e.target.value || null)}
+                      aria-label="Filter by set"
+                      style={{
+                        padding: "7px 10px",
+                        borderRadius: 8,
+                        border: `1px solid ${c.border}`,
+                        background: c.bg,
+                        color: c.text,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        outline: "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <option value="">All Sets</option>
+                      {wishlistAvailableSets.map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  {/* Color Dot Filters */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    {[...FILTER_COLORS, "Multicolor"].map(color => {
+                      const isMulti = color === "Multicolor";
+                      const active = wishlistColor === color;
+                      return (
+                        <button
+                          key={color}
+                          title={color}
+                          onClick={() => setWishlistColor(prev => prev === color ? null : color)}
+                          style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: "50%",
+                            border: "none",
+                            cursor: "pointer",
+                            background: isMulti
+                              ? "conic-gradient(from 180deg, #ef4444, #facc15, #22c55e, #3b82f6, #a855f7, #000000, #ef4444)"
+                              : COLOR_DOT[color],
+                            outline: active ? `2px solid ${isMulti ? "#808080" : COLOR_DOT[color]}` : "none",
+                            outlineOffset: 2,
+                            transform: active ? "scale(1.15)" : "scale(1)",
+                            opacity: active || !wishlistColor ? 1 : 0.4,
+                            transition: "all 0.15s ease",
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Clear Filters CTA */}
+                  {hasWishlistFilters && (
+                    <button
+                      onClick={() => {
+                        setWishlistSearch("");
+                        setWishlistColor(null);
+                        setWishlistSetId(null);
+                      }}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: tc.accent,
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "4px 8px",
+                      }}
+                    >
+                      <X size={12} />
+                      <span>Reset</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Wishlist Card Grid */}
+              <div
+                className="binder-card-grid"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))",
+                  gap: 20,
+                }}
+              >
+                {filteredWishlistCards.map((card, i) => {
+                  const isDonCard = card.set?.name === "DON!!";
+                  const cardKey = isDonCard ? getDonCardKey(card as any) : getCardKey(card);
                   return (
                     <div key={`${cardKey}||${i}`} style={{ position: "relative" }}>
                       <div
-                        onClick={() => { setModalCards(wishlistCards); setModalIndex(i); setModalCard(card); }}
-                        style={{ borderRadius: 14, overflow: "hidden", border: `1px solid #f59e0b`, background: c.bgSec, boxShadow: "0 10px 25px rgba(245,158,11,0.15)", cursor: "pointer", transition: "all 0.2s ease" }}
-                        onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 16px 32px rgba(245,158,11,0.25)"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 10px 25px rgba(245,158,11,0.15)"; }}
+                        onClick={() => {
+                          setModalCards(filteredWishlistCards);
+                          setModalIndex(i);
+                          setModalCard(card);
+                        }}
+                        style={{
+                          borderRadius: 14,
+                          overflow: "hidden",
+                          border: `1px solid #f59e0b`,
+                          background: c.bgSec,
+                          boxShadow: "0 10px 25px rgba(245,158,11,0.15)",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "translateY(-4px)";
+                          e.currentTarget.style.boxShadow = "0 16px 32px rgba(245,158,11,0.25)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                          e.currentTarget.style.boxShadow = "0 10px 25px rgba(245,158,11,0.15)";
+                        }}
                       >
-                        <div style={{ aspectRatio: "5 / 7", overflow: "hidden" }}>
-                          <img src={card.images?.small || "/card-placeholder.png"} alt={card.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }} />
+                        <div style={{ aspectRatio: "5 / 7", overflow: "hidden", position: "relative" }}>
+                          <img
+                            src={card.images?.small || "/card-placeholder.png"}
+                            alt={card.name}
+                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                            onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }}
+                          />
                         </div>
                       </div>
-                      <div style={{ position: "absolute", top: 8, left: 8, width: 20, height: 20, borderRadius: "50%", background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>
-                        <Star size={11} fill="#fff" color="#fff" />
+
+                      {/* Top Left Star Badge */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 8,
+                          left: 8,
+                          width: 22,
+                          height: 22,
+                          borderRadius: "50%",
+                          background: "#f59e0b",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#fff",
+                          boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+                          pointerEvents: "none",
+                        }}
+                      >
+                        <Star size={12} fill="#fff" color="#fff" />
                       </div>
                     </div>
                   );
                 })}
               </div>
+
+              {/* No cards matching filters */}
+              {filteredWishlistCards.length === 0 && (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "48px 0",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: "50%",
+                      background: c.bgSec,
+                      border: `1px solid ${c.border}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: 12,
+                      color: c.textTer,
+                    }}
+                  >
+                    <Search size={24} strokeWidth={1.75} />
+                  </div>
+                  <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.02em", color: c.text, marginBottom: 4 }}>
+                    No treasure found in these waters
+                  </div>
+                  <div style={{ fontSize: 13, color: c.textTer }}>
+                    Try adjusting your search query or clearing color filters.
+                  </div>
+                  <button
+                    onClick={() => {
+                      setWishlistSearch("");
+                      setWishlistColor(null);
+                      setWishlistSetId(null);
+                    }}
+                    style={{
+                      marginTop: 14,
+                      fontSize: 13,
+                      color: tc.accent,
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      padding: "4px 8px",
+                    }}
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              )}
             </div>
           );
         })()}
@@ -1383,28 +1927,30 @@ export default function BinderPage() {
       )}
 
       {/* Mobile FAB for Create Binder */}
-      {isMobile && tab === "custom" && (
+      {isMobile && tab === "custom" && binders.length > 0 && (
         <button
-          onClick={() => setCreatingBinder(true)}
+          onClick={openCreateBinder}
+          aria-label="Create Binder"
           style={{
             position: "fixed",
             bottom: 24,
             right: 24,
-            width: 56,
-            height: 56,
-            borderRadius: "50%",
-            background: `linear-gradient(90deg,${tc.accent},${tc.accent}bb)`,
+            width: 52,
+            height: 52,
+            borderRadius: 14,
+            background: tc.accent,
             color: "#fff",
             border: "none",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: `0 10px 25px ${tc.accent}66`,
+            boxShadow: "0 4px 14px rgba(0,0,0,0.22)",
             cursor: "pointer",
             zIndex: 90,
+            transition: "all 0.2s ease",
           }}
         >
-          <Plus size={24} />
+          <Plus size={22} strokeWidth={2.5} />
         </button>
       )}
 
@@ -1421,7 +1967,7 @@ export default function BinderPage() {
                 if (e.key === "Enter") handleCreateBinder(); 
                 if (e.key === "Escape") { setCreatingBinder(false); setNewBinderName(""); } 
               }} 
-              placeholder="My legendary collection..." 
+              placeholder={binderPlaceholder} 
               style={{ width: "100%", background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)", border: `1px solid ${c.border}`, borderRadius: 12, padding: "14px 16px", outline: "none", fontSize: 16, color: c.text, fontFamily: "inherit", marginBottom: 20 }} 
             />
             <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
@@ -1432,6 +1978,123 @@ export default function BinderPage() {
         </div>
       )}
 
+      {/* Rename Binder Modal */}
+      {renamingId && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)",
+            zIndex: 100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+          onClick={() => { setRenamingId(null); setRenameValue(""); }}
+        >
+          <div
+            style={{
+              background: c.bg,
+              borderRadius: 24,
+              padding: 24,
+              width: "100%",
+              maxWidth: 360,
+              boxShadow: "0 25px 50px rgba(0,0,0,0.25)",
+              border: `1px solid ${c.border}`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontWeight: 800, fontSize: 20, color: c.text, marginBottom: 16 }}>Rename Binder</div>
+            <input
+              autoFocus
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleRenameBinder(renamingId);
+                if (e.key === "Escape") { setRenamingId(null); setRenameValue(""); }
+              }}
+              placeholder="Binder name..."
+              style={{
+                width: "100%",
+                background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
+                border: `1px solid ${c.border}`,
+                borderRadius: 12,
+                padding: "14px 16px",
+                outline: "none",
+                fontSize: 16,
+                color: c.text,
+                fontFamily: "inherit",
+                marginBottom: 20,
+              }}
+            />
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => { setRenamingId(null); setRenameValue(""); }}
+                style={{
+                  padding: "10px 16px",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  border: "none",
+                  background: "transparent",
+                  color: c.textSec,
+                  cursor: "pointer",
+                  borderRadius: 8,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleRenameBinder(renamingId)}
+                style={{
+                  padding: "10px 20px",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  border: "none",
+                  background: tc.accent,
+                  color: "white",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scroll to Top on Main Binder Page */}
+      {showScrollTop && !modalCard && (
+        <button
+          className="binder-scroll-top"
+          aria-label="Scroll to top"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          style={{
+            position: "fixed",
+            bottom: 32,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: 48,
+            height: 48,
+            borderRadius: "50%",
+            background: c.bgTer,
+            color: c.text,
+            border: `1px solid ${c.border}`,
+            cursor: "pointer",
+            boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.4)" : "0 4px 20px rgba(0,0,0,0.2)",
+            zIndex: 40,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "all 0.2s",
+          }}
+        >
+          <ArrowUp size={20} strokeWidth={2.5} />
+        </button>
+      )}
+
+      <Toast toast={toast} isDark={isDark} />
     </div>
   );
 }
