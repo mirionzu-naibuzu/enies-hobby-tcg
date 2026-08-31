@@ -161,6 +161,16 @@ export default function DashboardPage() {
     loadDashboardData(userId, !isInitial);
   }, [userId, loadDashboardData]);
 
+  useEffect(() => {
+    const handleSynced = () => {
+      if (userId) {
+        loadDashboardData(userId, true);
+      }
+    };
+    window.addEventListener("enies_guest_synced", handleSynced);
+    return () => window.removeEventListener("enies_guest_synced", handleSynced);
+  }, [userId, loadDashboardData]);
+
   // Online / offline event listeners for automatic recovery
   useEffect(() => {
     const handleOnline = () => {

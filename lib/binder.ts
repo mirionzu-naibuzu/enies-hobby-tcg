@@ -99,7 +99,13 @@ export async function createBinder(userId: string, name: string): Promise<Binder
   return data;
 }
 
+const isValidUuid = (id?: string | null): boolean => {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+};
+
 export async function deleteBinder(binderId: string, userId?: string): Promise<void> {
+  if (!isValidUuid(binderId)) return;
   const supabase = createClient();
   let query = supabase.from("binders").delete().eq("id", binderId);
   if (userId) query = query.eq("user_id", userId);
@@ -107,6 +113,7 @@ export async function deleteBinder(binderId: string, userId?: string): Promise<v
 }
 
 export async function renameBinder(binderId: string, name: string, userId?: string): Promise<void> {
+  if (!isValidUuid(binderId)) return;
   const supabase = createClient();
   let query = supabase.from("binders").update({ name }).eq("id", binderId);
   if (userId) query = query.eq("user_id", userId);
@@ -116,6 +123,7 @@ export async function renameBinder(binderId: string, name: string, userId?: stri
 // ── BINDER CARDS ──────────────────────────────────────
 
 export async function getBinderCards(binderId: string): Promise<string[]> {
+  if (!isValidUuid(binderId)) return [];
   const supabase = createClient();
   const allCards: string[] = [];
   const pageSize = 1000;
@@ -128,7 +136,7 @@ export async function getBinderCards(binderId: string): Promise<string[]> {
       .eq("binder_id", binderId)
       .range(from, from + pageSize - 1);
 
-    if (error) { console.error(error); break; }
+    if (error) { break; }
     if (!data || data.length === 0) break;
 
     allCards.push(...data.map((r) => r.card_id));
@@ -140,6 +148,7 @@ export async function getBinderCards(binderId: string): Promise<string[]> {
 }
 
 export async function addCardToBinder(binderId: string, cardId: string): Promise<void> {
+  if (!isValidUuid(binderId)) return;
   const supabase = createClient();
   await supabase.from("binder_cards").upsert(
     { binder_id: binderId, card_id: cardId },
@@ -148,6 +157,7 @@ export async function addCardToBinder(binderId: string, cardId: string): Promise
 }
 
 export async function removeCardFromBinder(binderId: string, cardId: string): Promise<void> {
+  if (!isValidUuid(binderId)) return;
   const supabase = createClient();
   await supabase.from("binder_cards")
     .delete()

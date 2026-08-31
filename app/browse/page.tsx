@@ -16,6 +16,11 @@ import {
   getCardKey,
   type UserCard, type Binder,
 } from "@/lib/binder";
+import {
+  getGuestUserCards, saveGuestUserCard, removeGuestUserCard,
+  getGuestBinders, createGuestBinder, getGuestBinderCards,
+  addGuestBinderCard, removeGuestBinderCard,
+} from "@/lib/guestStorage";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { getColors } from "@/lib/themes";
@@ -159,7 +164,11 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!user) { setUserCards([]); setBinders([]); setBinderCardMap({}); return; }
+    if (!user) {
+      setUserCards(getGuestUserCards());
+      setBinders(getGuestBinders());
+      return;
+    }
     Promise.all([getUserCards(user.id), getBinders(user.id)]).then(([uc, b]) => {
       setUserCards(uc);
       setBinders(b);
@@ -167,14 +176,40 @@ export default function Home() {
   }, [user]);
 
   useEffect(() => {
-    if (!binders.length) return;
-    Promise.all(binders.map(b => getBinderCards(b.id).then(cards => ({ id: b.id, cards }))))
-      .then(results => {
-        const map: Record<string, string[]> = {};
-        for (const r of results) map[r.id] = r.cards;
-        setBinderCardMap(map);
-      });
-  }, [binders]);
+    const handleSynced = async () => {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      if (data.user) {
+        setUser(data.user);
+        const [uc, b] = await Promise.all([getUserCards(data.user.id), getBinders(data.user.id)]);
+        setUserCards(uc);
+        setBinders(b);
+      }
+    };
+    window.addEventListener("enies_guest_synced", handleSynced);
+    return () => window.removeEventListener("enies_guest_synced", handleSynced);
+  }, []);
+
+  useEffect(() => {
+    if (!binders.length) {
+      setBinderCardMap({});
+      return;
+    }
+    if (user) {
+      Promise.all(binders.map(b => getBinderCards(b.id).then(cards => ({ id: b.id, cards }))))
+        .then(results => {
+          const map: Record<string, string[]> = {};
+          for (const r of results) map[r.id] = r.cards;
+          setBinderCardMap(map);
+        });
+    } else {
+      const map: Record<string, string[]> = {};
+      for (const b of binders) {
+        map[b.id] = getGuestBinderCards(b.id);
+      }
+      setBinderCardMap(map);
+    }
+  }, [binders, user]);
 
   const initialParamsLoaded = useRef(false);
 
@@ -445,28 +480,42 @@ export default function Home() {
     new Set(userCards.filter(u => u.in_wishlist).map(u => u.card_id)), [userCards]);
 
   const handleToggleOwned = async (cardId: string) => {
-    if (!user) return;
     if (ownedSet.has(cardId)) {
       setUserCards(prev => prev.filter(u => u.card_id !== cardId));
       showToast("Removed from collection", "info");
-      await removeUserCard(user.id, cardId);
+      if (user) {
+        await removeUserCard(user.id, cardId);
+      } else {
+        removeGuestUserCard(cardId);
+      }
     } else {
       setUserCards(prev => [...prev.filter(u => u.card_id !== cardId), { card_id: cardId, in_wishlist: false }]);
       showToast("Added to collection", "success");
-      await addUserCard(user.id, cardId, false);
+      if (user) {
+        await addUserCard(user.id, cardId, false);
+      } else {
+        saveGuestUserCard(cardId, false);
+      }
     }
   };
 
   const handleToggleWishlist = async (cardId: string) => {
-    if (!user) return;
     if (wishlistSet.has(cardId)) {
       setUserCards(prev => prev.filter(u => u.card_id !== cardId));
       showToast("Removed from wishlist", "info");
-      await removeUserCard(user.id, cardId);
+      if (user) {
+        await removeUserCard(user.id, cardId);
+      } else {
+        removeGuestUserCard(cardId);
+      }
     } else {
       setUserCards(prev => [...prev.filter(u => u.card_id !== cardId), { card_id: cardId, in_wishlist: true }]);
       showToast("Added to wishlist", "wishlist");
-      await addUserCard(user.id, cardId, true);
+      if (user) {
+        await addUserCard(user.id, cardId, true);
+      } else {
+        saveGuestUserCard(cardId, true);
+      }
     }
   };
 
@@ -474,33 +523,58 @@ export default function Home() {
     const current = binderCardMap[binderId] ?? [];
     const bName = binders.find(b => b.id === binderId)?.name;
     if (current.includes(cardId)) {
-      await removeCardFromBinder(binderId, cardId);
+      if (user) {
+        await removeCardFromBinder(binderId, cardId);
+      } else {
+        removeGuestBinderCard(binderId, cardId);
+      }
       setBinderCardMap(prev => ({ ...prev, [binderId]: prev[binderId].filter(id => id !== cardId) }));
       showToast(bName ? `Removed from "${bName}"` : "Removed from binder", "info");
     } else {
-      await addCardToBinder(binderId, cardId);
+      if (user) {
+        await addCardToBinder(binderId, cardId);
+      } else {
+        addGuestBinderCard(binderId, cardId);
+      }
       setBinderCardMap(prev => ({ ...prev, [binderId]: [...(prev[binderId] ?? []), cardId] }));
       showToast(bName ? `Added to "${bName}"` : "Added to binder", "success");
-      if (!ownedSet.has(cardId) && user) {
-        await addUserCard(user.id, cardId, false);
+      if (!ownedSet.has(cardId)) {
         setUserCards(prev => [...prev.filter(u => u.card_id !== cardId), { card_id: cardId, in_wishlist: false }]);
+        if (user) {
+          await addUserCard(user.id, cardId, false);
+        } else {
+          saveGuestUserCard(cardId, false);
+        }
       }
     }
   };
 
   // ── INLINE BINDER CREATION — single card modal ──
   const handleCreateBinderInline = async (cardId: string) => {
-    if (!user || !newBinderNameInline.trim() || creatingBinderLoading) return;
+    if (!newBinderNameInline.trim() || creatingBinderLoading) return;
     setCreatingBinderLoading(true);
-    const b = await createBinder(user.id, newBinderNameInline.trim());
+    let b: Binder | null = null;
+    if (user) {
+      b = await createBinder(user.id, newBinderNameInline.trim());
+    } else {
+      b = createGuestBinder(newBinderNameInline.trim());
+    }
     if (b) {
-      setBinders(prev => [...prev, b]);
-      await addCardToBinder(b.id, cardId);
-      setBinderCardMap(prev => ({ ...prev, [b.id]: [cardId] }));
+      setBinders(prev => [...prev, b!]);
+      if (user) {
+        await addCardToBinder(b.id, cardId);
+      } else {
+        addGuestBinderCard(b.id, cardId);
+      }
+      setBinderCardMap(prev => ({ ...prev, [b!.id]: [cardId] }));
       showToast(`Binder "${b.name}" created!`, "celebrate");
-      if (!ownedSet.has(cardId) && user) {
-        await addUserCard(user.id, cardId, false);
+      if (!ownedSet.has(cardId)) {
         setUserCards(prev => [...prev.filter(u => u.card_id !== cardId), { card_id: cardId, in_wishlist: false }]);
+        if (user) {
+          await addUserCard(user.id, cardId, false);
+        } else {
+          saveGuestUserCard(cardId, false);
+        }
       }
     }
     resetInlineCreation();
@@ -509,26 +583,39 @@ export default function Home() {
 
   // ── INLINE BINDER CREATION — multi-select ──
   const handleMultiCreateBinder = async () => {
-    if (!user || !newBinderNameInline.trim() || creatingBinderLoading) return;
+    if (!newBinderNameInline.trim() || creatingBinderLoading) return;
     setCreatingBinderLoading(true);
-    const b = await createBinder(user.id, newBinderNameInline.trim());
+    let b: Binder | null = null;
+    if (user) {
+      b = await createBinder(user.id, newBinderNameInline.trim());
+    } else {
+      b = createGuestBinder(newBinderNameInline.trim());
+    }
     if (b) {
-      setBinders(prev => [...prev, b]);
+      setBinders(prev => [...prev, b!]);
       const keys = [...multiSelected].map(toCardKey);
       setBulkProgress({ done: 0, total: keys.length });
       let done = 0;
       const addedKeys: string[] = [];
       await Promise.all(keys.map(async (cardKey) => {
-        await addCardToBinder(b.id, cardKey);
+        if (user) {
+          await addCardToBinder(b!.id, cardKey);
+        } else {
+          addGuestBinderCard(b!.id, cardKey);
+        }
         addedKeys.push(cardKey);
-        if (!ownedSet.has(cardKey) && user) {
-          await addUserCard(user.id, cardKey, false);
+        if (!ownedSet.has(cardKey)) {
+          if (user) {
+            await addUserCard(user.id, cardKey, false);
+          } else {
+            saveGuestUserCard(cardKey, false);
+          }
           setUserCards(prev => [...prev.filter(u => u.card_id !== cardKey), { card_id: cardKey, in_wishlist: false }]);
         }
         done++;
         setBulkProgress({ done, total: keys.length });
       }));
-      setBinderCardMap(prev => ({ ...prev, [b.id]: addedKeys }));
+      setBinderCardMap(prev => ({ ...prev, [b!.id]: addedKeys }));
       showToast(`Binder "${b.name}" created with ${keys.length} cards!`, "celebrate");
     }
     setBulkProgress(null);
@@ -541,7 +628,6 @@ export default function Home() {
   const toCardKey = (selectKey: string) => selectKey.split("||").slice(0, 3).join("||");
 
   const enterSelectMode = (selectKey?: string) => {
-    if (!user) return;
     setIsSelectMode(true);
     if (selectKey) setMultiSelected(new Set([selectKey]));
   };
@@ -554,7 +640,6 @@ export default function Home() {
   };
 
   const toggleMultiSelect = (selectKey: string) => {
-    if (!user) return;
     setMultiSelected(prev => {
       const next = new Set(prev);
       if (next.has(selectKey)) next.delete(selectKey);
@@ -564,13 +649,16 @@ export default function Home() {
   };
 
   const handleMultiMarkOwned = async () => {
-    if (!user) return;
     const keys = [...multiSelected].map(toCardKey).filter(k => !ownedSet.has(k));
     if (keys.length === 0) { exitSelectMode(); return; }
     setBulkProgress({ done: 0, total: keys.length });
     let done = 0;
     await Promise.all(keys.map(async (cardKey) => {
-      await addUserCard(user.id, cardKey, false);
+      if (user) {
+        await addUserCard(user.id, cardKey, false);
+      } else {
+        saveGuestUserCard(cardKey, false);
+      }
       done++;
       setBulkProgress({ done, total: keys.length });
       setUserCards(prev => [...prev.filter(u => u.card_id !== cardKey), { card_id: cardKey, in_wishlist: false }]);
@@ -581,7 +669,6 @@ export default function Home() {
   };
 
   const handleMultiAddToBinder = async (binderId: string) => {
-    if (!user) return;
     const current = binderCardMap[binderId] ?? [];
     const bName = binders.find(b => b.id === binderId)?.name;
     const keys = [...multiSelected].map(toCardKey).filter(k => !current.includes(k));
@@ -589,9 +676,17 @@ export default function Home() {
     setBulkProgress({ done: 0, total: keys.length });
     let done = 0;
     await Promise.all(keys.map(async (cardKey) => {
-      await addCardToBinder(binderId, cardKey);
-      if (!ownedSet.has(cardKey) && user) {
-        await addUserCard(user.id, cardKey, false);
+      if (user) {
+        await addCardToBinder(binderId, cardKey);
+      } else {
+        addGuestBinderCard(binderId, cardKey);
+      }
+      if (!ownedSet.has(cardKey)) {
+        if (user) {
+          await addUserCard(user.id, cardKey, false);
+        } else {
+          saveGuestUserCard(cardKey, false);
+        }
         setUserCards(prev => [...prev.filter(u => u.card_id !== cardKey), { card_id: cardKey, in_wishlist: false }]);
       }
       done++;
@@ -794,114 +889,112 @@ export default function Home() {
               <ArrowUpNarrowWide style={{ width: 16, height: 16 }} />
             )}
           </button>
-          {user && (
-            <div style={{ position: "relative" }}>
-              <button
-                onClick={() => {
-                  if (isSelectMode) {
-                    exitSelectMode();
-                  } else {
-                    setShowSelectMenu(!showSelectMenu);
-                  }
-                }}
-                title={isSelectMode ? "Exit selection" : "Options"}
-                style={{
-                  padding: 8,
-                  borderRadius: 8,
-                  border: `1px solid ${isSelectMode || showSelectMenu ? colors.text.primary : colors.border}`,
-                  background: isSelectMode || showSelectMenu ? colors.bg.tertiary : "transparent",
-                  color: isSelectMode || showSelectMenu ? colors.text.primary : colors.text.tertiary,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  transition: "all 0.2s",
-                }}
-              >
-                {isSelectMode ? <X size={16} /> : <MoreVertical size={16} />}
-              </button>
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => {
+                if (isSelectMode) {
+                  exitSelectMode();
+                } else {
+                  setShowSelectMenu(!showSelectMenu);
+                }
+              }}
+              title={isSelectMode ? "Exit selection" : "Options"}
+              style={{
+                padding: 8,
+                borderRadius: 8,
+                border: `1px solid ${isSelectMode || showSelectMenu ? colors.text.primary : colors.border}`,
+                background: isSelectMode || showSelectMenu ? colors.bg.tertiary : "transparent",
+                color: isSelectMode || showSelectMenu ? colors.text.primary : colors.text.tertiary,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                transition: "all 0.2s",
+              }}
+            >
+              {isSelectMode ? <X size={16} /> : <MoreVertical size={16} />}
+            </button>
 
-              {showSelectMenu && !isSelectMode && (
-                <>
-                  <div
-                    style={{ position: "fixed", inset: 0, zIndex: 40 }}
-                    onClick={() => setShowSelectMenu(false)}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "100%",
-                      right: 0,
-                      marginTop: 8,
-                      background: colors.bg.primary,
-                      border: `1px solid ${colors.border}`,
-                      borderRadius: 12,
-                      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
-                      overflow: "hidden",
-                      zIndex: 50,
-                      minWidth: 160,
-                      display: "flex",
-                      flexDirection: "column",
+            {showSelectMenu && !isSelectMode && (
+              <>
+                <div
+                  style={{ position: "fixed", inset: 0, zIndex: 40 }}
+                  onClick={() => setShowSelectMenu(false)}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    right: 0,
+                    marginTop: 8,
+                    background: colors.bg.primary,
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: 12,
+                    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+                    overflow: "hidden",
+                    zIndex: 50,
+                    minWidth: 160,
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <button
+                    onClick={() => {
+                      enterSelectMode();
+                      setShowSelectMenu(false);
                     }}
+                    style={{
+                      padding: "12px 16px",
+                      background: "transparent",
+                      border: "none",
+                      color: colors.text.primary,
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textAlign: "left",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      transition: "background 0.2s",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = colors.bg.tertiary)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
-                    <button
-                      onClick={() => {
-                        enterSelectMode();
-                        setShowSelectMenu(false);
-                      }}
-                      style={{
-                        padding: "12px 16px",
-                        background: "transparent",
-                        border: "none",
-                        color: colors.text.primary,
-                        fontSize: 14,
-                        fontWeight: 500,
-                        textAlign: "left",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        transition: "background 0.2s",
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = colors.bg.tertiary)}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                    >
-                      <CheckSquare size={16} color={colors.text.tertiary} />
-                      Select Cards
-                    </button>
-                    <div style={{ height: 1, background: colors.border }} />
-                    <button
-                      onClick={() => {
-                        setMultiSelected(new Set(allSelectKeys));
-                        setIsSelectMode(true);
-                        setShowSelectMenu(false);
-                      }}
-                      style={{
-                        padding: "12px 16px",
-                        background: "transparent",
-                        border: "none",
-                        color: colors.text.primary,
-                        fontSize: 14,
-                        fontWeight: 500,
-                        textAlign: "left",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        transition: "background 0.2s",
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = colors.bg.tertiary)}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                    >
-                      <CopyCheck size={16} color={colors.text.tertiary} />
-                      Select All
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+                    <CheckSquare size={16} color={colors.text.tertiary} />
+                    Select Cards
+                  </button>
+                  <div style={{ height: 1, background: colors.border }} />
+                  <button
+                    onClick={() => {
+                      setMultiSelected(new Set(allSelectKeys));
+                      setIsSelectMode(true);
+                      setShowSelectMenu(false);
+                    }}
+                    style={{
+                      padding: "12px 16px",
+                      background: "transparent",
+                      border: "none",
+                      color: colors.text.primary,
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textAlign: "left",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      transition: "background 0.2s",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = colors.bg.tertiary)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <CopyCheck size={16} color={colors.text.tertiary} />
+                    Select All
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
           {/* Mobile Filter Toggle Button */}
           <button
             className="browse-filter-toggle"
@@ -1462,7 +1555,6 @@ export default function Home() {
                     flexShrink: 0,
                   }}
                 >
-                  {user && (
                     <div
                       style={{
                         position: "relative",
@@ -1792,7 +1884,6 @@ export default function Home() {
                         </div>
                       )}
                     </div>
-                  )}
                   <button
                     onClick={() => {
                       setSelectedIndex(-1);
@@ -2200,151 +2291,169 @@ export default function Home() {
               flexShrink: 0,
             }}
           />
-          {user && (
-            <>
-              <button
-                onClick={handleMultiMarkOwned}
-                disabled={multiSelected.size === 0}
+          <button
+            onClick={handleMultiMarkOwned}
+            disabled={multiSelected.size === 0}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: isNarrow ? 4 : 6,
+              padding: isNarrow ? "6px 8px" : "8px 14px",
+              borderRadius: 8,
+              fontSize: isNarrow ? 11 : 13,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              cursor: multiSelected.size > 0 ? "pointer" : "not-allowed",
+              border: "1px solid #16a34a",
+              background: isDark
+                ? "rgba(22,163,74,0.15)"
+                : "rgba(22,163,74,0.08)",
+              color: "#16a34a",
+              opacity: multiSelected.size === 0 ? 0.5 : 1,
+              transition: "all 0.2s",
+              flexShrink: 0,
+              minHeight: 44,
+              minWidth: 44,
+              justifyContent: "center",
+            }}
+          >
+            <Check size={isNarrow ? 12 : 14} style={{ flexShrink: 0 }} />
+            <span>{isNarrow ? "Owned" : "Mark Owned"}</span>
+          </button>
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <button
+              onClick={() => {
+                const next = !showMultiBinderPicker;
+                setShowMultiBinderPicker(next);
+                if (!next) resetInlineCreation();
+              }}
+              disabled={multiSelected.size === 0}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: isNarrow ? 4 : 6,
+                padding: isNarrow ? "6px 8px" : "8px 14px",
+                borderRadius: 8,
+                fontSize: isNarrow ? 11 : 13,
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                cursor: multiSelected.size > 0 ? "pointer" : "not-allowed",
+                border: `1px solid ${colors.border}`,
+                background: "transparent",
+                color: colors.text.primary,
+                opacity: multiSelected.size === 0 ? 0.5 : 1,
+                transition: "all 0.2s",
+                minHeight: 44,
+                minWidth: 44,
+                justifyContent: "center",
+              }}
+            >
+              <BookOpen size={isNarrow ? 12 : 14} style={{ flexShrink: 0 }} />
+              <span>{isNarrow ? "Binder" : "Add to Binder"}</span>
+            </button>
+            {showMultiBinderPicker && (
+              <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isNarrow ? 4 : 6,
-                  padding: isNarrow ? "6px 8px" : "8px 14px",
-                  borderRadius: 8,
-                  fontSize: isNarrow ? 11 : 13,
-                  fontWeight: 600,
-                  whiteSpace: "nowrap",
-                  cursor: multiSelected.size > 0 ? "pointer" : "not-allowed",
-                  border: "1px solid #16a34a",
-                  background: isDark
-                    ? "rgba(22,163,74,0.15)"
-                    : "rgba(22,163,74,0.08)",
-                  color: "#16a34a",
-                  opacity: multiSelected.size === 0 ? 0.5 : 1,
-                  transition: "all 0.2s",
-                  flexShrink: 0,
-                  minHeight: 44,
-                  minWidth: 44,
-                  justifyContent: "center",
+                  position: "absolute",
+                  bottom: "calc(100% + 8px)",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  width: 240,
+                  background: colors.bg.primary,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  boxShadow: isDark
+                    ? "0 16px 40px rgba(0,0,0,0.5)"
+                    : "0 16px 40px rgba(0,0,0,0.12)",
+                  zIndex: 10,
                 }}
+                onClick={(e) => e.stopPropagation()}
               >
-                <Check size={isNarrow ? 12 : 14} style={{ flexShrink: 0 }} />
-                <span>{isNarrow ? "Owned" : "Mark Owned"}</span>
-              </button>
-              <div style={{ position: "relative", flexShrink: 0 }}>
-                <button
-                  onClick={() => {
-                    const next = !showMultiBinderPicker;
-                    setShowMultiBinderPicker(next);
-                    if (!next) resetInlineCreation();
-                  }}
-                  disabled={multiSelected.size === 0}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: isNarrow ? 4 : 6,
-                    padding: isNarrow ? "6px 8px" : "8px 14px",
-                    borderRadius: 8,
-                    fontSize: isNarrow ? 11 : 13,
-                    fontWeight: 600,
-                    whiteSpace: "nowrap",
-                    cursor: multiSelected.size > 0 ? "pointer" : "not-allowed",
-                    border: `1px solid ${colors.border}`,
-                    background: "transparent",
-                    color: colors.text.primary,
-                    opacity: multiSelected.size === 0 ? 0.5 : 1,
-                    transition: "all 0.2s",
-                    minHeight: 44,
-                    minWidth: 44,
-                    justifyContent: "center",
-                  }}
-                >
-                  <BookOpen size={isNarrow ? 12 : 14} style={{ flexShrink: 0 }} />
-                  <span>{isNarrow ? "Binder" : "Add to Binder"}</span>
-                </button>
-                {showMultiBinderPicker && (
+                <div style={{ padding: "8px 8px 4px" }}>
                   <div
                     style={{
-                      position: "absolute",
-                      bottom: "calc(100% + 8px)",
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      width: 220,
-                      background: colors.bg.primary,
-                      border: `1px solid ${colors.border}`,
-                      borderRadius: 12,
-                      overflow: "hidden",
-                      boxShadow: isDark
-                        ? "0 16px 40px rgba(0,0,0,0.5)"
-                        : "0 16px 40px rgba(0,0,0,0.12)",
-                      zIndex: 28,
+                      fontSize: 10,
+                      color: colors.text.tertiary,
+                      fontWeight: 600,
+                      letterSpacing: "0.07em",
+                      textTransform: "uppercase" as const,
+                      padding: "4px 8px 6px",
                     }}
-                    onClick={(e) => e.stopPropagation()}
                   >
-                    <div style={{ padding: "8px 8px 0" }}>
+                    Add {multiSelected.size} to Binder
+                  </div>
+                  <div
+                    style={{
+                      maxHeight: 160,
+                      overflowY: "auto",
+                    }}
+                  >
+                    {binders.length === 0 && (
                       <div
                         style={{
-                          fontSize: 10,
+                          fontSize: 12,
                           color: colors.text.tertiary,
-                          fontWeight: 600,
-                          letterSpacing: "0.07em",
-                          textTransform: "uppercase" as const,
-                          padding: "4px 8px 6px",
+                          padding: "8px 10px",
+                          textAlign: "center",
                         }}
                       >
-                        My binders
+                        No binders yet
                       </div>
-                      <div style={{ maxHeight: 180, overflowY: "auto" }}>
-                        {binders.map((binder) => (
-                          <button
-                            key={binder.id}
-                            onClick={() => handleMultiAddToBinder(binder.id)}
-                            style={{
-                              width: "100%",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 10,
-                              padding: "9px 10px",
-                              borderRadius: 8,
-                              border: "none",
-                              cursor: "pointer",
-                              fontSize: 13,
-                              textAlign: "left" as const,
-                              background: "transparent",
-                              color: colors.text.primary,
-                              transition: "all 0.15s",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background =
-                                colors.bg.secondary;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = "transparent";
-                            }}
-                          >
-                            <BookOpen size={14} style={{ flexShrink: 0 }} />
-                            <span
-                              style={{
-                                flex: 1,
-                                whiteSpace: "nowrap",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                              }}
-                            >
-                              {binder.name}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                      <div style={{ padding: "0 0 8px" }}>
-                        {renderNewBinderRow(handleMultiCreateBinder)}
-                      </div>
-                    </div>
+                    )}
+                    {binders.map((binder) => (
+                      <button
+                        key={binder.id}
+                        onClick={() => handleMultiAddToBinder(binder.id)}
+                        style={{
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "9px 10px",
+                          borderRadius: 8,
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: 13,
+                          textAlign: "left" as const,
+                          transition: "all 0.15s",
+                          background: "transparent",
+                          color: colors.text.primary,
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.background =
+                            colors.bg.secondary)
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.background = "transparent")
+                        }
+                      >
+                        <BookOpen
+                          size={14}
+                          style={{
+                            color: colors.text.tertiary,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span
+                          style={{
+                            flex: 1,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {binder.name}
+                        </span>
+                      </button>
+                    ))}
                   </div>
-                )}
+                  <div style={{ padding: "0 0 8px" }}>
+                    {renderNewBinderRow(handleMultiCreateBinder)}
+                  </div>
+                </div>
               </div>
-            </>
-          )}
+            )}
+          </div>
           <button
             onClick={() => {
               if (allSelected) {

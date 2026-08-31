@@ -14,6 +14,12 @@ import {
   getCardKey, getDonCardKey,
   type UserCard, type Binder,
 } from "@/lib/binder";
+import {
+  getGuestUserCards, saveGuestUserCard, removeGuestUserCard,
+  getGuestBinders, createGuestBinder, deleteGuestBinder, renameGuestBinder,
+  getGuestBinderCards, getGuestBinderCardCounts,
+  addGuestBinderCard, removeGuestBinderCard,
+} from "@/lib/guestStorage";
 import AuthModal from "@/components/AuthModal";
 import { useTheme } from "next-themes";
 import Image from "next/image";
@@ -23,7 +29,7 @@ import { SET_ORDER, SET_NAMES } from "@/lib/sets";
 import { getAllDonCards } from "@/lib/api";
 import ModalCardImage from "@/components/ModalCardImage";
 import Toast, { ToastData, ToastType } from "@/components/Toast";
-import { Trash2, Pencil, Check, X, ChevronLeft, ChevronRight, CheckSquare, SlidersHorizontal, Plus, ArrowRight, BookOpen, Star, Search, ArrowUp, Tag, MoreVertical, Crown, ChevronDown } from "lucide-react";
+import { Trash2, Pencil, Check, X, ChevronLeft, ChevronRight, CheckSquare, SlidersHorizontal, Plus, ArrowRight, BookOpen, Star, Search, ArrowUp, Tag, MoreVertical, Crown, ChevronDown, Sparkles } from "lucide-react";
 
 const sortByCardId = (cards: Card[], setId?: string) => {
   const filterId = (setId ?? "").replace(/-/g, "").toUpperCase();
@@ -579,52 +585,102 @@ export default function BinderPage() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    const handleSynced = async () => {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      if (data.user) {
+        setUser(data.user);
+        const [uc, b, bc] = await Promise.all([
+          getUserCards(data.user.id),
+          getBinders(data.user.id),
+          getBinderCardCounts(data.user.id),
+        ]);
+        setUserCards(uc);
+        setBinders(b);
+        setBinderCounts(bc);
+      }
+    };
+    window.addEventListener("enies_guest_synced", handleSynced);
+    return () => window.removeEventListener("enies_guest_synced", handleSynced);
+  }, []);
+
+  useEffect(() => {
+    if (loadingUser) return;
     setLoadingData(true);
-    Promise.all([
-      getAllCards(),
-      getUserCards(user.id),
-      getBinders(user.id),
-      getBinderCardCounts(user.id),
-      getAllDonCards().catch(() => [])
-    ]).then(([cards, uc, b, bc, don]) => {
-      setAllCards(cards);
-      setAllDonCards(don);
-      setUserCards(uc);
-      setBinders(b);
-      setBinderCounts(bc);
-      setLoadingData(false);
-    });
-  }, [user]);
+    if (user) {
+      Promise.all([
+        getAllCards(),
+        getUserCards(user.id),
+        getBinders(user.id),
+        getBinderCardCounts(user.id),
+        getAllDonCards().catch(() => [])
+      ]).then(([cards, uc, b, bc, don]) => {
+        setAllCards(cards);
+        setAllDonCards(don);
+        setUserCards(uc);
+        setBinders(b);
+        setBinderCounts(bc);
+        setLoadingData(false);
+      });
+    } else {
+      Promise.all([
+        getAllCards(),
+        getAllDonCards().catch(() => [])
+      ]).then(([cards, don]) => {
+        setAllCards(cards);
+        setAllDonCards(don);
+        setUserCards(getGuestUserCards());
+        setBinders(getGuestBinders());
+        setBinderCounts(getGuestBinderCardCounts());
+        setLoadingData(false);
+      });
+    }
+  }, [user, loadingUser]);
 
   useEffect(() => {
     if (!openBinderId) return;
+    if (user && openBinderId.startsWith("guest_binder_")) {
+      setOpenBinderId(null);
+      return;
+    }
     setOpenBinderCards([]);
     setLoadingBinderCards(true);
-    getBinderCards(openBinderId).then(cards => {
+    if (user) {
+      getBinderCards(openBinderId).then(cards => {
+        setOpenBinderCards(cards);
+        setLoadingBinderCards(false);
+      });
+    } else {
+      const cards = getGuestBinderCards(openBinderId);
       setOpenBinderCards(cards);
       setLoadingBinderCards(false);
-    });
-  }, [openBinderId]);
+    }
+  }, [openBinderId, user]);
 
   useEffect(() => {
-    if (!binders.length || !allCards.length) return;
-    Promise.all(binders.map(b => getBinderCards(b.id).then(keys => ({ id: b.id, keys }))))
-      .then(results => {
-        const previewMap: Record<string, Card[]> = {};
-        const countMap: Record<string, number> = {};
-        for (const { id, keys } of results) {
-          const regularMatches = allCards.filter(card => keys.includes(getCardKey(card)));
-          const donMatches = allDonCards
-            .filter(card => keys.includes(getDonCardKey(card)))
-            .map(card => ({ ...card, images: { small: card.card_image || "/card-placeholder.png", large: card.card_image || "/card-placeholder.png" } }));
-          previewMap[id] = [...regularMatches, ...donMatches].slice(0, 4) as Card[];
-          countMap[id] = keys.length;
-        }
-        setBinderPreviewCards(previewMap);
-        setBinderCounts(prev => ({ ...prev, ...countMap }));
-      });
-  }, [binders, allCards, allDonCards]);
+    if (!binders.length || !allCards.length) {
+      setBinderPreviewCards({});
+      return;
+    }
+    const fetchKeys = user
+      ? binders.map(b => getBinderCards(b.id).then(keys => ({ id: b.id, keys })))
+      : binders.map(b => Promise.resolve({ id: b.id, keys: getGuestBinderCards(b.id) }));
+
+    Promise.all(fetchKeys).then(results => {
+      const previewMap: Record<string, Card[]> = {};
+      const countMap: Record<string, number> = {};
+      for (const { id, keys } of results) {
+        const regularMatches = allCards.filter(card => keys.includes(getCardKey(card)));
+        const donMatches = allDonCards
+          .filter(card => keys.includes(getDonCardKey(card)))
+          .map(card => ({ ...card, images: { small: card.card_image || "/card-placeholder.png", large: card.card_image || "/card-placeholder.png" } }));
+        previewMap[id] = [...regularMatches, ...donMatches].slice(0, 4) as Card[];
+        countMap[id] = keys.length;
+      }
+      setBinderPreviewCards(previewMap);
+      setBinderCounts(prev => ({ ...prev, ...countMap }));
+    });
+  }, [binders, allCards, allDonCards, user]);
 
   useEffect(() => { if (openSetId) setFlipKey(k => k + 1); }, [openSetId]);
   useEffect(() => { if (openBinderId) setFlipKey(k => k + 1); }, [openBinderId]);
@@ -661,28 +717,42 @@ export default function BinderPage() {
   const availableSets = useMemo(() => SET_ORDER.filter(s => (cardsBySet[s]?.length ?? 0) > 0), [cardsBySet]);
 
   const handleToggleOwned = async (cardId: string) => {
-    if (!user) return;
     if (ownedSet.has(cardId)) {
       setUserCards(prev => prev.filter(u => u.card_id !== cardId));
       showToast("Removed from collection", "info");
-      await removeUserCard(user.id, cardId);
+      if (user) {
+        await removeUserCard(user.id, cardId);
+      } else {
+        removeGuestUserCard(cardId);
+      }
     } else {
       setUserCards(prev => [...prev.filter(u => u.card_id !== cardId), { card_id: cardId, in_wishlist: false }]);
       showToast("Added to collection", "success");
-      await addUserCard(user.id, cardId, false);
+      if (user) {
+        await addUserCard(user.id, cardId, false);
+      } else {
+        saveGuestUserCard(cardId, false);
+      }
     }
   };
 
   const handleToggleWishlist = async (cardId: string) => {
-    if (!user) return;
     if (wishlistSet.has(cardId)) {
       setUserCards(prev => prev.filter(u => u.card_id !== cardId));
       showToast("Removed from wishlist", "info");
-      await removeUserCard(user.id, cardId);
+      if (user) {
+        await removeUserCard(user.id, cardId);
+      } else {
+        removeGuestUserCard(cardId);
+      }
     } else {
       setUserCards(prev => [...prev.filter(u => u.card_id !== cardId), { card_id: cardId, in_wishlist: true }]);
       showToast("Added to wishlist", "wishlist");
-      await addUserCard(user.id, cardId, true);
+      if (user) {
+        await addUserCard(user.id, cardId, true);
+      } else {
+        saveGuestUserCard(cardId, true);
+      }
     }
   };
 
@@ -693,30 +763,49 @@ export default function BinderPage() {
       setBinderCounts(prev => ({ ...prev, [openBinderId]: Math.max((prev[openBinderId] ?? 1) - 1, 0) }));
       setBinderPreviewCards(prev => ({ ...prev, [openBinderId]: (prev[openBinderId] ?? []).filter(c => getCardKey(c) !== cardId) }));
       showToast("Card removed from binder", "info");
-      await removeCardFromBinder(openBinderId, cardId);
+      if (user) {
+        await removeCardFromBinder(openBinderId, cardId);
+      } else {
+        removeGuestBinderCard(openBinderId, cardId);
+      }
     } else {
       setOpenBinderCards(prev => [...prev, cardId]);
       setBinderCounts(prev => ({ ...prev, [openBinderId]: (prev[openBinderId] ?? 0) + 1 }));
       const card = allCards.find(c => getCardKey(c) === cardId);
       if (card) setBinderPreviewCards(prev => ({ ...prev, [openBinderId]: [...(prev[openBinderId] ?? []), card].slice(0, 4) }));
       showToast("Card added to binder", "success");
-      await addCardToBinder(openBinderId, cardId);
-      if (!ownedSet.has(cardId) && user) {
-        setUserCards(prev => [...prev.filter(u => u.card_id !== cardId), { card_id: cardId, in_wishlist: false }]);
-        await addUserCard(user.id, cardId, false);
+      if (user) {
+        await addCardToBinder(openBinderId, cardId);
+        if (!ownedSet.has(cardId)) {
+          setUserCards(prev => [...prev.filter(u => u.card_id !== cardId), { card_id: cardId, in_wishlist: false }]);
+          await addUserCard(user.id, cardId, false);
+        }
+      } else {
+        addGuestBinderCard(openBinderId, cardId);
+        if (!ownedSet.has(cardId)) {
+          setUserCards(prev => [...prev.filter(u => u.card_id !== cardId), { card_id: cardId, in_wishlist: false }]);
+          saveGuestUserCard(cardId, false);
+        }
       }
     }
   };
 
   const handleCreateBinder = async () => {
-    if (!user || !newBinderName.trim() || creatingBinderLoading) return;
+    if (!newBinderName.trim() || creatingBinderLoading) return;
     setCreatingBinderLoading(true);
     try {
-      const b = await createBinder(user.id, newBinderName.trim());
-      if (b) {
+      if (user) {
+        const b = await createBinder(user.id, newBinderName.trim());
+        if (b) {
+          setBinders(prev => [...prev, b]);
+          setBinderCounts(prev => ({ ...prev, [b.id]: 0 }));
+          showToast(`Binder "${b.name}" created!`, "celebrate");
+        }
+      } else {
+        const b = createGuestBinder(newBinderName.trim());
         setBinders(prev => [...prev, b]);
         setBinderCounts(prev => ({ ...prev, [b.id]: 0 }));
-        showToast(`Binder "${b.name}" created!`, "celebrate");
+        showToast(`Guest binder "${b.name}" created!`, "celebrate");
       }
       setNewBinderName("");
       setCreatingBinder(false);
@@ -733,7 +822,11 @@ export default function BinderPage() {
     setDeletingLoading(true);
     try {
       const bName = binders.find(b => b.id === id)?.name;
-      await deleteBinder(id);
+      if (user) {
+        await deleteBinder(id, user.id);
+      } else {
+        deleteGuestBinder(id);
+      }
       setBinders(prev => prev.filter(b => b.id !== id));
       if (openBinderId === id) setOpenBinderId(null);
       showToast(bName ? `Binder "${bName}" deleted` : "Binder deleted", "delete");
@@ -750,7 +843,11 @@ export default function BinderPage() {
     if (!renameValue.trim() || renamingLoading) return;
     setRenamingLoading(true);
     try {
-      await renameBinder(id, renameValue.trim());
+      if (user) {
+        await renameBinder(id, renameValue.trim(), user.id);
+      } else {
+        renameGuestBinder(id, renameValue.trim());
+      }
       setBinders(prev => prev.map(b => b.id === id ? { ...b, name: renameValue.trim() } : b));
       showToast(`Binder renamed to "${renameValue.trim()}"`, "success");
       setRenamingId(null);
@@ -767,13 +864,6 @@ export default function BinderPage() {
     <div className="binder-wrapper" style={{ minHeight: "100vh", background: tc.bg.primary, marginLeft: 70, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ fontSize: 13, color: tc.text.tertiary }}>Loading...</div>
     </div>
-  );
-
-  if (!user) return (
-    <>
-      <AuthGate onSignIn={() => { setShowAuthModal(true); }} onSignUp={() => { setShowAuthModal(true); }} />
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
-    </>
   );
 
   // ── OPEN SET VIEW ───────────────────────────────────
@@ -1262,7 +1352,13 @@ export default function BinderPage() {
                 <button onClick={() => setBulkDeleteConfirm(false)} style={{ flex: 1, padding: "12px 0", fontSize: 14, fontWeight: 600, border: `1.5px solid ${c.border}`, background: "transparent", color: c.text, borderRadius: 8, cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.background = c.bgSec; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>Cancel</button>
                 <button onClick={async () => {
                   const count = selectedCardKeys.size;
-                  for (const cardKey of selectedCardKeys) { await removeCardFromBinder(openBinderId!, cardKey); }
+                  for (const cardKey of selectedCardKeys) {
+                    if (user) {
+                      await removeCardFromBinder(openBinderId!, cardKey);
+                    } else {
+                      removeGuestBinderCard(openBinderId!, cardKey);
+                    }
+                  }
                   setOpenBinderCards(prev => prev.filter(id => !selectedCardKeys.has(id)));
                   setBinderCounts(prev => ({ ...prev, [openBinderId!]: Math.max((prev[openBinderId!] ?? selectedCardKeys.size) - selectedCardKeys.size, 0) }));
                   setBinderPreviewCards(prev => ({ ...prev, [openBinderId!]: (prev[openBinderId!] ?? []).filter(c => !selectedCardKeys.has(getCardKey(c))) }));
@@ -1292,6 +1388,7 @@ export default function BinderPage() {
             <ArrowUp size={20} strokeWidth={2.5} />
           </button>
         )}
+        {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         <Toast toast={toast} isDark={isDark} />
       </div>
     );
@@ -1327,6 +1424,44 @@ export default function BinderPage() {
       </div>
 
       <div className="binder-content-wrap" style={{ padding: "24px 32px" }}>
+        {!user && !loadingUser && (
+          <div style={{
+            background: isDark ? "rgba(239, 68, 68, 0.12)" : "rgba(239, 68, 68, 0.07)",
+            border: `1px solid ${isDark ? "rgba(239, 68, 68, 0.3)" : "rgba(239, 68, 68, 0.2)"}`,
+            borderRadius: 14,
+            padding: "14px 20px",
+            marginBottom: 24,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+            flexWrap: "wrap",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: c.text }}>
+              <Sparkles size={16} style={{ color: tc.accent, flexShrink: 0 }} />
+              <span>
+                <strong>Guest Collection:</strong> Your binders and progress are stored locally on this device. Sign in to save permanently across all your devices!
+              </span>
+            </div>
+            <button
+              onClick={() => setShowAuthModal(true)}
+              style={{
+                background: tc.accent,
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "8px 18px",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                boxShadow: "0 2px 8px rgba(239, 68, 68, 0.25)",
+              }}
+            >
+              Sign In to Sync &rarr;
+            </button>
+          </div>
+        )}
         {tab === "sets" && (
           <div className="binder-sets-grid" style={{ display: "grid", gap: 24 }}>
             {availableSets.map((setId) => {
@@ -2332,6 +2467,7 @@ export default function BinderPage() {
         </button>
       )}
 
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
       <Toast toast={toast} isDark={isDark} />
     </div>
   );

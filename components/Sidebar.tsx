@@ -10,6 +10,7 @@ import AuthModal from "@/components/AuthModal";
 import Toast, { ToastData, ToastType } from "@/components/Toast";
 import DonIcon from "@/components/DonIcon";
 import { getColors, ALL_THEMES } from "@/lib/themes";
+import { hasGuestData, syncGuestToCloud } from "@/lib/guestStorage";
 
 export default function Sidebar() {
   const router = useRouter();
@@ -65,13 +66,16 @@ export default function Sidebar() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
       setAuthLoading(false);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setAuthLoading(false);
+      if (currentUser && hasGuestData()) {
+        const res = await syncGuestToCloud(currentUser.id);
+        if (res.syncedCards > 0 || res.syncedBinders > 0) {
+          showToast(`Synced ${res.syncedCards} cards & ${res.syncedBinders} binders to your account!`, "celebrate");
+        }
+      }
     });
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -96,7 +100,7 @@ export default function Sidebar() {
 
   const menuItems = [
     { icon: User,        label: "Sign In",  action: () => { setShowAuth(true); }, show: !authLoading && !user },
-    { icon: LayoutDashboard, label: "Dashboard", action: () => router.push("/dashboard"), show: !!user },
+    { icon: LayoutDashboard, label: "Dashboard", action: () => router.push("/dashboard"), show: true },
     { icon: LayoutGrid,  label: "Browse",   action: () => router.push("/browse"),   show: true },
     { icon: BookOpen,    label: "Binder",   action: () => router.push("/binder"),   show: true },
     { icon: DonIcon,     label: "DON!!",    action: () => router.push("/don"),       show: true },
