@@ -155,13 +155,15 @@ export default function Sidebar() {
     if (!feedbackText.trim() || !feedbackCategory) return;
     setFeedbackStatus("sending");
     try {
-      const res = await fetch("https://formspree.io/f/mkoenrzy", {
+      const res = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           category: feedbackCategory,
           mood: feedbackMoodTouched ? MOOD_LABELS[feedbackMood] : "Not specified",
-          message: feedbackText,
+          message: feedbackText.trim(),
+          userEmail: user?.email || null,
+          page: typeof window !== "undefined" ? window.location.pathname : "",
         }),
       });
       if (res.ok) {
