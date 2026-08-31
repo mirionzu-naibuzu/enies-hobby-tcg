@@ -64,7 +64,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+
   const [allCards, setAllCards] = useState<Card[]>([]);
   const [allDonCards, setAllDonCards] = useState<any[]>([]);
   const [userCards, setUserCards] = useState<UserCard[]>([]);
@@ -447,7 +447,6 @@ export default function DashboardPage() {
                   type="button"
                   className="dashboard-button dashboard-button-primary"
                   onClick={() => {
-                    setAuthMode("login");
                     setShowAuthModal(true);
                   }}
                 >
@@ -457,7 +456,6 @@ export default function DashboardPage() {
                   type="button"
                   className="dashboard-button dashboard-button-secondary"
                   onClick={() => {
-                    setAuthMode("signup");
                     setShowAuthModal(true);
                   }}
                 >
@@ -471,7 +469,7 @@ export default function DashboardPage() {
           </section>
         </main>
         {showAuthModal && (
-          <AuthModal initialMode={authMode} onClose={() => setShowAuthModal(false)} />
+          <AuthModal onClose={() => setShowAuthModal(false)} />
         )}
       </div>
     );

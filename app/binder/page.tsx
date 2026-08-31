@@ -437,7 +437,7 @@ export default function BinderPage() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+
   const savedScrollY = useRef(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
@@ -771,8 +771,8 @@ export default function BinderPage() {
 
   if (!user) return (
     <>
-      <AuthGate onSignIn={() => { setAuthMode("login"); setShowAuthModal(true); }} onSignUp={() => { setAuthMode("signup"); setShowAuthModal(true); }} />
-      {showAuthModal && <AuthModal initialMode={authMode} onClose={() => setShowAuthModal(false)} />}
+      <AuthGate onSignIn={() => { setShowAuthModal(true); }} onSignUp={() => { setShowAuthModal(true); }} />
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
     </>
   );
 

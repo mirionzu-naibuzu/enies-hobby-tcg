@@ -17,8 +17,9 @@ export default function Sidebar() {
   const [mounted, setMounted] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+
   const { theme, setTheme } = useTheme();
   const [showAppearance, setShowAppearance] = useState(false);
   const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
@@ -64,9 +65,13 @@ export default function Sidebar() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+      setAuthLoading(false);
+    });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setAuthLoading(false);
     });
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -90,7 +95,7 @@ export default function Sidebar() {
   };
 
   const menuItems = [
-    { icon: User,        label: "Sign In",  action: () => { setAuthMode("login"); setShowAuth(true); }, show: !user },
+    { icon: User,        label: "Sign In",  action: () => { setShowAuth(true); }, show: !authLoading && !user },
     { icon: LayoutDashboard, label: "Dashboard", action: () => router.push("/dashboard"), show: !!user },
     { icon: LayoutGrid,  label: "Browse",   action: () => router.push("/browse"),   show: true },
     { icon: BookOpen,    label: "Binder",   action: () => router.push("/binder"),   show: true },
@@ -516,7 +521,7 @@ export default function Sidebar() {
       </aside>
 
       {/* Auth Modal */}
-      {showAuth && <AuthModal initialMode={authMode} onClose={() => setShowAuth(false)} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
 
       {/* Sign Out Confirm */}
       {showSignOutConfirm && (

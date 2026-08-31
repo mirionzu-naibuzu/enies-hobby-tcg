@@ -176,6 +176,8 @@ export default function Home() {
       });
   }, [binders]);
 
+  const initialParamsLoaded = useRef(false);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const rarity      = params.get("rarity");
@@ -201,6 +203,79 @@ export default function Home() {
         ...(type ? { type } : {}),
       }));
     }
+    initialParamsLoaded.current = true;
+  }, []);
+
+  // ── SYNC FILTERS & SEARCH TO URL QUERY PARAMETERS ──
+  useEffect(() => {
+    if (!initialParamsLoaded.current) return;
+
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams();
+
+      // Fixed Canonical Hierarchy:
+      // 1. Search Query ('q')
+      if (search && search.trim()) {
+        params.set("q", search.trim());
+      }
+
+      // 2. Expansion / Set ID ('set')
+      if (filters.setId && filters.setId.trim()) {
+        params.set("set", filters.setId.trim());
+      }
+
+      // 3. Card Colors ('colors')
+      if (filters.colors && filters.colors.length > 0) {
+        params.set("colors", filters.colors.join(","));
+      }
+
+      // 4. Card Rarity ('rarity')
+      if (filters.rarity && filters.rarity.trim()) {
+        params.set("rarity", filters.rarity.trim());
+      }
+
+      // 5. Card Type ('type')
+      if (filters.type && filters.type.trim()) {
+        params.set("type", filters.type.trim());
+      }
+
+      const queryString = params.toString();
+      const newUrl = queryString ? `/browse?${queryString}` : "/browse";
+
+      const currentUrl = window.location.pathname + window.location.search;
+      if (currentUrl !== newUrl) {
+        window.history.replaceState(null, "", newUrl);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search, filters]);
+
+  // Handle Browser Back / Forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const rarity      = params.get("rarity") || undefined;
+      const set         = params.get("set") || params.get("setId") || undefined;
+      const colorParam  = params.get("color") || params.get("colors");
+      const type        = params.get("type") || undefined;
+      const searchParam = params.get("search") || params.get("q") || "";
+
+      setSearch(searchParam);
+      const parsedColors = colorParam
+        ? colorParam.split(",").map((c) => c.trim()).filter(Boolean)
+        : undefined;
+
+      setFilters({
+        rarity,
+        setId: set,
+        colors: parsedColors && parsedColors.length > 0 ? parsedColors : undefined,
+        type,
+      });
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo, useSyncExternalStore } from "react";
-import { X, Eye, EyeOff, ArrowLeft, Mail, KeyRound } from "lucide-react";
+import { useState, useEffect, useMemo, useRef, useCallback, useSyncExternalStore } from "react";
+import { X, ArrowLeft, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { useTheme } from "next-themes";
 import { getColors } from "@/lib/themes";
@@ -9,33 +9,28 @@ import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 interface Props {
   onClose: () => void;
-  initialMode?: "login" | "signup";
 }
 
 const subscribeToMounted = () => () => {};
 const getMountedSnapshot = () => true;
 const getServerMountedSnapshot = () => false;
 
-export default function AuthModal({ onClose, initialMode = "login" }: Props) {
+export default function AuthModal({ onClose }: Props) {
   useBodyScrollLock(true);
-  const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [step, setStep] = useState<"form" | "verify">("form");
-  const [showPassword, setShowPassword] = useState(false);
-  const [suggestSignup, setSuggestSignup] = useState(false);
-  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [step, setStep] = useState<"email" | "otp">("email");
+  const [otpDigits, setOtpDigits] = useState<string[]>(["", "", "", "", "", ""]);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const { theme } = useTheme();
-  const [forgotPassword, setForgotPassword] = useState(false);
-  const [resetSent, setResetSent] = useState(false);
   const supabase = useMemo(() => createClient(), []);
   const mounted = useSyncExternalStore(
     subscribeToMounted,
     getMountedSnapshot,
     getServerMountedSnapshot
   );
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     const {
@@ -43,30 +38,33 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_IN") {
         onClose();
-        window.location.reload();
       }
     });
-
     return () => {
       subscription.unsubscribe();
     };
   }, [supabase, onClose]);
 
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
   const tc = getColors(theme, mounted);
   const isDark = tc.isDark;
 
   const colors = {
-    bg: {
-      primary: tc.bg.primary,
-      secondary: tc.bg.secondary,
-    },
-    text: {
-      primary: tc.text.primary,
-      secondary: tc.text.tertiary,
-    },
+    bg: { primary: tc.bg.primary, secondary: tc.bg.secondary },
+    text: { primary: tc.text.primary, secondary: tc.text.tertiary },
     border: tc.border,
     error: "#ef4444",
   };
+
+  // ── HANDLERS ──
 
   const handleGoogle = async () => {
     await supabase.auth.signInWithOAuth({
@@ -75,75 +73,126 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
     });
   };
 
-  const handleForgotPassword = async () => {
+  const handleDiscord = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "discord",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  };
+
+  const handleSendOtp = async () => {
     if (!email) {
-      setError("Please enter your email address first.");
+      setError("Please enter your email address.");
       return;
     }
-
     setLoading(true);
     setError("");
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true },
     });
 
     if (error) {
       setError(error.message);
     } else {
-      setResetSent(true);
+      setStep("otp");
+      setOtpDigits(["", "", "", "", "", ""]);
+      setResendCooldown(60);
+      setTimeout(() => otpRefs.current[0]?.focus(), 100);
     }
-
     setLoading(false);
   };
 
-  const handleSubmit = async () => {
-    if (mode === "signup" && !termsAccepted) {
-      setError("Please accept the terms and privacy policy");
-      return;
+  const handleVerifyOtp = useCallback(
+    async (digits: string[]) => {
+      const token = digits.join("");
+      if (token.length !== 6) return;
+
+      setLoading(true);
+      setError("");
+
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: "email",
+      });
+
+      if (error) {
+        setError("Invalid or expired code. Please try again.");
+        setOtpDigits(["", "", "", "", "", ""]);
+        setTimeout(() => otpRefs.current[0]?.focus(), 100);
+      }
+      // If successful, onAuthStateChange fires SIGNED_IN and closes
+      setLoading(false);
+    },
+    [email, supabase]
+  );
+
+  const handleOtpChange = (index: number, value: string) => {
+    const digit = value.replace(/\D/g, "").slice(-1);
+    const newDigits = [...otpDigits];
+    newDigits[index] = digit;
+    setOtpDigits(newDigits);
+
+    if (digit && index < 5) {
+      otpRefs.current[index + 1]?.focus();
     }
 
+    // Auto-submit when all 6 digits are filled
+    if (digit && index === 5) {
+      handleVerifyOtp(newDigits);
+    } else if (newDigits.every((d) => d !== "")) {
+      handleVerifyOtp(newDigits);
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (pasted.length === 0) return;
+
+    const newDigits = [...otpDigits];
+    for (let i = 0; i < 6; i++) {
+      newDigits[i] = pasted[i] || "";
+    }
+    setOtpDigits(newDigits);
+
+    const nextFocus = Math.min(pasted.length, 5);
+    otpRefs.current[nextFocus]?.focus();
+
+    if (pasted.length === 6) {
+      handleVerifyOtp(newDigits);
+    }
+  };
+
+  const handleResend = async () => {
+    if (resendCooldown > 0) return;
     setLoading(true);
     setError("");
-    setSuggestSignup(false);
 
-    if (mode === "signup") {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true },
+    });
 
-      if (error) {
-        setError(error.message);
-      } else if (data.user) {
-        setStep("verify");
-      }
+    if (error) {
+      setError(error.message);
     } else {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-          setError(
-            "Account not found or password incorrect. Would you like to create an account instead?"
-          );
-          setSuggestSignup(true);
-        } else {
-          setError(error.message);
-        }
-      } else if (data.user) {
-        onClose();
-        window.location.reload();
-      }
+      setResendCooldown(60);
+      setOtpDigits(["", "", "", "", "", ""]);
+      setTimeout(() => otpRefs.current[0]?.focus(), 100);
     }
-
     setLoading(false);
   };
+
+  // ── RENDER ──
 
   return (
     <div
@@ -179,7 +228,12 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
           <div>
             <div style={{ fontWeight: 900, fontSize: 24, color: colors.text.primary }}>
-              Welcome to Enies Hobby
+              {step === "otp" ? "Enter your code" : "Welcome"}
+            </div>
+            <div style={{ fontSize: 13, color: colors.text.secondary, marginTop: 4 }}>
+              {step === "otp"
+                ? "We sent a 6-digit code to your email"
+                : "Sign in or create your account"}
             </div>
           </div>
           <button
@@ -196,84 +250,14 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
               justifyContent: "center",
             }}
           >
-            <X
-              style={{
-                width: 24,
-                height: 24,
-                color: colors.text.secondary,
-              }}
-            />
+            <X style={{ width: 24, height: 24, color: colors.text.secondary }} />
           </button>
         </div>
 
-        {resetSent ? (
-          <div style={{ textAlign: "center", padding: "10px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <div
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: "50%",
-                background: isDark ? "rgba(239,68,68,0.15)" : "rgba(239,68,68,0.08)",
-                border: "1px solid rgba(239,68,68,0.25)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 16,
-                color: tc.accent,
-              }}
-            >
-              <KeyRound size={30} strokeWidth={1.8} />
-            </div>
-
-            <div
-              style={{
-                fontWeight: 700,
-                fontSize: 18,
-                color: colors.text.primary,
-                marginBottom: 8,
-              }}
-            >
-              Password reset sent
-            </div>
-
-            <div
-              style={{
-                fontSize: 13,
-                color: colors.text.secondary,
-                marginBottom: 24,
-                lineHeight: 1.6,
-              }}
-            >
-              We sent a password reset link to <strong>{email}</strong>.
-              Check your inbox and follow the instructions to reset your password.
-            </div>
-
-            <button
-              onClick={() => {
-                setResetSent(false);
-                setForgotPassword(false);
-                setMode("login");
-                setPassword("");
-                setError("");
-              }}
-              style={{
-                width: "100%",
-                background: tc.accent,
-                color: "white",
-                border: "none",
-                borderRadius: 8,
-                padding: "12px 0",
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: "pointer",
-                minHeight: 44,
-              }}
-            >
-              Back to Sign in
-            </button>
-          </div>
-        ) : step === "verify" ? (
-          <div style={{ textAlign: "center", padding: "10px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        {/* ─── STEP: OTP VERIFICATION ─── */}
+        {step === "otp" ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            {/* OTP icon */}
             <div
               style={{
                 width: 64,
@@ -291,120 +275,146 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
               <Mail size={30} strokeWidth={1.8} />
             </div>
 
-            <div
-              style={{
-                fontWeight: 700,
-                fontSize: 18,
-                color: colors.text.primary,
-                marginBottom: 8,
-              }}
-            >
-              Check your inbox!
+            {/* Email display */}
+            <div style={{ fontSize: 13, color: colors.text.secondary, marginBottom: 24, textAlign: "center", lineHeight: 1.6 }}>
+              Enter the 6-digit code we sent to <strong style={{ color: colors.text.primary }}>{email}</strong>
             </div>
 
-            <div
-              style={{
-                fontSize: 13,
-                color: colors.text.secondary,
-                marginBottom: 24,
-                lineHeight: 1.6,
-              }}
-            >
-              We sent a confirmation link to <strong>{email}</strong>.
-              Click the link to activate your account then come back to sign in.
+            {/* 6-digit OTP boxes */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 20, justifyContent: "center" }}>
+              {otpDigits.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={(el) => { otpRefs.current[i] = el; }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleOtpChange(i, e.target.value)}
+                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                  onPaste={i === 0 ? handleOtpPaste : undefined}
+                  disabled={loading}
+                  style={{
+                    width: 44,
+                    height: 52,
+                    textAlign: "center",
+                    fontSize: 22,
+                    fontWeight: 700,
+                    border: `1.5px solid ${digit ? tc.accent : colors.border}`,
+                    borderRadius: 10,
+                    outline: "none",
+                    background: colors.bg.secondary,
+                    color: colors.text.primary,
+                    transition: "border-color 0.2s",
+                    caretColor: tc.accent,
+                  }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = tc.accent; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = digit ? tc.accent : colors.border; }}
+                />
+              ))}
             </div>
 
+            {/* Error */}
+            {error && (
+              <div style={{ fontSize: 12, color: colors.error, marginBottom: 12, textAlign: "center" }}>
+                {error}
+              </div>
+            )}
+
+            {/* Loading indicator */}
+            {loading && (
+              <div style={{ fontSize: 13, color: colors.text.secondary, marginBottom: 12 }}>
+                Verifying...
+              </div>
+            )}
+
+            {/* Resend */}
             <button
-              onClick={() => {
-                setStep("form");
-                setMode("login");
-                setError("");
-              }}
+              onClick={handleResend}
+              disabled={resendCooldown > 0 || loading}
               style={{
-                width: "100%",
-                background: tc.accent,
-                color: "white",
+                background: "none",
                 border: "none",
-                borderRadius: 8,
-                padding: "12px 0",
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: "pointer",
+                color: resendCooldown > 0 ? colors.text.secondary : tc.accent,
+                cursor: resendCooldown > 0 ? "default" : "pointer",
+                fontSize: 13,
+                fontWeight: 600,
+                padding: 0,
+                marginBottom: 16,
                 minHeight: 44,
-              }}
-            >
-              Back to Sign in
-            </button>
-          </div>
-        ) : (
-          <div>
-            {/* Tab Navigation */}
-            <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
-              <button
-                onClick={() => setMode("login")}
-                style={{
-                  flex: 1,
-                  padding: "12px 16px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  border: "none",
-                  borderRadius: 8,
-                  cursor: "pointer",
-                  background: mode === "login" ? colors.bg.secondary : "transparent",
-                  color: colors.text.primary,
-                  transition: "all 0.2s",
-                  minHeight: 44,
-                }}
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => setMode("signup")}
-                style={{
-                  flex: 1,
-                  padding: "12px 16px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  border: "none",
-                  borderRadius: 8,
-                  cursor: "pointer",
-                  background: mode === "signup" ? colors.bg.secondary : "transparent",
-                  color: colors.text.primary,
-                  transition: "all 0.2s",
-                  minHeight: 44,
-                }}
-              >
-                Sign Up
-              </button>
-            </div>
-
-            {/* Google OAuth */}
-            <button
-              onClick={handleGoogle}
-              style={{
-                width: "100%",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                gap: 10,
-                border: `1.5px solid ${colors.border}`,
-                borderRadius: 8,
-                padding: "12px 0",
-                fontSize: 14,
-                fontWeight: 600,
-                color: colors.text.primary,
-                background: "transparent",
-                cursor: "pointer",
-                marginBottom: 16,
-                transition: "all 0.2s",
-                minHeight: 44,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = colors.bg.secondary; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
             >
-              <img src="https://www.google.com/favicon.ico" style={{ width: 16, height: 16 }} />
-              Continue with Google
+              {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend code"}
             </button>
+
+            {/* Change email */}
+            <button
+              onClick={() => {
+                setStep("email");
+                setError("");
+                setOtpDigits(["", "", "", "", "", ""]);
+              }}
+              style={{
+                background: "none",
+                border: "none",
+                color: tc.accent,
+                cursor: "pointer",
+                fontSize: 13,
+                fontWeight: 600,
+                minHeight: 44,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <ArrowLeft size={14} />
+              <span>Change email</span>
+            </button>
+          </div>
+
+        ) : (
+          /* ─── STEP: EMAIL INPUT (DEFAULT) ─── */
+          <div>
+            {/* OAuth Buttons */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+              <button
+                onClick={handleGoogle}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center",
+                  justifyContent: "center", gap: 10,
+                  border: `1.5px solid ${colors.border}`, borderRadius: 8,
+                  padding: "11px 0", fontSize: 13, fontWeight: 600,
+                  color: colors.text.primary, background: "transparent",
+                  cursor: "pointer", transition: "all 0.2s", minHeight: 44,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = colors.bg.secondary; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+              >
+                <img src="https://www.google.com/favicon.ico" alt="Google" style={{ width: 16, height: 16 }} />
+                Continue with Google
+              </button>
+
+              <button
+                onClick={handleDiscord}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center",
+                  justifyContent: "center", gap: 10,
+                  border: `1.5px solid ${colors.border}`, borderRadius: 8,
+                  padding: "11px 0", fontSize: 13, fontWeight: 600,
+                  color: colors.text.primary, background: "transparent",
+                  cursor: "pointer", transition: "all 0.2s", minHeight: 44,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = colors.bg.secondary; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill={isDark ? "#a5b4fc" : "#5865F2"}>
+                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.893.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
+                </svg>
+                Continue with Discord
+              </button>
+            </div>
 
             {/* Divider */}
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
@@ -419,301 +429,52 @@ export default function AuthModal({ onClose, initialMode = "login" }: Props) {
               placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && email) {
+                  handleSendOtp();
+                }
+              }}
               style={{
-                width: "100%",
-                padding: "12px 14px",
-                fontSize: 14,
-                border: `1.5px solid ${colors.border}`,
-                borderRadius: 8,
-                outline: "none",
-                boxSizing: "border-box",
-                background: colors.bg.secondary,
-                color: colors.text.primary,
-                marginBottom: 12,
-                transition: "all 0.2s",
+                width: "100%", padding: "12px 14px", fontSize: 14,
+                border: `1.5px solid ${colors.border}`, borderRadius: 8,
+                outline: "none", boxSizing: "border-box",
+                background: colors.bg.secondary, color: colors.text.primary,
+                marginBottom: 12, transition: "all 0.2s",
               }}
               onFocus={(e) => { e.currentTarget.style.borderColor = colors.text.primary; }}
               onBlur={(e) => { e.currentTarget.style.borderColor = colors.border; }}
             />
-            {forgotPassword ? (
-  <>
-    {error && (
-      <div
-        style={{
-          fontSize: 12,
-          color: colors.error,
-          marginBottom: 12,
-        }}
-      >
-        {error}
-      </div>
-    )}
 
-    <button
-      onClick={handleForgotPassword}
-      disabled={loading || !email}
-      style={{
-        width: "100%",
-        background: tc.accent,
-        color: "white",
-        border: "none",
-        borderRadius: 8,
-        padding: "12px 0",
-        fontSize: 14,
-        fontWeight: 700,
-        cursor: loading || !email ? "not-allowed" : "pointer",
-        opacity: loading || !email ? 0.6 : 1,
-        marginBottom: 12,
-        minHeight: 44,
-      }}
-    >
-      {loading ? "Sending..." : "Send reset link"}
-    </button>
+            {/* Error */}
+            {error && <div style={{ fontSize: 12, color: colors.error, marginBottom: 12 }}>{error}</div>}
 
-    <div style={{ textAlign: "center" }}>
-    <button
-      onClick={() => {
-        setForgotPassword(false);
-        setResetSent(false);
-        setError("");
-        setPassword("");
-        setMode("login");
-      }}
-      style={{
-        background: "none",
-        border: "none",
-        color: tc.accent,
-        cursor: "pointer",
-        fontSize: 13,
-        fontWeight: 600,
-        minHeight: 44,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-      }}
-    >
-      <ArrowLeft size={14} />
-      <span>Back to sign in</span>
-    </button>
-  </div>
-  </>
-) : (
-  <>
-    {/* Password Input */}
-    <div style={{ position: "relative", marginBottom: 16 }}>
-      <input
-        type={showPassword ? "text" : "password"}
-        placeholder={mode === "signup" ? "Password (min. 8 chars)" : "Password"}
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-        style={{
-          width: "100%",
-          padding: "12px 14px",
-          paddingRight: 40,
-          fontSize: 14,
-          border: `1.5px solid ${colors.border}`,
-          borderRadius: 8,
-          outline: "none",
-          boxSizing: "border-box",
-          background: colors.bg.secondary,
-          color: colors.text.primary,
-          transition: "all 0.2s",
-        }}
-        onFocus={(e) => {
-          e.currentTarget.style.borderColor = colors.text.primary;
-        }}
-        onBlur={(e) => {
-          e.currentTarget.style.borderColor = colors.border;
-        }}
-      />
+            {/* Continue Button */}
+            <button
+              onClick={handleSendOtp}
+              disabled={loading || !email}
+              style={{
+                width: "100%", background: tc.accent, color: "white",
+                border: "none", borderRadius: 8, padding: "12px 0",
+                fontSize: 14, fontWeight: 700,
+                cursor: loading || !email ? "not-allowed" : "pointer",
+                opacity: loading || !email ? 0.6 : 1,
+                marginBottom: 16, minHeight: 44,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              {loading ? "Sending code..." : "Continue"}
+            </button>
 
-      <button
-        onMouseDown={() => setShowPassword(true)}
-        onMouseUp={() => setShowPassword(false)}
-        onMouseLeave={() => setShowPassword(false)}
-        style={{
-          position: "absolute",
-          right: 12,
-          top: "50%",
-          transform: "translateY(-50%)",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          color: colors.text.secondary,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 0,
-          minWidth: 44,
-          minHeight: 44,
-        }}
-      >
-        {showPassword ? (
-          <EyeOff style={{ width: 16, height: 16 }} />
-        ) : (
-          <Eye style={{ width: 16, height: 16 }} />
-        )}
-      </button>
-    </div>
-
-    {/* Error Message */}
-    {error && (
-      <div
-        style={{
-          fontSize: 12,
-          color: colors.error,
-          marginBottom: 12,
-        }}
-      >
-        {error}
-      </div>
-    )}
-
-    {/* Terms Checkbox */}
-    {mode === "signup" && (
-      <label
-        style={{
-          display: "flex",
-          gap: 8,
-          marginBottom: 16,
-          alignItems: "flex-start",
-          cursor: "pointer",
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={termsAccepted}
-          onChange={(e) => setTermsAccepted(e.target.checked)}
-          style={{ marginTop: 4, cursor: "pointer" }}
-        />
-
-        <span
-          style={{
-            fontSize: 12,
-            color: colors.text.secondary,
-            lineHeight: 1.5,
-          }}
-        >
-          I agree to the{" "}
-          <span
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              window.open("/disclaimer", "_blank");
-            }}
-            style={{
-              color: tc.accent,
-              textDecoration: "underline",
-              cursor: "pointer",
-            }}
-          >
-            Terms & Conditions
-          </span>
-        </span>
-      </label>
-    )}
-
-    {/* Submit Button */}
-    <button
-      onClick={handleSubmit}
-      disabled={
-        loading ||
-        !email ||
-        !password ||
-        (mode === "signup" && !termsAccepted)
-      }
-      style={{
-        width: "100%",
-        background: tc.accent,
-        color: "white",
-        border: "none",
-        borderRadius: 8,
-        padding: "12px 0",
-        fontSize: 14,
-        fontWeight: 700,
-        cursor:
-          loading ||
-          !email ||
-          !password ||
-          (mode === "signup" && !termsAccepted)
-            ? "not-allowed"
-            : "pointer",
-        marginBottom: 12,
-        opacity:
-          loading ||
-          !email ||
-          !password ||
-          (mode === "signup" && !termsAccepted)
-            ? 0.6
-            : 1,
-        minHeight: 44,
-      }}
-    >
-      {loading
-        ? "Loading..."
-        : mode === "login"
-        ? "Sign in"
-        : "Sign up"}
-    </button>
-
-    {/* Toggle Link */}
-    <div
-      style={{
-        textAlign: "center",
-        fontSize: 13,
-        color: colors.text.secondary,
-      }}
-    >
-      {mode === "login"
-        ? "Don't have an account? "
-        : "Already have an account? "}
-
-      <button
-        onClick={() => {
-          setMode(mode === "login" ? "signup" : "login");
-          setError("");
-          setSuggestSignup(false);
-          setTermsAccepted(false);
-        }}
-        style={{
-          background: "none",
-          border: "none",
-          fontWeight: 700,
-          color: tc.accent,
-          cursor: "pointer",
-          padding: 0,
-          minHeight: 44,
-        }}
-      >
-        {mode === "login" ? "Sign up" : "Sign in"}
-      </button>
-    </div>
-  </>
-)}
-            {/* Additional Links */}
-            {mode === "login" && (
-              <div style={{ textAlign: "center", marginTop: 12 }}>
-                <button
-                  onClick={() => {
-                    setForgotPassword(true);
-                    setError("");
-                  }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: tc.accent,
-                    cursor: "pointer",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    padding: 0,
-                    minHeight: 44,
-                  }}
-                >
-                  Forgot password?
-                </button>
-              </div>
-            )}
+            {/* Terms */}
+            <div style={{ fontSize: 11, color: colors.text.secondary, textAlign: "center", lineHeight: 1.6 }}>
+              By continuing, you agree to our{" "}
+              <span
+                onClick={() => window.open("/disclaimer", "_blank")}
+                style={{ color: tc.accent, textDecoration: "underline", cursor: "pointer" }}
+              >
+                Terms & Privacy Policy
+              </span>
+            </div>
           </div>
         )}
       </div>

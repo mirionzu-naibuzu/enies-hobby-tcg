@@ -99,14 +99,18 @@ export async function createBinder(userId: string, name: string): Promise<Binder
   return data;
 }
 
-export async function deleteBinder(binderId: string): Promise<void> {
+export async function deleteBinder(binderId: string, userId?: string): Promise<void> {
   const supabase = createClient();
-  await supabase.from("binders").delete().eq("id", binderId);
+  let query = supabase.from("binders").delete().eq("id", binderId);
+  if (userId) query = query.eq("user_id", userId);
+  await query;
 }
 
-export async function renameBinder(binderId: string, name: string): Promise<void> {
+export async function renameBinder(binderId: string, name: string, userId?: string): Promise<void> {
   const supabase = createClient();
-  await supabase.from("binders").update({ name }).eq("id", binderId);
+  let query = supabase.from("binders").update({ name }).eq("id", binderId);
+  if (userId) query = query.eq("user_id", userId);
+  await query;
 }
 
 // ── BINDER CARDS ──────────────────────────────────────

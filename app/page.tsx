@@ -86,7 +86,7 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false);
   const [activeSet, setActiveSet] = useState<string | null>(null);
   const [showAuth, setShowAuth] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [stackCards, setStackCards] = useState<Card[]>([]);
   const [previewCards, setPreviewCards] = useState<Card[]>([]);
@@ -196,8 +196,7 @@ export default function HomePage() {
     border:  tc.border,
   };
 
-  const openAuth = (mode: "login" | "signup") => {
-    setAuthMode(mode);
+  const openAuth = () => {
     setShowAuth(true);
   };
 
@@ -416,7 +415,7 @@ export default function HomePage() {
           {mounted && !user && (
             <div className="home-nav-auth" style={{ display: "flex", gap: 3, alignItems: "center" }}>
               <button
-                onClick={() => openAuth("login")}
+                onClick={() => openAuth()}
                 style={{
                   background: "transparent",
                   border: "none",
@@ -432,7 +431,7 @@ export default function HomePage() {
                 Log in
               </button>
               <button
-                onClick={() => openAuth("signup")}
+                onClick={() => openAuth()}
                 style={{
                   background: tc.accent,
                   border: "none",
@@ -861,7 +860,7 @@ export default function HomePage() {
               ) : mounted && !user ? (
                 <button
                   className="btn-secondary home-hero-cta"
-                  onClick={() => openAuth("signup")}
+                  onClick={() => openAuth()}
                   style={{
                     padding: "12px 22px",
                     borderRadius: 10,
@@ -2254,7 +2253,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {showAuth && <AuthModal initialMode={authMode} onClose={() => setShowAuth(false)} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </div>
   );
 }
