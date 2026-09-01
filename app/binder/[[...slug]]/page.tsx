@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { getAllCards } from "@/lib/api";
@@ -70,6 +70,59 @@ const FLIP_STYLE = `
     100% { transform: rotateY(0deg); }
   }
 `;
+
+function parseBinderUrl(path: string) {
+  const cleanPath = path.replace(/^\/binder\/?/, "");
+  const parts = cleanPath.split("/").filter(Boolean);
+  const root = parts[0]?.toLowerCase();
+  const sub = parts[1];
+
+  if (root === "custom") {
+    return {
+      tab: "custom" as const,
+      openSetId: null,
+      openBinderId: sub ? decodeURIComponent(sub) : null,
+    };
+  }
+  if (root === "wishlist") {
+    return {
+      tab: "wishlist" as const,
+      openSetId: null,
+      openBinderId: null,
+    };
+  }
+  if (root === "sets" && sub) {
+    const decoded = decodeURIComponent(sub);
+    const lower = decoded.toLowerCase();
+    const clean = lower.replace(/[^a-z0-9]/g, "");
+    const match = SET_ORDER.find(
+      (s) => s.toLowerCase() === lower || s.toLowerCase().replace(/[^a-z0-9]/g, "") === clean
+    );
+    return {
+      tab: "sets" as const,
+      openSetId: match || decoded.toUpperCase(),
+      openBinderId: null,
+    };
+  }
+  if (root && (root.startsWith("op-") || root.startsWith("op") || root.startsWith("eb-") || root.startsWith("eb") || root.startsWith("st-") || root.startsWith("st") || root.startsWith("prb-") || root.startsWith("prb"))) {
+    const decoded = decodeURIComponent(root);
+    const lower = decoded.toLowerCase();
+    const clean = lower.replace(/[^a-z0-9]/g, "");
+    const match = SET_ORDER.find(
+      (s) => s.toLowerCase() === lower || s.toLowerCase().replace(/[^a-z0-9]/g, "") === clean
+    );
+    return {
+      tab: "sets" as const,
+      openSetId: match || decoded.toUpperCase(),
+      openBinderId: null,
+    };
+  }
+  return {
+    tab: "sets" as const,
+    openSetId: null,
+    openBinderId: null,
+  };
+}
 
 function AuthGate({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: () => void }) {
   const { theme } = useTheme();
@@ -384,7 +437,6 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
   );
 }
 
-
 function DonCardModal({ card, index, cards, onClose, onNav, c, tc, isDark }: {
   card: any; index: number; cards: any[];
   onClose: () => void; onNav: (i: number) => void;
@@ -414,16 +466,15 @@ function DonCardModal({ card, index, cards, onClose, onNav, c, tc, isDark }: {
             </div>
             <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}><X size={20} color={c.textTer} /></button>
           </div>
-          {/* Body — ModalCardImage with don-back.png */}
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
             <div style={{ width: "100%", maxWidth: 320 }}>
-            <ModalCardImage
-              key={card.card_image || card.card_name || index}
-              src={card.card_image || "/card-placeholder.png"}
-              alt={card.card_name}
-              isDark={isDark}
-              backSrc="/don-back.png"
-            />
+              <ModalCardImage
+                key={card.card_image || card.card_name || index}
+                src={card.card_image || "/card-placeholder.png"}
+                alt={card.card_name}
+                isDark={isDark}
+                backSrc="/don-back.png"
+              />
             </div>
           </div>
           <div style={{ borderTop: `1px solid ${c.border}`, padding: "10px 24px", textAlign: "center", fontSize: 12, color: c.textTer, flexShrink: 0 }}>{index + 1} / {cards.length}</div>
@@ -438,6 +489,8 @@ function DonCardModal({ card, index, cards, onClose, onNav, c, tc, isDark }: {
 
 export default function BinderPage() {
   const router = useRouter();
+  const params = useParams();
+  const pathname = usePathname();
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -453,9 +506,34 @@ export default function BinderPage() {
   const [binderCounts, setBinderCounts] = useState<Record<string, number>>({});
   const [loadingData, setLoadingData] = useState(true);
 
+  // ── SHALLOW URL STATE & INSTANT REACT STATE ────────────
   const [tab, setTab] = useState<"sets" | "custom" | "wishlist">("sets");
   const [openSetId, setOpenSetId] = useState<string | null>(null);
   const [openBinderId, setOpenBinderId] = useState<string | null>(null);
+
+  // Sync state on initial mount & on browser Back/Forward (popstate)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const parsed = parseBinderUrl(window.location.pathname);
+      setTab(parsed.tab);
+      setOpenSetId(parsed.openSetId);
+      setOpenBinderId(parsed.openBinderId);
+    }
+
+    const handlePopState = () => {
+      const parsed = parseBinderUrl(window.location.pathname);
+      setTab(parsed.tab);
+      setOpenSetId(parsed.openSetId);
+      setOpenBinderId(parsed.openBinderId);
+      if (!parsed.openSetId && !parsed.openBinderId) {
+        setTimeout(() => window.scrollTo(0, savedScrollY.current), 10);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   const [openBinderCards, setOpenBinderCards] = useState<string[]>([]);
   const [binderPreviewCards, setBinderPreviewCards] = useState<Record<string, Card[]>>({});
 
@@ -641,6 +719,9 @@ export default function BinderPage() {
     if (!openBinderId) return;
     if (user && openBinderId.startsWith("guest_binder_")) {
       setOpenBinderId(null);
+      if (typeof window !== "undefined") {
+        window.history.replaceState({ tab: "custom" }, "", "/binder/custom");
+      }
       return;
     }
     setOpenBinderCards([]);
@@ -715,6 +796,68 @@ export default function BinderPage() {
   }, [allCards]);
 
   const availableSets = useMemo(() => SET_ORDER.filter(s => (cardsBySet[s]?.length ?? 0) > 0), [cardsBySet]);
+
+  const handleTabChange = (t: "sets" | "custom" | "wishlist") => {
+    setTab(t);
+    setOpenSetId(null);
+    setOpenBinderId(null);
+    const targetUrl = t === "sets" ? "/binder" : `/binder/${t}`;
+    if (typeof window !== "undefined" && window.location.pathname !== targetUrl) {
+      window.history.pushState({ tab: t }, "", targetUrl);
+    }
+  };
+
+  const handleOpenSet = (setId: string) => {
+    savedScrollY.current = window.scrollY;
+    setOpenSetId(setId);
+    setOpenBinderId(null);
+    setSetViewFilters({});
+    window.scrollTo(0, 0);
+    const targetUrl = `/binder/sets/${encodeURIComponent(setId)}`;
+    if (typeof window !== "undefined" && window.location.pathname !== targetUrl) {
+      window.history.pushState({ tab: "sets", setId }, "", targetUrl);
+    }
+  };
+
+  const handleCloseSet = () => {
+    setBinderFiltersOpen(false);
+    if (typeof window !== "undefined") {
+      if (window.history.state?.setId || window.history.state?.tab === "sets") {
+        window.history.back();
+      } else {
+        setOpenSetId(null);
+        window.history.replaceState({ tab: "sets" }, "", "/binder");
+        window.scrollTo(0, savedScrollY.current);
+      }
+    } else {
+      setOpenSetId(null);
+    }
+  };
+
+  const handleOpenBinder = (binderId: string) => {
+    savedScrollY.current = window.scrollY;
+    setOpenBinderId(binderId);
+    setOpenSetId(null);
+    window.scrollTo(0, 0);
+    const targetUrl = `/binder/custom/${encodeURIComponent(binderId)}`;
+    if (typeof window !== "undefined" && window.location.pathname !== targetUrl) {
+      window.history.pushState({ tab: "custom", binderId }, "", targetUrl);
+    }
+  };
+
+  const handleCloseBinder = () => {
+    if (typeof window !== "undefined") {
+      if (window.history.state?.binderId || window.history.state?.tab === "custom") {
+        window.history.back();
+      } else {
+        setOpenBinderId(null);
+        window.history.replaceState({ tab: "custom" }, "", "/binder/custom");
+        window.scrollTo(0, savedScrollY.current);
+      }
+    } else {
+      setOpenBinderId(null);
+    }
+  };
 
   const handleToggleOwned = async (cardId: string) => {
     if (ownedSet.has(cardId)) {
@@ -828,7 +971,12 @@ export default function BinderPage() {
         deleteGuestBinder(id);
       }
       setBinders(prev => prev.filter(b => b.id !== id));
-      if (openBinderId === id) setOpenBinderId(null);
+      if (openBinderId === id) {
+        setOpenBinderId(null);
+        if (typeof window !== "undefined") {
+          window.history.replaceState({ tab: "custom" }, "", "/binder/custom");
+        }
+      }
       showToast(bName ? `Binder "${bName}" deleted` : "Binder deleted", "delete");
       setDeleteConfirmId(null);
     } catch (err) {
@@ -914,8 +1062,12 @@ export default function BinderPage() {
         <Sidebar />
 
         <div className="binder-set-header" style={{ padding: "20px 32px", borderBottom: `0.5px solid ${c.border}`, display: "flex", alignItems: "center", gap: 16, position: "sticky", top: 0, background: c.bg, zIndex: 20 }}>
-        <button onClick={() => { setOpenSetId(null); setBinderFiltersOpen(false); window.scrollTo(0, savedScrollY.current); }} title="Back" style={{ background: "none", border: "none", cursor: "pointer", color: c.textSec, display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, flexShrink: 0 }}>
-          <ChevronLeft size={20} />
+          <button
+            onClick={handleCloseSet}
+            title="Back"
+            style={{ background: "none", border: "none", cursor: "pointer", color: c.textSec, display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, flexShrink: 0 }}
+          >
+            <ChevronLeft size={20} />
           </button>
           <div style={{ width: "0.5px", height: 16, background: c.border, flexShrink: 0 }} />
           <div style={{ minWidth: 0, overflow: "hidden" }}>
@@ -998,213 +1150,249 @@ export default function BinderPage() {
                 background: "rgba(0, 0, 0, 0.45)",
                 backdropFilter: "blur(2px)",
                 WebkitBackdropFilter: "blur(2px)",
-                zIndex: 25,
+                zIndex: 35,
               }}
             />
             <div
-              className="binder-mobile-drawer"
+              className="filter-drawer-panel"
               style={{
                 position: "fixed",
                 top: 112,
                 left: 0,
                 right: 0,
-                zIndex: 30,
+                maxHeight: "calc(100vh - 120px)",
+                overflowY: "auto",
                 background: c.bg,
                 borderBottom: `1px solid ${c.border}`,
-                boxShadow: "0 16px 36px rgba(0, 0, 0, 0.35)",
-                maxHeight: "calc(80vh - 112px)",
-                overflowY: "auto",
-                WebkitOverflowScrolling: "touch",
+                boxShadow: isDark
+                  ? "0 20px 40px rgba(0, 0, 0, 0.6)"
+                  : "0 20px 40px rgba(0, 0, 0, 0.15)",
+                zIndex: 36,
+                padding: "20px 24px 28px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 20,
               }}
             >
-              <div style={{ padding: "14px 16px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16 }}>
-                {/* Color */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Color</span>
-                  <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                    {[...FILTER_COLORS, "Multicolor"].map((color) => {
-                      const isMulti = color === "Multicolor";
-                      const active = isMulti ? multicolorActive : selectedColors.includes(color);
-                      const dimmed = !active && selectedColors.length > 0;
-                      return (
-                        <button key={color} title={color}
-                          onClick={() => {
-                            if (isMulti) { setSetViewFilters(f => ({ ...f, colors: multicolorActive ? [] : ["Multicolor"] })); return; }
-                            if (multicolorActive) { setSetViewFilters(f => ({ ...f, colors: [color] })); return; }
-                            const cur = selectedColors;
-                            if (cur.includes(color)) setSetViewFilters(f => ({ ...f, colors: cur.filter(c => c !== color) }));
-                            else { const next = cur.length >= 2 ? [cur[1], color] : [...cur, color]; setSetViewFilters(f => ({ ...f, colors: next })); }
-                          }}
-                          style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, border: "none", cursor: "pointer", background: isMulti ? "conic-gradient(from 180deg, #ef4444, #facc15, #22c55e, #3b82f6, #a855f7, #000000, #ef4444)" : COLOR_DOT[color], outline: active ? `3px solid ${isMulti ? "#808080" : COLOR_DOT[color]}` : "none", outlineOffset: 2, opacity: dimmed ? 0.35 : 1, transform: active ? "scale(1.15)" : "scale(1)", transition: "all 0.2s" }}
-                        />
-                      );
-                    })}
-                  </div>
+              {/* Color Filter */}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+                  Color
                 </div>
-                {/* Type */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Type</span>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {FILTER_TYPES.map(t => <button key={t} onClick={() => setSetViewFilters(f => ({ ...f, type: f.type === t ? undefined : t }))} style={chipStyle(setViewFilters.type === t)}>{t}</button>)}
-                  </div>
+                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  {[...FILTER_COLORS, "Multicolor"].map((color) => {
+                    const isMulti = color === "Multicolor";
+                    const active = isMulti ? multicolorActive : selectedColors.includes(color);
+                    const dimmed = !active && selectedColors.length > 0;
+                    return (
+                      <button
+                        key={color}
+                        title={color}
+                        onClick={() => {
+                          if (isMulti) { setSetViewFilters(f => ({ ...f, colors: multicolorActive ? [] : ["Multicolor"] })); return; }
+                          if (multicolorActive) { setSetViewFilters(f => ({ ...f, colors: [color] })); return; }
+                          const cur = selectedColors;
+                          if (cur.includes(color)) setSetViewFilters(f => ({ ...f, colors: cur.filter(c => c !== color) }));
+                          else { const next = cur.length >= 2 ? [cur[1], color] : [...cur, color]; setSetViewFilters(f => ({ ...f, colors: next })); }
+                        }}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          flexShrink: 0,
+                          border: "none",
+                          cursor: "pointer",
+                          background: isMulti
+                            ? "conic-gradient(from 180deg, #ef4444, #facc15, #22c55e, #3b82f6, #a855f7, #000000, #ef4444)"
+                            : COLOR_DOT[color],
+                          outline: active ? `3px solid ${isMulti ? "#808080" : COLOR_DOT[color]}` : "none",
+                          outlineOffset: 3,
+                          opacity: dimmed ? 0.35 : 1,
+                          transform: active ? "scale(1.15)" : "scale(1)",
+                          transition: "all 0.2s",
+                        }}
+                      />
+                    );
+                  })}
                 </div>
-                {/* Rarity */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Rarity</span>
-                  <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                    {FILTER_RARITIES.map(r => <button key={r} onClick={() => setSetViewFilters(f => ({ ...f, rarity: f.rarity === r ? undefined : r }))} style={chipStyle(setViewFilters.rarity === r)}>{r}</button>)}
-                    <button onClick={() => setSetViewFilters(f => ({ ...f, spOnly: !f.spOnly }))} style={chipStyle(!!setViewFilters.spOnly)}>SP</button>
-                  </div>
-                </div>
-                {/* Show */}
-                {!allSetOwned && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Show</span>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      <button onClick={() => setSetViewFilters(f => ({ ...f, owned: f.owned === "owned" ? undefined : "owned" }))} style={{ ...chipStyle(setViewFilters.owned === "owned"), border: `1px solid ${setViewFilters.owned === "owned" ? "#16a34a" : c.border}`, background: setViewFilters.owned === "owned" ? "#16a34a" : "transparent", color: setViewFilters.owned === "owned" ? "#fff" : c.textTer }}>Owned</button>
-                      <button onClick={() => setSetViewFilters(f => ({ ...f, owned: f.owned === "not_owned" ? undefined : "not_owned" }))} style={{ ...chipStyle(setViewFilters.owned === "not_owned"), border: `1px solid ${setViewFilters.owned === "not_owned" ? (isDark ? "#f3f4f6" : "#111827") : c.border}`, background: setViewFilters.owned === "not_owned" ? (isDark ? "#f3f4f6" : "#111827") : "transparent", color: setViewFilters.owned === "not_owned" ? (isDark ? "#111827" : "#fff") : c.textTer }}>Not owned</button>
-                    </div>
-                  </div>
-                )}
               </div>
-              <div
-                style={{
-                  padding: "8px 16px 14px",
-                  background: c.bg,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                {hasActiveFilters ? (
+
+              {/* Type Filter */}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+                  Card Type
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {FILTER_TYPES.map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setSetViewFilters(f => ({ ...f, type: f.type === t ? undefined : t }))}
+                      style={chipStyle(setViewFilters.type === t)}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Rarity Filter */}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+                  Rarity
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  {FILTER_RARITIES.map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setSetViewFilters(f => ({ ...f, rarity: f.rarity === r ? undefined : r }))}
+                      style={chipStyle(setViewFilters.rarity === r)}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setSetViewFilters(f => ({ ...f, spOnly: !f.spOnly }))}
+                    style={chipStyle(!!setViewFilters.spOnly)}
+                  >
+                    SP
+                  </button>
+                </div>
+              </div>
+
+              {/* Ownership Filter */}
+              {!allSetOwned && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+                    Ownership Status
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      onClick={() => setSetViewFilters(f => ({ ...f, owned: f.owned === "owned" ? undefined : "owned" }))}
+                      style={{
+                        ...chipStyle(setViewFilters.owned === "owned"),
+                        border: `1px solid ${setViewFilters.owned === "owned" ? "#16a34a" : c.border}`,
+                        background: setViewFilters.owned === "owned" ? "#16a34a" : "transparent",
+                        color: setViewFilters.owned === "owned" ? "#fff" : c.textTer,
+                      }}
+                    >
+                      Owned
+                    </button>
+                    <button
+                      onClick={() => setSetViewFilters(f => ({ ...f, owned: f.owned === "not_owned" ? undefined : "not_owned" }))}
+                      style={{
+                        ...chipStyle(setViewFilters.owned === "not_owned"),
+                        border: `1px solid ${setViewFilters.owned === "not_owned" ? (isDark ? "#f3f4f6" : "#111827") : c.border}`,
+                        background: setViewFilters.owned === "not_owned" ? (isDark ? "#f3f4f6" : "#111827") : "transparent",
+                        color: setViewFilters.owned === "not_owned" ? (isDark ? "#111827" : "#fff") : c.textTer,
+                      }}
+                    >
+                      Not owned
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Reset All Filters Button */}
+              {hasActiveFilters && (
+                <div style={{ paddingTop: 8, borderTop: `1px solid ${c.border}` }}>
                   <button
                     onClick={() => setSetViewFilters({})}
                     style={{
-                      fontSize: 12,
+                      width: "100%",
+                      padding: "12px 0",
+                      borderRadius: 10,
+                      border: `1px solid ${c.border}`,
+                      background: c.bgSec,
+                      color: c.text,
+                      fontSize: 13,
                       fontWeight: 600,
-                      color: c.textTer,
-                      background: "transparent",
-                      border: "none",
                       cursor: "pointer",
-                      padding: "4px 8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
                     }}
                   >
-                    Reset all
+                    <X size={14} />
+                    <span>Clear all filters ({activeSetFilterCount})</span>
                   </button>
-                ) : <div />}
-                <button
-                  onClick={() => setBinderFiltersOpen(false)}
-                  style={{
-                    padding: "6px 18px",
-                    borderRadius: 8,
-                    background: c.text,
-                    color: c.bg,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  Done
-                </button>
-              </div>
+                </div>
+              )}
             </div>
           </>
         )}
 
-        <div style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 12, paddingBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `1px solid ${c.border}` }}>
-          <span style={{ fontSize: 14, color: c.textTer }}>Showing <strong style={{ color: c.text }}>{setCards.length}</strong> {setCards.length === 1 ? "card" : "cards"}</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {hasActiveFilters && (
-              <button onClick={() => setSetViewFilters({})} style={{ fontSize: 12, color: tc.accent, fontWeight: 600, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.7"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
-                <X style={{ width: 12, height: 12 }} /> Clear filters
-              </button>
-            )}
-            {isMobile && (
-              <button
-                className="binder-filter-toggle"
-                onClick={() => setBinderFiltersOpen(prev => !prev)}
-                title={binderFiltersOpen ? "Hide filters" : "Show filters"}
-                style={{
-                  position: "relative",
-                  padding: 6,
-                  borderRadius: 8,
-                  border: `1px solid ${
-                    binderFiltersOpen || activeSetFilterCount > 0
-                      ? c.text
-                      : c.border
-                  }`,
-                  background: binderFiltersOpen || activeSetFilterCount > 0
-                    ? c.bgSec
-                    : "transparent",
-                  color: binderFiltersOpen || activeSetFilterCount > 0
-                    ? c.text
-                    : c.textTer,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  transition: "all 0.2s",
-                }}
-              >
-                <SlidersHorizontal size={16} />
-                {activeSetFilterCount > 0 && (
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: -4,
-                      right: -4,
-                      width: 16,
-                      height: 16,
-                      borderRadius: "50%",
-                      background: tc.accent,
-                      color: "#fff",
-                      fontSize: 10,
-                      fontWeight: 700,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
-                    }}
-                  >
-                    {activeSetFilterCount}
-                  </span>
-                )}
-              </button>
-            )}
-          </div>
-        </div>
-
         <div className="binder-card-grid" style={{ padding: "32px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 22 }}>
           {setCards.map((card, i) => {
-            const reactKey = `${getCardKey(card)}||${i}`;
             const cardKey = getCardKey(card);
             const owned = ownedSet.has(cardKey);
             const wished = wishlistSet.has(cardKey);
             const shouldFlip = animatedFlipKey < flipKey && i < 18;
             const isLastFlip = i === Math.min(17, setCards.length - 1);
-            const backSrc = card.type?.toUpperCase() === "LEADER" ? "/card-back-leader.png" : "/card-back.png";
-            const flipDone = animatedFlipKey >= flipKey;
             return (
-              <div key={`${flipKey}-${reactKey}`} style={{ position: "relative", perspective: shouldFlip ? "1000px" : "none" }}>
+              <div key={`${flipKey}-${cardKey}||${i}`} style={{ position: "relative", perspective: shouldFlip ? "1000px" : "none" }}>
                 <div
-                  style={{ position: "relative", transformStyle: shouldFlip ? "preserve-3d" : "flat", animationName: shouldFlip ? "cardFlipIn" : "none", animationDuration: "0.5s", animationTimingFunction: "ease", animationFillMode: "forwards", animationDelay: shouldFlip ? `${i * 0.03}s` : "0s", willChange: shouldFlip ? "transform" : "auto" }}
+                  style={{
+                    position: "relative",
+                    transformStyle: shouldFlip ? "preserve-3d" : "flat",
+                    animationName: shouldFlip ? "cardFlipIn" : "none",
+                    animationDuration: "0.5s",
+                    animationTimingFunction: "ease",
+                    animationFillMode: "forwards",
+                    animationDelay: shouldFlip ? `${i * 0.03}s` : "0s",
+                    willChange: shouldFlip ? "transform" : "auto",
+                  }}
                   onAnimationEnd={isLastFlip ? () => setAnimatedFlipKey(flipKey) : undefined}
                 >
                   {shouldFlip && (
                     <div style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)", position: "absolute", inset: 0, borderRadius: 16, overflow: "hidden" }}>
-                      <img src={backSrc} alt="" style={{ width: "100%", height: "100%" }} />
+                      <img src={card.type?.toUpperCase() === "LEADER" ? "/card-back-leader.png" : "/card-back.png"} alt="" style={{ width: "100%", height: "100%" }} />
                     </div>
                   )}
                   <div style={{ backfaceVisibility: shouldFlip ? "hidden" : "visible", WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible" }}>
-                    <div onClick={() => { setModalCards(setCards); setModalIndex(i); setModalCard(setCards[i]); }} style={{ borderRadius: 14, overflow: "hidden", border: `1px solid ${owned ? (isDark ? "#4ade80" : "#16a34a") : c.border}`, background: c.bgSec, boxShadow: owned ? "0 10px 30px rgba(34,197,94,0.15)" : "0 10px 25px rgba(0,0,0,0.25)", transition: "all 0.25s ease", opacity: owned ? 1 : 0.55, cursor: "pointer" }}>
+                    <div
+                      onClick={() => { setModalCards(setCards); setModalIndex(i); setModalCard(setCards[i]); }}
+                      style={{
+                        borderRadius: 14,
+                        overflow: "hidden",
+                        border: `1px solid ${owned ? (isDark ? "#4ade80" : "#16a34a") : c.border}`,
+                        background: c.bgSec,
+                        boxShadow: owned ? "0 10px 30px rgba(34,197,94,0.15)" : "0 10px 25px rgba(0,0,0,0.25)",
+                        transition: "all 0.25s ease",
+                        opacity: owned ? 1 : 0.55,
+                        cursor: "pointer",
+                      }}
+                    >
                       <div style={{ aspectRatio: "5 / 7", overflow: "hidden", position: "relative" }}>
-                        <Image src={card.images?.small || "/card-placeholder.png"} alt={card.name} fill sizes="(max-width: 540px) 45vw, (max-width: 1024px) 22vw, 175px" style={{ objectFit: "cover" }} onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }} />
+                        <Image
+                          src={card.images?.small || "/card-placeholder.png"}
+                          alt={card.name}
+                          fill
+                          sizes="(max-width: 540px) 45vw, (max-width: 1024px) 22vw, 175px"
+                          style={{ objectFit: "cover" }}
+                          onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }}
+                        />
                       </div>
                     </div>
-                    {wished && (i >= 18 || flipDone) && (
-                      <div style={{ position: "absolute", top: 8, left: 8, width: 22, height: 22, borderRadius: "50%", background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.3)", pointerEvents: "none", zIndex: 5 }}>
+                    {wished && (i >= 18 || animatedFlipKey >= flipKey) && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 8,
+                          left: 8,
+                          width: 22,
+                          height: 22,
+                          borderRadius: "50%",
+                          background: "#f59e0b",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#fff",
+                          boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+                          pointerEvents: "none",
+                          zIndex: 5,
+                        }}
+                      >
                         <Star size={12} fill="#fff" color="#fff" />
                       </div>
                     )}
@@ -1231,12 +1419,13 @@ export default function BinderPage() {
             <ArrowUp size={20} strokeWidth={2.5} />
           </button>
         )}
+        {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         <Toast toast={toast} isDark={isDark} />
       </div>
     );
   }
 
-  // ── OPEN CUSTOM BINDER VIEW ──────────────────────────
+  // ── OPEN CUSTOM BINDER VIEW ─────────────────────────
   if (openBinderId) {
     const binder = binders.find(b => b.id === openBinderId);
     const binderCardSet = new Set(openBinderCards);
@@ -1252,7 +1441,11 @@ export default function BinderPage() {
         <Sidebar />
 
         <div className="binder-custom-header" style={{ padding: "16px 28px", borderBottom: `0.5px solid ${c.border}`, display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, background: c.bg, zIndex: 20 }}>
-          <button onClick={() => { setOpenBinderId(null); window.scrollTo(0, savedScrollY.current); }} title="Back" style={{ background: "none", border: "none", cursor: "pointer", color: c.textSec, display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, flexShrink: 0 }}>
+          <button
+            onClick={handleCloseBinder}
+            title="Back"
+            style={{ background: "none", border: "none", cursor: "pointer", color: c.textSec, display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, flexShrink: 0 }}
+          >
             <ChevronLeft size={20} />
           </button>
           <div style={{ width: "0.5px", height: 16, background: c.border, flexShrink: 0 }} />
@@ -1416,7 +1609,22 @@ export default function BinderPage() {
         <ProgressBar value={totalOwned} total={totalCards} color={tc.text.primary} />
         <div className="binder-tabs" style={{ display: "flex", gap: 0, marginTop: 28, borderBottom: `0.5px solid ${c.border}` }}>
           {(["sets", "custom", "wishlist"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)} style={{ padding: "12px 0", marginRight: 24, fontSize: 13, fontWeight: 500, background: "none", border: "none", cursor: "pointer", color: tab === t ? c.text : c.textTer, borderBottom: tab === t ? `1.5px solid ${c.text}` : "1.5px solid transparent", transition: "all 0.15s" }}>
+            <button
+              key={t}
+              onClick={() => handleTabChange(t)}
+              style={{
+                padding: "12px 0",
+                marginRight: 24,
+                fontSize: 13,
+                fontWeight: 500,
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: tab === t ? c.text : c.textTer,
+                borderBottom: tab === t ? `1.5px solid ${c.text}` : "1.5px solid transparent",
+                transition: "all 0.15s",
+              }}
+            >
               {t === "sets" ? "Set binders" : t === "custom" ? "My binders" : "My wishlist"}
             </button>
           ))}
@@ -1469,7 +1677,24 @@ export default function BinderPage() {
               const ownedCount = setCards.filter(card => ownedSet.has(getCardKey(card))).length;
               const pct = setCards.length === 0 ? 0 : Math.floor((ownedCount / setCards.length) * 100);
               return (
-                <div key={setId} className="binder-deck-card" onClick={() => { savedScrollY.current = window.scrollY; setOpenSetId(setId); setOpenBinderId(null); setSetViewFilters({}); window.scrollTo(0, 0); }} style={{ position: "relative", overflow: "hidden", borderRadius: 24, padding: "26px 26px", cursor: "pointer", background: isDark ? `radial-gradient(circle at top left, rgba(99,102,241,0.18), transparent 35%), linear-gradient(180deg, ${tc.bg.secondary}, ${tc.bg.primary})` : tc.bg.secondary, border: `1px solid ${tc.border}`, boxShadow: isDark ? "0 10px 40px rgba(0,0,0,0.45)" : "0 10px 30px rgba(0,0,0,0.06)", transition: "all 0.25s ease" }} onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px) scale(1.015)"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0px) scale(1)"; }}>
+                <div
+                  key={setId}
+                  className="binder-deck-card"
+                  onClick={() => handleOpenSet(setId)}
+                  style={{
+                    position: "relative",
+                    overflow: "hidden",
+                    borderRadius: 24,
+                    padding: "26px 26px",
+                    cursor: "pointer",
+                    background: isDark ? `radial-gradient(circle at top left, rgba(99,102,241,0.18), transparent 35%), linear-gradient(180deg, ${tc.bg.secondary}, ${tc.bg.primary})` : tc.bg.secondary,
+                    border: `1px solid ${tc.border}`,
+                    boxShadow: isDark ? "0 10px 40px rgba(0,0,0,0.45)" : "0 10px 30px rgba(0,0,0,0.06)",
+                    transition: "all 0.25s ease",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px) scale(1.015)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0px) scale(1)"; }}
+                >
                   <div style={{ position: "absolute", width: 220, height: 220, borderRadius: "50%", background: `${tc.accent}22`, filter: "blur(80px)", top: -120, right: -80, pointerEvents: "none" }} />
                   <div className="binder-set-code" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.18em", color: c.textTer, marginBottom: 8, fontWeight: 600 }}>{setId}</div>
                   <div className="binder-set-title" style={{ fontSize: 26, lineHeight: 1.15, fontWeight: 800, letterSpacing: "-0.03em", color: c.text, marginBottom: 20, maxWidth: "100%" }}>{SET_NAMES[setId] ?? setId}</div>
@@ -1542,7 +1767,28 @@ export default function BinderPage() {
               {binders.map((binder) => {
                 const binderCards = binderPreviewCards[binder.id] ?? [];
                 return (
-                  <div key={binder.id} className="binder-deck-card" onClick={() => { if (renamingId !== binder.id) { savedScrollY.current = window.scrollY; setOpenBinderId(binder.id); window.scrollTo(0, 0); } }} style={{ position: "relative", overflow: "hidden", borderRadius: 24, padding: "26px 26px", cursor: "pointer", background: isDark ? `radial-gradient(circle at top right, ${tc.accent}22, transparent 35%), linear-gradient(180deg, ${tc.bg.secondary}, ${tc.bg.primary})` : tc.bg.secondary, border: `1px solid ${tc.border}`, boxShadow: "0 10px 40px rgba(0,0,0,0.35)", transition: "all 0.25s ease" }} onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px) scale(1.015)"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0px) scale(1)"; }}>
+                  <div
+                    key={binder.id}
+                    className="binder-deck-card"
+                    onClick={() => {
+                      if (renamingId !== binder.id) {
+                        handleOpenBinder(binder.id);
+                      }
+                    }}
+                    style={{
+                      position: "relative",
+                      overflow: "hidden",
+                      borderRadius: 24,
+                      padding: "26px 26px",
+                      cursor: "pointer",
+                      background: isDark ? `radial-gradient(circle at top right, ${tc.accent}22, transparent 35%), linear-gradient(180deg, ${tc.bg.secondary}, ${tc.bg.primary})` : tc.bg.secondary,
+                      border: `1px solid ${tc.border}`,
+                      boxShadow: "0 10px 40px rgba(0,0,0,0.35)",
+                      transition: "all 0.25s ease",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px) scale(1.015)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0px) scale(1)"; }}
+                  >
                     <div style={{ position: "absolute", width: 240, height: 240, borderRadius: "50%", background: `${tc.accent}22`, filter: "blur(90px)", top: -120, right: -80, pointerEvents: "none" }} />
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, minHeight: 34, gap: 10 }}>
                       <div className="binder-set-title" style={{ fontSize: 24, lineHeight: 1.2, fontWeight: 800, letterSpacing: "-0.03em", color: c.text, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: "1 1 auto" }}>
