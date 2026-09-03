@@ -37,7 +37,23 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${dmSans.variable} ${impact.variable}`} suppressHydrationWarning>
       <body className={dmSans.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          themes={[
+            "light",
+            "dark",
+            "marineford-light",
+            "marineford-dark",
+            "thrillerbark-light",
+            "thrillerbark-dark",
+            "alabasta-light",
+            "alabasta-dark",
+            "fishman-light",
+            "fishman-dark",
+          ]}
+        >
           {children}
         </ThemeProvider>
       </body>

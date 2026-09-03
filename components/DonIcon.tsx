@@ -19,8 +19,8 @@ export default function DonIcon({
       viewBox="0 0 100 100"
       fill={color}
       xmlns="http://www.w3.org/2000/svg"
-      style={{ display: "inline-block", verticalAlign: "middle", flexShrink: 0, ...style }}
-      className={className}
+      className={`inline-block align-middle shrink-0 ${className || ""}`}
+      style={style}
       aria-hidden="true"
       {...props}
     >

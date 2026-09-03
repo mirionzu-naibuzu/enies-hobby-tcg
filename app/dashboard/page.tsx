@@ -799,45 +799,24 @@ export default function DashboardPage() {
                       <button
                         key={getCardKey(card)}
                         type="button"
-                        className="dashboard-showcase-card"
+                        className="dashboard-showcase-card relative flex flex-col p-2 rounded-xl border border-border-theme bg-bg-primary cursor-pointer text-left hover:border-accent-theme transition-colors"
                         onClick={() => setSelectedCard(card)}
                         title={`Inspect ${card.name}`}
-                        style={{
-                          position: "relative",
-                          display: "flex",
-                          flexDirection: "column",
-                          padding: 8,
-                          borderRadius: 12,
-                          border: `1px solid ${tc.border}`,
-                          background: tc.bg.primary,
-                          cursor: "pointer",
-                          textAlign: "left",
-                        }}
                       >
-                        <div
-                          className="dashboard-showcase-image"
-                          style={{
-                            position: "relative",
-                            width: "100%",
-                            aspectRatio: "5 / 7",
-                            overflow: "hidden",
-                            borderRadius: 8,
-                            background: tc.bg.tertiary,
-                          }}
-                        >
+                        <div className="dashboard-showcase-image relative w-full aspect-5/7 overflow-hidden rounded-lg bg-bg-tertiary">
                           <Image
                             src={card.images?.small || "/card-placeholder.png"}
                             alt={card.name}
                             fill
                             sizes="(max-width: 768px) 130px, 110px"
-                            style={{ objectFit: "cover" }}
+                            className="object-cover"
                           />
                         </div>
-                        <div className="dashboard-showcase-meta" style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 8 }}>
-                          <span className="dashboard-showcase-name" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12, fontWeight: 700, color: tc.text.primary }}>
+                        <div className="dashboard-showcase-meta flex flex-col gap-0.5 mt-2">
+                          <span className="dashboard-showcase-name overflow-hidden text-ellipsis whitespace-nowrap text-xs font-bold text-text-primary">
                             {card.name}
                           </span>
-                          <span className="dashboard-showcase-sub" style={{ fontSize: 11, color: tc.text.tertiary }}>
+                          <span className="dashboard-showcase-sub text-[11px] text-text-tertiary">
                             {card.id} · {card.rarity || "Card"}
                           </span>
                         </div>
@@ -913,7 +892,7 @@ export default function DashboardPage() {
 
                 {wishlistCards.length === 0 ? (
                   <div className="dashboard-inline-empty dashboard-wishlist-empty">
-                    <Heart size={16} strokeWidth={2} style={{ color: tc.accent }} />
+                    <Heart size={16} strokeWidth={2} className="text-accent-theme" />
                     <span>No cards on your wishlist yet. Add cards from the Browse page.</span>
                   </div>
                 ) : (
@@ -922,39 +901,20 @@ export default function DashboardPage() {
                       <button
                         key={getCardKey(card)}
                         type="button"
-                        className="dashboard-wishlist-card"
+                        className="dashboard-wishlist-card min-w-0 p-0 border-0 bg-transparent cursor-pointer text-left"
                         onClick={() => setSelectedCard(card)}
                         title={`Inspect ${card.name}`}
-                        style={{
-                          minWidth: 0,
-                          padding: 0,
-                          border: 0,
-                          background: "transparent",
-                          cursor: "pointer",
-                          textAlign: "left",
-                        }}
                       >
-                        <div
-                          className="dashboard-card-image"
-                          style={{
-                            position: "relative",
-                            width: "100%",
-                            aspectRatio: "5 / 7",
-                            overflow: "hidden",
-                            borderRadius: 10,
-                            border: `1px solid ${tc.border}`,
-                            background: tc.bg.tertiary,
-                          }}
-                        >
+                        <div className="dashboard-card-image relative w-full aspect-5/7 overflow-hidden rounded-[10px] border border-border-theme bg-bg-tertiary">
                           <Image
                             src={card.images?.small || "/card-placeholder.png"}
                             alt={card.name}
                             fill
                             sizes="(max-width: 768px) 110px, 90px"
-                            style={{ objectFit: "cover" }}
+                            className="object-cover"
                           />
                         </div>
-                        <span className="dashboard-card-name" style={{ display: "block", marginTop: 7, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 11, fontWeight: 600, color: tc.text.secondary }}>
+                        <span className="dashboard-card-name block mt-1.75 overflow-hidden text-ellipsis whitespace-nowrap text-[11px] font-semibold text-text-secondary">
                           {card.name}
                         </span>
                       </button>
@@ -963,7 +923,7 @@ export default function DashboardPage() {
                 )}
               </section>
 
-              {/* 4. Color & Archetype Breakdown (New Widget) */}
+              {/* 4. Color & Archetype Breakdown */}
               <section className="dashboard-panel dashboard-colors" aria-labelledby="heading-colors">
                 <div className="dashboard-panel-heading">
                   <div>
@@ -980,92 +940,35 @@ export default function DashboardPage() {
                   </button>
                 </div>
 
-                <div
-                  className="dashboard-color-list"
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
-                    padding: "0 24px 24px",
-                  }}
-                >
+                <div className="dashboard-color-list flex flex-col gap-2.5 px-6 pb-6">
                   {colorBreakdown.map((col) => (
                     <button
                       key={col.label}
                       type="button"
-                      className="dashboard-color-row"
+                      className="dashboard-color-row grid grid-cols-[78px_minmax(0,1fr)_36px] items-center gap-3 w-full py-1.5 px-2 rounded-lg border-0 bg-transparent cursor-pointer text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                       onClick={() => navigateToColor(col.label)}
                       title={`Browse all ${col.label} cards`}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "78px minmax(0, 1fr) 36px",
-                        alignItems: "center",
-                        gap: 12,
-                        width: "100%",
-                        padding: "6px 8px",
-                        borderRadius: 8,
-                        border: "none",
-                        background: "transparent",
-                        cursor: "pointer",
-                        textAlign: "left",
-                      }}
                     >
-                      <span
-                        className="dashboard-color-badge"
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 7,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: tc.text.primary,
-                        }}
-                      >
+                      <span className="dashboard-color-badge inline-flex items-center gap-1.75 text-xs font-bold text-text-primary">
                         <span
-                          className="dashboard-color-dot"
+                          className="dashboard-color-dot w-2.5 h-2.5 rounded-full shrink-0"
                           style={{
-                            width: 10,
-                            height: 10,
-                            borderRadius: "50%",
                             background: col.dot,
-                            flexShrink: 0,
                             boxShadow: `0 0 6px ${col.dot}55`,
                           }}
                         />
                         {col.label}
                       </span>
-                      <span
-                        className="dashboard-color-meter"
-                        aria-hidden="true"
-                        style={{
-                          display: "block",
-                          height: 6,
-                          borderRadius: 999,
-                          background: tc.bg.tertiary,
-                          overflow: "hidden",
-                        }}
-                      >
+                      <span className="dashboard-color-meter block h-1.5 rounded-full bg-bg-tertiary overflow-hidden" aria-hidden="true">
                         <span
+                          className="block h-full rounded-full transition-all duration-400 ease-out"
                           style={{
-                            display: "block",
-                            height: "100%",
                             width: `${col.pct}%`,
                             background: col.meter,
-                            borderRadius: 999,
-                            transition: "width 0.4s ease",
                           }}
                         />
                       </span>
-                      <span
-                        className="dashboard-color-count"
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 650,
-                          color: tc.text.tertiary,
-                          textAlign: "right",
-                          fontVariantNumeric: "tabular-nums",
-                        }}
-                      >
+                      <span className="dashboard-color-count text-xs font-semibold text-text-tertiary text-right tabular-nums">
                         {col.pct}%
                       </span>
                     </button>
@@ -1095,60 +998,35 @@ export default function DashboardPage() {
                     Nothing marked owned recently. Mark owned cards on the Browse page.
                   </div>
                 ) : (
-                  <div className="dashboard-recent-list" style={{ padding: "0 14px 14px" }}>
+                  <div className="dashboard-recent-list px-3.5 pb-3.5 flex flex-col gap-1">
                     {recentlyAdded.map(({ card, createdAt }) => (
                       <button
                         key={getCardKey(card)}
                         type="button"
-                        className="dashboard-recent-row"
+                        className="dashboard-recent-row grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 w-full py-1.5 px-2.5 rounded-[10px] border-0 bg-transparent cursor-pointer text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                         onClick={() => setSelectedCard(card)}
                         title={`Inspect ${card.name}`}
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "40px minmax(0, 1fr) auto",
-                          alignItems: "center",
-                          gap: 12,
-                          width: "100%",
-                          padding: "6px 10px",
-                          borderRadius: 10,
-                          border: "none",
-                          background: "transparent",
-                          cursor: "pointer",
-                          textAlign: "left",
-                        }}
                       >
-                        <div
-                          className="dashboard-recent-image"
-                          style={{
-                            position: "relative",
-                            width: 40,
-                            aspectRatio: "5 / 7",
-                            overflow: "hidden",
-                            borderRadius: 6,
-                            border: `1px solid ${tc.border}`,
-                            background: tc.bg.tertiary,
-                            flexShrink: 0,
-                          }}
-                        >
+                        <div className="dashboard-recent-image relative w-10 aspect-5/7 overflow-hidden rounded-md border border-border-theme bg-bg-tertiary shrink-0">
                           <Image
                             src={card.images?.small || "/card-placeholder.png"}
                             alt={card.name}
                             fill
                             sizes="40px"
-                            style={{ objectFit: "cover" }}
+                            className="object-cover"
                           />
                         </div>
-                        <span className="dashboard-recent-copy" style={{ display: "grid", minWidth: 0, gap: 2 }}>
-                          <strong style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13, fontWeight: 700, color: tc.text.primary }}>
+                        <span className="dashboard-recent-copy grid min-w-0 gap-0.5">
+                          <strong className="overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-bold text-text-primary">
                             {card.name}
                           </strong>
-                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 11, color: tc.text.tertiary }}>
+                          <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[11px] text-text-tertiary">
                             {card.id} · {card.rarity || "Card"}
                           </span>
                         </span>
-                        <span className="dashboard-recent-time" style={{ fontSize: 11, color: tc.text.tertiary, fontVariantNumeric: "tabular-nums" }}>
+                        <time className="dashboard-recent-time text-[11px] font-medium text-text-tertiary tabular-nums text-right">
                           {timeAgo(createdAt)}
-                        </span>
+                        </time>
                       </button>
                     ))}
                   </div>
@@ -1156,11 +1034,11 @@ export default function DashboardPage() {
               </section>
 
               {/* 6. Rarity Distribution */}
-              <section className="dashboard-panel dashboard-rarities" aria-labelledby="heading-rarities">
+              <section className="dashboard-panel dashboard-rarity" aria-labelledby="heading-rarity">
                 <div className="dashboard-panel-heading">
                   <div>
-                    <span className="dashboard-eyebrow">Tiers</span>
-                    <h2 id="heading-rarities">Rarity distribution</h2>
+                    <span className="dashboard-eyebrow">Distribution</span>
+                    <h2 id="heading-rarity">Rarity spread</h2>
                   </div>
                   <button
                     type="button"
@@ -1172,15 +1050,7 @@ export default function DashboardPage() {
                   </button>
                 </div>
 
-                <div
-                  className="dashboard-rarity-list"
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                    padding: "0 24px 24px",
-                  }}
-                >
+                <div className="dashboard-rarity-list flex flex-col gap-2 px-6 pb-6">
                   {rarityBreakdown.map((r) => {
                     const rarityStyle = RARITY_COLORS[r.label] ?? {
                       badgeBg: tc.bg.tertiary,
@@ -1193,68 +1063,29 @@ export default function DashboardPage() {
                       <button
                         key={r.label}
                         type="button"
-                        className="dashboard-rarity-row"
+                        className="dashboard-rarity-row grid grid-cols-[36px_minmax(0,1fr)_28px] items-center gap-3 w-full py-1 px-2 rounded-lg border-0 bg-transparent cursor-pointer text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                         onClick={() => navigateToRarity(r.label)}
                         title={`Filter cards by ${r.label}`}
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "36px minmax(0, 1fr) 28px",
-                          alignItems: "center",
-                          gap: 12,
-                          width: "100%",
-                          padding: "4px 8px",
-                          borderRadius: 8,
-                          border: "none",
-                          background: "transparent",
-                          cursor: "pointer",
-                          textAlign: "left",
-                        }}
                       >
                         <span
+                          className="inline-block py-0.5 px-1.5 rounded text-[11px] font-extrabold text-center"
                           style={{
-                            display: "inline-block",
-                            padding: "2px 6px",
-                            borderRadius: 4,
                             background: rarityStyle.badgeBg,
                             color: rarityStyle.badgeText,
-                            fontSize: 11,
-                            fontWeight: 800,
-                            textAlign: "center",
                           }}
                         >
                           {r.label}
                         </span>
-                        <span
-                          className="dashboard-rarity-meter"
-                          aria-hidden="true"
-                          style={{
-                            display: "block",
-                            height: 6,
-                            borderRadius: 999,
-                            background: tc.bg.tertiary,
-                            overflow: "hidden",
-                          }}
-                        >
+                        <span className="dashboard-rarity-meter block h-1.5 rounded-full bg-bg-tertiary overflow-hidden" aria-hidden="true">
                           <span
+                            className="block h-full rounded-full transition-all duration-400 ease-out"
                             style={{
-                              display: "block",
-                              height: "100%",
                               width: `${pctOfMax}%`,
                               background: rarityStyle.meter,
-                              borderRadius: 999,
-                              transition: "width 0.4s ease",
                             }}
                           />
                         </span>
-                        <strong
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 650,
-                            color: tc.text.tertiary,
-                            textAlign: "right",
-                            fontVariantNumeric: "tabular-nums",
-                          }}
-                        >
+                        <strong className="text-xs font-semibold text-text-tertiary text-right tabular-nums">
                           {r.count}
                         </strong>
                       </button>
@@ -1270,85 +1101,20 @@ export default function DashboardPage() {
       {/* ── CARD PREVIEW MODAL (MINIMALIST DASHBOARD VERSION) ── */}
       {selectedCard && (
         <div
-          className="dashboard-card-modal-outer"
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            width: "100vw",
-            height: "100dvh",
-            background: isDark ? "rgba(0, 0, 0, 0.78)" : "rgba(0, 0, 0, 0.55)",
-            backdropFilter: "blur(5px)",
-            WebkitBackdropFilter: "blur(5px)",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: isMobile ? 12 : 20,
-            boxSizing: "border-box",
-          }}
+          className="dashboard-card-modal-outer fixed inset-0 z-9999 flex items-center justify-center p-3 md:p-5 bg-black/60 dark:bg-black/80 backdrop-blur-sm"
           onClick={() => setSelectedCard(null)}
         >
           <div
-            className="dashboard-card-modal-container"
-            style={{
-              position: "relative",
-              width: "100%",
-              maxWidth: 680,
-              maxHeight: isMobile && !isLandscape ? "92vh" : "88vh",
-              background: tc.bg.primary,
-              borderRadius: 20,
-              border: `1px solid ${tc.border}`,
-              boxShadow: isDark
-                ? "0 25px 50px -12px rgba(0, 0, 0, 0.8)"
-                : "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              boxSizing: "border-box",
-            }}
+            className="dashboard-card-modal-container relative w-full max-w-170 max-h-[92vh] md:max-h-[88vh] bg-bg-primary rounded-[20px] border border-border-theme shadow-2xl overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div
-              className="dashboard-card-modal-header"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "16px 20px",
-                borderBottom: `1px solid ${tc.border}`,
-                flexShrink: 0,
-                gap: 12,
-                boxSizing: "border-box",
-              }}
-            >
-              <div style={{ minWidth: 0, flex: 1, paddingRight: 12 }}>
-                <div
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 750,
-                    color: tc.text.primary,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
+            <div className="dashboard-card-modal-header flex items-center justify-between p-4 md:px-5 border-b border-border-theme shrink-0 gap-3">
+              <div className="min-w-0 flex-1 pr-3">
+                <div className="text-lg font-bold text-text-primary whitespace-nowrap overflow-hidden text-ellipsis">
                   {selectedCard.name}
                 </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: tc.text.tertiary,
-                    marginTop: 2,
-                    fontFamily: "monospace",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
+                <div className="text-xs text-text-tertiary mt-0.5 font-mono whitespace-nowrap overflow-hidden text-ellipsis">
                   {selectedCard.id} · {selectedCard.set?.name || "One Piece Card Game"}
                 </div>
               </div>
@@ -1356,55 +1122,17 @@ export default function DashboardPage() {
                 type="button"
                 onClick={() => setSelectedCard(null)}
                 aria-label="Close modal"
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 8,
-                  border: `1px solid ${tc.border}`,
-                  background: tc.bg.secondary,
-                  color: tc.text.primary,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  flexShrink: 0,
-                }}
+                className="w-8 h-8 rounded-lg border border-border-theme bg-bg-secondary text-text-primary flex items-center justify-center cursor-pointer shrink-0 hover:bg-bg-tertiary transition-colors"
               >
                 <X size={16} />
               </button>
             </div>
 
             {/* Body */}
-            <div
-              className="dashboard-card-modal-body"
-              style={{
-                display: "flex",
-                flexDirection: isMobile && !isLandscape ? "column" : "row",
-                flex: 1,
-                minHeight: 0,
-                width: "100%",
-                overflowY: isMobile && !isLandscape ? "auto" : "hidden",
-                overflowX: "hidden",
-                padding: isMobile && !isLandscape ? "14px 16px 16px" : "16px 20px 20px",
-                gap: 20,
-                boxSizing: "border-box",
-              }}
-            >
+            <div className="dashboard-card-modal-body flex flex-col md:flex-row flex-1 min-h-0 w-full overflow-y-auto md:overflow-y-hidden overflow-x-hidden p-4 md:p-5 gap-5">
               {/* Card Image */}
-              <div
-                className="dashboard-card-modal-image-pane"
-                style={{
-                  width: isMobile && !isLandscape ? "100%" : "42%",
-                  maxWidth: isMobile && !isLandscape ? 220 : 260,
-                  margin: isMobile && !isLandscape ? "0 auto" : undefined,
-                  flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxSizing: "border-box",
-                }}
-              >
-                <div style={{ width: "100%", maxWidth: 260 }}>
+              <div className="dashboard-card-modal-image-pane w-full md:w-[42%] max-w-55 md:max-w-65 mx-auto md:mx-0 shrink-0 flex items-center justify-center">
+                <div className="w-full max-w-65">
                   <ModalCardImage
                     key={selectedCard.images?.large || selectedCard.images?.small || selectedCard.id}
                     src={selectedCard.images?.large || selectedCard.images?.small}
@@ -1416,159 +1144,81 @@ export default function DashboardPage() {
               </div>
 
               {/* Details Pane */}
-              <div
-                className="dashboard-card-modal-details-pane"
-                style={{
-                  flex: isMobile && !isLandscape ? "none" : "1 1 0%",
-                  minWidth: 0,
-                  width: isMobile && !isLandscape ? "100%" : 0,
-                  overflowY: isMobile && !isLandscape ? "visible" : "auto",
-                  overflowX: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                  boxSizing: "border-box",
-                  scrollbarWidth: "thin",
-                }}
-              >
+              <div className="dashboard-card-modal-details-pane flex-none md:flex-1 min-w-0 w-full md:w-0 overflow-y-visible md:overflow-y-auto overflow-x-hidden flex flex-col gap-3 [scrollbar-width:thin]">
                 {/* Badges */}
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <div className="flex gap-1.5 flex-wrap">
                   {selectedCard.rarity && (
                     <span
+                      className="py-0.75 px-2 rounded-md border border-border-theme text-xs font-bold"
                       style={{
-                        padding: "3px 8px",
-                        borderRadius: 6,
                         background: RARITY_COLORS[selectedCard.rarity]?.badgeBg || tc.bg.secondary,
-                        border: `1px solid ${tc.border}`,
                         color: RARITY_COLORS[selectedCard.rarity]?.badgeText || tc.text.secondary,
-                        fontSize: 12,
-                        fontWeight: 750,
                       }}
                     >
                       {selectedCard.rarity}
                     </span>
                   )}
                   {selectedCard.type && (
-                    <span
-                      style={{
-                        padding: "3px 8px",
-                        borderRadius: 6,
-                        background: tc.bg.secondary,
-                        border: `1px solid ${tc.border}`,
-                        color: tc.text.secondary,
-                        fontSize: 12,
-                        fontWeight: 650,
-                      }}
-                    >
+                    <span className="py-0.75 px-2 rounded-md bg-bg-secondary border border-border-theme text-text-secondary text-xs font-semibold">
                       {selectedCard.type}
                     </span>
                   )}
                   {selectedCard.color && (
-                    <span
-                      style={{
-                        padding: "3px 8px",
-                        borderRadius: 6,
-                        background: tc.bg.secondary,
-                        border: `1px solid ${tc.border}`,
-                        color: tc.text.secondary,
-                        fontSize: 12,
-                        fontWeight: 650,
-                      }}
-                    >
+                    <span className="py-0.75 px-2 rounded-md bg-bg-secondary border border-border-theme text-text-secondary text-xs font-semibold">
                       {selectedCard.color}
                     </span>
                   )}
                 </div>
 
                 {/* Attributes Panel (Single Unified Card Box) */}
-                <div
-                  className="dashboard-card-modal-attrs"
-                  style={{
-                    background: tc.bg.secondary,
-                    borderRadius: 12,
-                    border: `1px solid ${tc.border}`,
-                    padding: "12px 16px",
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "8px 16px",
-                    boxSizing: "border-box",
-                  }}
-                >
+                <div className="dashboard-card-modal-attrs bg-bg-secondary rounded-xl border border-border-theme p-3 md:px-4 grid grid-cols-2 gap-x-4 gap-y-2">
                   {selectedCard.cost != null && (
-                    <div className="dashboard-card-modal-attr-row" style={{ display: "flex", alignItems: "baseline", gap: 6, fontSize: 13, minWidth: 0 }}>
-                      <span className="dashboard-card-modal-attr-label" style={{ color: tc.text.secondary, fontSize: 12, fontWeight: 500, opacity: 0.75, flexShrink: 0 }}>Cost:</span>
-                      <span className="dashboard-card-modal-attr-value" style={{ color: tc.text.primary, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedCard.cost}</span>
+                    <div className="dashboard-card-modal-attr-row flex items-baseline gap-1.5 text-[13px] min-w-0">
+                      <span className="dashboard-card-modal-attr-label text-text-secondary text-xs font-medium opacity-75 shrink-0">Cost:</span>
+                      <span className="dashboard-card-modal-attr-value text-text-primary text-[13px] font-bold overflow-hidden text-ellipsis whitespace-nowrap">{selectedCard.cost}</span>
                     </div>
                   )}
                   {selectedCard.power != null && (
-                    <div className="dashboard-card-modal-attr-row" style={{ display: "flex", alignItems: "baseline", gap: 6, fontSize: 13, minWidth: 0 }}>
-                      <span className="dashboard-card-modal-attr-label" style={{ color: tc.text.secondary, fontSize: 12, fontWeight: 500, opacity: 0.75, flexShrink: 0 }}>Power:</span>
-                      <span className="dashboard-card-modal-attr-value" style={{ color: tc.text.primary, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div className="dashboard-card-modal-attr-row flex items-baseline gap-1.5 text-[13px] min-w-0">
+                      <span className="dashboard-card-modal-attr-label text-text-secondary text-xs font-medium opacity-75 shrink-0">Power:</span>
+                      <span className="dashboard-card-modal-attr-value text-text-primary text-[13px] font-bold overflow-hidden text-ellipsis whitespace-nowrap">
                         {typeof selectedCard.power === "number" ? selectedCard.power.toLocaleString() : String(selectedCard.power)}
                       </span>
                     </div>
                   )}
                   {selectedCard.counter != null && (
-                    <div className="dashboard-card-modal-attr-row" style={{ display: "flex", alignItems: "baseline", gap: 6, fontSize: 13, minWidth: 0 }}>
-                      <span className="dashboard-card-modal-attr-label" style={{ color: tc.text.secondary, fontSize: 12, fontWeight: 500, opacity: 0.75, flexShrink: 0 }}>Counter:</span>
-                      <span className="dashboard-card-modal-attr-value" style={{ color: tc.text.primary, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedCard.counter}</span>
+                    <div className="dashboard-card-modal-attr-row flex items-baseline gap-1.5 text-[13px] min-w-0">
+                      <span className="dashboard-card-modal-attr-label text-text-secondary text-xs font-medium opacity-75 shrink-0">Counter:</span>
+                      <span className="dashboard-card-modal-attr-value text-text-primary text-[13px] font-bold overflow-hidden text-ellipsis whitespace-nowrap">{selectedCard.counter}</span>
                     </div>
                   )}
                   {selectedCard.attribute && (
-                    <div className="dashboard-card-modal-attr-row" style={{ display: "flex", alignItems: "baseline", gap: 6, fontSize: 13, minWidth: 0 }}>
-                      <span className="dashboard-card-modal-attr-label" style={{ color: tc.text.secondary, fontSize: 12, fontWeight: 500, opacity: 0.75, flexShrink: 0 }}>Attribute:</span>
-                      <span className="dashboard-card-modal-attr-value" style={{ color: tc.text.primary, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div className="dashboard-card-modal-attr-row flex items-baseline gap-1.5 text-[13px] min-w-0">
+                      <span className="dashboard-card-modal-attr-label text-text-secondary text-xs font-medium opacity-75 shrink-0">Attribute:</span>
+                      <span className="dashboard-card-modal-attr-value text-text-primary text-[13px] font-bold overflow-hidden text-ellipsis whitespace-nowrap">
                         {typeof selectedCard.attribute === "object" ? selectedCard.attribute?.name : String(selectedCard.attribute)}
                       </span>
                     </div>
                   )}
                   {selectedCard.family && (
-                    <div className="dashboard-card-modal-attr-row" style={{ gridColumn: "1 / -1", display: "flex", alignItems: "baseline", gap: 6, fontSize: 13, minWidth: 0 }}>
-                      <span className="dashboard-card-modal-attr-label" style={{ color: tc.text.secondary, fontSize: 12, fontWeight: 500, opacity: 0.75, flexShrink: 0 }}>Family:</span>
-                      <span className="dashboard-card-modal-attr-value" style={{ color: tc.text.primary, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedCard.family}</span>
+                    <div className="dashboard-card-modal-attr-row col-span-2 flex items-baseline gap-1.5 text-[13px] min-w-0">
+                      <span className="dashboard-card-modal-attr-label text-text-secondary text-xs font-medium opacity-75 shrink-0">Family:</span>
+                      <span className="dashboard-card-modal-attr-value text-text-primary text-[13px] font-bold overflow-hidden text-ellipsis whitespace-nowrap">{selectedCard.family}</span>
                     </div>
                   )}
                 </div>
 
                 {/* Effect Box */}
                 {selectedCard.ability && (
-                  <div
-                    className="dashboard-card-modal-effect"
-                    style={{
-                      background: tc.bg.secondary,
-                      borderRadius: 12,
-                      border: `1px solid ${tc.border}`,
-                      padding: "12px 16px",
-                      fontSize: 13,
-                      lineHeight: 1.55,
-                      color: tc.text.primary,
-                      wordBreak: "break-word",
-                      overflowWrap: "break-word",
-                      boxSizing: "border-box",
-                    }}
-                  >
+                  <div className="dashboard-card-modal-effect bg-bg-secondary rounded-xl border border-border-theme p-3 md:px-4 text-[13px] leading-relaxed text-text-primary wrap-break-word">
                     {selectedCard.ability}
                   </div>
                 )}
 
                 {/* Trigger Box (if any) */}
                 {selectedCard.trigger && selectedCard.trigger !== "" && (
-                  <div
-                    className="dashboard-card-modal-effect"
-                    style={{
-                      background: isDark ? "rgba(217, 119, 6, 0.12)" : "rgba(251, 191, 36, 0.1)",
-                      borderRadius: 12,
-                      border: `1px solid ${isDark ? "rgba(251, 191, 36, 0.25)" : "rgba(217, 119, 6, 0.25)"}`,
-                      padding: "12px 16px",
-                      fontSize: 13,
-                      lineHeight: 1.55,
-                      color: isDark ? "#fbbf24" : "#d97706",
-                      wordBreak: "break-word",
-                      overflowWrap: "break-word",
-                      boxSizing: "border-box",
-                    }}
-                  >
-                    <div style={{ fontSize: 10, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.04em", marginBottom: 3 }}>
+                  <div className="dashboard-card-modal-effect bg-amber-500/10 border border-amber-500/25 rounded-xl p-3 md:px-4 text-[13px] leading-relaxed text-amber-600 dark:text-amber-400 wrap-break-word">
+                    <div className="text-[10px] uppercase font-bold tracking-wider mb-0.75">
                       Trigger
                     </div>
                     {selectedCard.trigger}
@@ -1576,28 +1226,10 @@ export default function DashboardPage() {
                 )}
 
                 {/* Actions Footer */}
-                <div className="dashboard-card-modal-footer" style={{ marginTop: "auto", display: "flex", gap: 10, paddingTop: 8, flexShrink: 0 }}>
+                <div className="dashboard-card-modal-footer mt-auto flex gap-2.5 pt-2 shrink-0">
                   <button
                     type="button"
-                    style={{
-                      flex: 1,
-                      height: 42,
-                      borderRadius: 10,
-                      border: "none",
-                      background: tc.accent,
-                      color: "#ffffff",
-                      fontSize: 13,
-                      fontWeight: 700,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                      cursor: "pointer",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
-                      transition: "all 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+                    className="flex-1 h-10.5 rounded-lg border-0 bg-accent-theme text-white text-[13px] font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md hover:opacity-90 transition-opacity"
                     onClick={() => {
                       const id = selectedCard.id;
                       setSelectedCard(null);
@@ -1609,20 +1241,7 @@ export default function DashboardPage() {
                   </button>
                   <button
                     type="button"
-                    style={{
-                      height: 42,
-                      padding: "0 22px",
-                      borderRadius: 10,
-                      border: `1px solid ${tc.border}`,
-                      background: isDark ? "rgba(255,255,255,0.06)" : tc.bg.secondary,
-                      color: tc.text.primary,
-                      fontSize: 13,
-                      fontWeight: 650,
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.1)" : tc.border; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.06)" : tc.bg.secondary; }}
+                    className="h-10.5 px-5 rounded-lg border border-border-theme bg-bg-secondary text-text-primary text-[13px] font-semibold cursor-pointer hover:bg-bg-tertiary transition-colors"
                     onClick={() => setSelectedCard(null)}
                   >
                     Close

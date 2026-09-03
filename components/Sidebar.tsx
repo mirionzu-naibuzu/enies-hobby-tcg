@@ -136,6 +136,31 @@ export default function Sidebar() {
     setShowSignOutConfirm(false);
   };
 
+  const handleSwitchThemeMode = (newMode: "light" | "dark") => {
+    setThemeMode(newMode);
+    if (theme) {
+      if (newMode === "dark" && !theme.includes("dark")) {
+        const darkEquivalent = theme === "light" ? "dark" : `${theme.replace("-light", "")}-dark`;
+        if (ALL_THEMES.some(t => t.value === darkEquivalent)) {
+          setTheme(darkEquivalent);
+        } else {
+          setTheme("dark");
+        }
+      } else if (newMode === "light" && (theme.includes("dark") || theme === "dark")) {
+        const lightEquivalent = theme === "dark" ? "light" : `${theme.replace("-dark", "")}-light`;
+        if (ALL_THEMES.some(t => t.value === lightEquivalent)) {
+          setTheme(lightEquivalent);
+        } else {
+          setTheme("light");
+        }
+      }
+    }
+  };
+
+  useEffect(() => {
+    setThemeMode(isDark ? "dark" : "light");
+  }, [theme, isDark]);
+
   // Pair themes: [light, dark] per row
   const themePairs: (typeof ALL_THEMES)[] = [];
   for (let i = 0; i < ALL_THEMES.length; i += 2) {
@@ -186,21 +211,12 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile Top Bar */}
-      <div
-        className="mobile-topbar"
-        style={{
-          background: colors.bg.secondary,
-          borderBottom: `1px solid ${colors.border}`,
-          height: 64,
-          boxSizing: "border-box",
-          padding: "0 16px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div className="mobile-topbar bg-bg-secondary border-b border-border-theme h-16 box-border px-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setExpanded(!expanded)}
             title="Toggle sidebar"
-            style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", justifyContent: "center", color: colors.text.primary }}
+            className="bg-transparent border-0 cursor-pointer p-1 flex items-center justify-center text-text-primary"
           >
             <PanelLeft size={20} />
           </button>
@@ -209,7 +225,7 @@ export default function Sidebar() {
               src="/logo-light.png"
               alt="Enies Hobby"
               onClick={() => router.push("/")}
-              style={{ height: 32, objectFit: "contain", cursor: "pointer" }}
+              className="h-8 object-contain cursor-pointer"
             />
           )}
         </div>
@@ -222,7 +238,7 @@ export default function Sidebar() {
             });
           }}
           title="Appearance"
-          style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", justifyContent: "center", color: colors.text.primary }}
+          className="bg-transparent border-0 cursor-pointer p-1 flex items-center justify-center text-text-primary"
         >
           <Palette size={18} />
         </button>
@@ -238,63 +254,35 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`app-sidebar${expanded ? ' expanded' : ''}`}
-        suppressHydrationWarning
+        className={`app-sidebar fixed left-0 top-0 h-screen z-50 flex flex-col overflow-hidden bg-bg-secondary border-r border-border-theme transition-[width,box-shadow] duration-350 ease-in-out ${
+          expanded
+            ? "expanded w-[min(280px,85vw)] md:w-70 shadow-[4px_0_28px_rgba(0,0,0,0.12)] dark:shadow-[4px_0_28px_rgba(0,0,0,0.5)]"
+            : "w-17.5 shadow-none"
+        }`}
         style={{
-          position: "fixed",
-          left: 0,
-          top: 0,
-          height: "100vh",
-          width: expanded ? (isMobile ? "min(280px, 85vw)" : 280) : 70,
           background: colors.bg.secondary,
-          borderRight: `1px solid ${colors.border}`,
-          display: "flex",
-          flexDirection: "column",
-          zIndex: 50,
-          transition: "width 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.35s ease",
-          overflow: "hidden",
-          boxShadow: expanded ? (isDark ? "4px 0 28px rgba(0,0,0,0.5)" : "4px 0 28px rgba(0,0,0,0.12)") : "none",
+          borderColor: colors.border,
         }}
+        suppressHydrationWarning
       >
         {/* Inner Fixed 280px Container — Ensures icons stay completely stationary during expanding/collapsing */}
-        <div className="sidebar-inner" style={{ width: 280, minWidth: 280, height: "100%", display: "flex", flexDirection: "column", overflowY: "auto", overflowX: "hidden" }}>
+        <div className="sidebar-inner w-70 min-w-70 h-full flex flex-col overflow-y-auto overflow-x-hidden">
           
           {/* Header */}
-          <div
-            className="sidebar-header"
-            style={{
-              height: 64,
-              boxSizing: "border-box",
-              position: "relative",
-              borderBottom: `1px solid ${colors.border}`,
-              overflow: "hidden",
-              flexShrink: 0,
-            }}
-          >
+          <div className="sidebar-header h-16 box-border relative border-b border-border-theme overflow-hidden shrink-0">
             {/* Logo on the left when expanded */}
             <div
               onClick={() => router.push("/")}
-              style={{
-                position: "absolute",
-                left: 16,
-                top: "50%",
-                transform: expanded ? "translateY(-50%) translateX(0)" : "translateY(-50%) translateX(-12px)",
-                opacity: expanded ? 1 : 0,
-                transition: "opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                pointerEvents: expanded ? "auto" : "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                whiteSpace: "nowrap",
-              }}
+              className={`absolute left-4 top-1/2 flex items-center whitespace-nowrap cursor-pointer transition-[opacity,transform] duration-250 ease-in-out ${
+                expanded
+                  ? "-translate-y-1/2 translate-x-0 opacity-100 pointer-events-auto"
+                  : "-translate-y-1/2 -translate-x-3 opacity-0 pointer-events-none"
+              }`}
             >
               <img
                 src="/logo-light.png"
                 alt="Enies Hobby Logo"
-                style={{
-                  height: 32,
-                  objectFit: "contain",
-                }}
+                className="h-8 object-contain"
               />
             </div>
 
@@ -302,26 +290,9 @@ export default function Sidebar() {
             <button
               onClick={() => setExpanded(!expanded)}
               title={expanded ? "Collapse sidebar" : "Expand sidebar"}
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: expanded ? 232 : 19,
-                transform: expanded ? "translateY(-50%) rotate(180deg)" : "translateY(-50%) rotate(0deg)",
-                transition: "left 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), background 0.15s",
-                width: 32,
-                height: 32,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: colors.text.primary,
-                borderRadius: 8,
-                padding: 0,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = colors.hover; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
+              className={`absolute top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center p-0 cursor-pointer bg-transparent border-0 text-text-primary hover:bg-black/5 dark:hover:bg-white/5 transition-[left,transform,background] duration-350 ease-in-out ${
+                expanded ? "left-58 rotate-180" : "left-4.75 rotate-0"
+              }`}
             >
               <PanelLeft size={20} />
             </button>
@@ -329,50 +300,23 @@ export default function Sidebar() {
 
           {/* User Profile */}
           {user && (
-            <div
-              className="sidebar-profile"
-              style={{
-                height: 64,
-                boxSizing: "border-box",
-                borderBottom: `1px solid ${colors.border}`,
-                display: "flex",
-                alignItems: "center",
-                flexShrink: 0,
-              }}
-            >
-              <div style={{ width: 70, height: "100%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <div
-                  className="sidebar-profile-avatar"
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: "50%",
-                    background: colors.text.primary,
-                    color: colors.bg.primary,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 700,
-                    fontSize: 15,
-                  }}
-                >
+            <div className="sidebar-profile h-16 box-border border-b border-border-theme flex items-center shrink-0">
+              <div className="w-17.5 h-full flex items-center justify-center shrink-0">
+                <div className="sidebar-profile-avatar w-9 h-9 rounded-full bg-text-primary text-bg-primary flex items-center justify-center font-bold text-[15px]">
                   {user.email?.[0].toUpperCase()}
                 </div>
               </div>
               <div
-                style={{
-                  width: 190,
-                  opacity: expanded ? 1 : 0,
-                  transform: expanded ? "translateX(0)" : "translateX(-8px)",
-                  transition: "opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                  pointerEvents: expanded ? "auto" : "none",
-                  overflow: "hidden",
-                }}
+                className={`w-47.5 overflow-hidden transition-[opacity,transform] duration-250 ease-in-out ${
+                  expanded
+                    ? "opacity-100 translate-x-0 pointer-events-auto"
+                    : "opacity-0 -translate-x-2 pointer-events-none"
+                }`}
               >
-                <div style={{ fontWeight: 700, fontSize: 13, color: colors.text.primary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <div className="font-bold text-[13px] text-text-primary whitespace-nowrap overflow-hidden text-ellipsis">
                   {user.user_metadata?.full_name ?? user.email?.split("@")[0]}
                 </div>
-                <div style={{ fontSize: 11, color: colors.text.secondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <div className="text-[11px] text-text-tertiary whitespace-nowrap overflow-hidden text-ellipsis">
                   {user.email}
                 </div>
               </div>
@@ -380,7 +324,7 @@ export default function Sidebar() {
           )}
 
           {/* Nav */}
-          <nav className="sidebar-nav" style={{ flex: 1, padding: "8px 0", display: "flex", flexDirection: "column", gap: 2 }}>
+          <nav className="sidebar-nav flex-1 py-2 flex flex-col gap-0.5">
             {menuItems.map((item) => {
               if (item.show === false) return null;
               const Icon = item.icon;
@@ -390,45 +334,19 @@ export default function Sidebar() {
                   key={item.label}
                   onClick={item.action}
                   title={expanded ? undefined : item.label}
-                  className="sidebar-nav-btn"
-                  style={{
-                    width: "100%",
-                    minHeight: 44,
-                    padding: 0,
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    color: colors.text.primary,
-                    transition: "background 0.15s",
-                    textAlign: "left",
-                    flexShrink: 0,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = colors.hover;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "none";
-                  }}
+                  className="sidebar-nav-btn w-full min-h-11 p-0 bg-transparent border-0 cursor-pointer flex items-center text-text-primary hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left shrink-0"
                 >
-                  <div className="sidebar-icon-wrap" style={{ width: 70, height: 44, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <div className="sidebar-icon-wrap w-17.5 h-11 flex items-center justify-center shrink-0">
                     <Icon size={20} />
                   </div>
                   <div
-                    className="sidebar-text-wrap"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      whiteSpace: "nowrap",
-                      opacity: expanded ? 1 : 0,
-                      transform: expanded ? "translateX(0)" : "translateX(-8px)",
-                      transition: "opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                      pointerEvents: expanded ? "auto" : "none",
-                    }}
+                    className={`sidebar-text-wrap flex items-center gap-1.5 whitespace-nowrap transition-[opacity,transform] duration-250 ease-in-out ${
+                      expanded
+                        ? "opacity-100 translate-x-0 pointer-events-auto"
+                        : "opacity-0 -translate-x-2 pointer-events-none"
+                    }`}
                   >
-                    <span style={{ fontSize: 14, fontWeight: 500 }}>
+                    <span className="text-sm font-medium">
                       {item.label}
                     </span>
                   </div>
@@ -438,7 +356,7 @@ export default function Sidebar() {
           </nav>
 
           {/* Bottom */}
-          <div className="sidebar-bottom" style={{ borderTop: `1px solid ${colors.border}`, padding: "8px 0", display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
+          <div className="sidebar-bottom border-t border-border-theme py-2 flex flex-col gap-0.5 shrink-0">
             {bottomItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -446,38 +364,19 @@ export default function Sidebar() {
                   key={item.label}
                   onClick={item.action}
                   title={expanded ? undefined : item.label}
-                  className="sidebar-bottom-btn"
-                  style={{
-                    width: "100%",
-                    minHeight: 44,
-                    padding: 0,
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    color: colors.text.primary,
-                    transition: "background 0.15s",
-                    textAlign: "left",
-                    flexShrink: 0,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = colors.hover; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
+                  className="sidebar-bottom-btn w-full min-h-11 p-0 bg-transparent border-0 cursor-pointer flex items-center text-text-primary hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left shrink-0"
                 >
-                  <div className="sidebar-icon-wrap" style={{ width: 70, height: 44, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <div className="sidebar-icon-wrap w-17.5 h-11 flex items-center justify-center shrink-0">
                     <Icon size={20} />
                   </div>
                   <div
-                    className="sidebar-text-wrap"
-                    style={{
-                      whiteSpace: "nowrap",
-                      opacity: expanded ? 1 : 0,
-                      transform: expanded ? "translateX(0)" : "translateX(-8px)",
-                      transition: "opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                      pointerEvents: expanded ? "auto" : "none",
-                    }}
+                    className={`sidebar-text-wrap whitespace-nowrap transition-[opacity,transform] duration-250 ease-in-out ${
+                      expanded
+                        ? "opacity-100 translate-x-0 pointer-events-auto"
+                        : "opacity-0 -translate-x-2 pointer-events-none"
+                    }`}
                   >
-                    <span style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</span>
+                    <span className="text-sm font-medium">{item.label}</span>
                   </div>
                 </button>
               );
@@ -487,38 +386,19 @@ export default function Sidebar() {
               <button
                 onClick={() => setShowSignOutConfirm(true)}
                 title={expanded ? undefined : "Sign Out"}
-                className="sidebar-bottom-btn"
-                style={{
-                  width: "100%",
-                  minHeight: 44,
-                  padding: 0,
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  color: "#ef4444",
-                  transition: "background 0.15s",
-                  textAlign: "left",
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.05)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
+                className="sidebar-bottom-btn w-full min-h-11 p-0 bg-transparent border-0 cursor-pointer flex items-center text-red-500 hover:bg-red-500/10 transition-colors text-left shrink-0"
               >
-                <div className="sidebar-icon-wrap" style={{ width: 70, height: 44, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div className="sidebar-icon-wrap w-17.5 h-11 flex items-center justify-center shrink-0">
                   <LogOut size={20} />
                 </div>
                 <div
-                  className="sidebar-text-wrap"
-                  style={{
-                    whiteSpace: "nowrap",
-                    opacity: expanded ? 1 : 0,
-                    transform: expanded ? "translateX(0)" : "translateX(-8px)",
-                    transition: "opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                    pointerEvents: expanded ? "auto" : "none",
-                  }}
+                  className={`sidebar-text-wrap whitespace-nowrap transition-[opacity,transform] duration-250 ease-in-out ${
+                    expanded
+                      ? "opacity-100 translate-x-0 pointer-events-auto"
+                      : "opacity-0 -translate-x-2 pointer-events-none"
+                  }`}
                 >
-                  <span style={{ fontSize: 14, fontWeight: 500 }}>Sign Out</span>
+                  <span className="text-sm font-medium">Sign Out</span>
                 </div>
               </button>
             )}
@@ -531,327 +411,321 @@ export default function Sidebar() {
 
       {/* Sign Out Confirm */}
       {showSignOutConfirm && (
-        <div style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+        <div
+          className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           onClick={() => setShowSignOutConfirm(false)}
         >
-          <div style={{ background: colors.bg.primary, borderRadius: 16, padding: 32, width: "100%", maxWidth: 320, boxShadow: isDark ? "0 25px 50px rgba(0,0,0,0.5)" : "0 25px 50px rgba(0,0,0,0.2)", border: `1px solid ${colors.border}` }}
+          <div
+            className="bg-bg-primary rounded-2xl p-8 w-full max-w-[320px] shadow-2xl border border-border-theme text-text-primary"
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontWeight: 900, fontSize: 20, color: colors.text.primary, marginBottom: 8 }}>Sign Out?</div>
-              <div style={{ fontSize: 14, color: colors.text.secondary }}>Are you sure you want to sign out of your account?</div>
+            <div className="mb-6">
+              <div className="font-black text-xl text-text-primary mb-2">Sign Out?</div>
+              <div className="text-sm text-text-tertiary">Are you sure you want to sign out of your account?</div>
             </div>
-            <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => setShowSignOutConfirm(false)}
-                style={{ flex: 1, padding: "12px 0", fontSize: 14, fontWeight: 600, border: `1.5px solid ${colors.border}`, background: "transparent", color: colors.text.primary, borderRadius: 8, cursor: "pointer", transition: "all 0.2s" }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = colors.hover; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-              >Cancel</button>
-              <button onClick={handleConfirmSignOut}
-                style={{ flex: 1, padding: "12px 0", fontSize: 14, fontWeight: 600, border: "none", background: "#ef4444", color: "white", borderRadius: 8, cursor: "pointer", transition: "all 0.2s" }}
-                onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-              >Sign Out</button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSignOutConfirm(false)}
+                className="flex-1 py-3 text-sm font-semibold border-[1.5px] border-border-theme bg-transparent text-text-primary rounded-lg cursor-pointer hover:bg-bg-secondary transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSignOut}
+                className="flex-1 py-3 text-sm font-semibold border-0 bg-red-500 text-white rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+              >
+                Sign Out
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {/* Support Modal */}
-      {/* Support Modal */}
-{showSupport && (
-  <div
-    style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
-    onClick={closeSupport}
-  >
-    <div
-      className="support-modal-content"
-      style={{ background: colors.bg.primary, borderRadius: 20, width: "100%", maxWidth: 360, border: `1px solid ${colors.border}`, boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.6)" : "0 32px 64px rgba(0,0,0,0.15)", padding: 24 }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 6 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Heart size={16} style={{ color: "#ef4444", fill: "#ef4444" }} />
-          <span style={{ fontSize: 17, fontWeight: 700, color: colors.text.primary, letterSpacing: "-0.01em" }}>
-            Support Enies Hobby
-          </span>
-        </div>
-        <button onClick={closeSupport} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex" }}>
-          <X size={18} color={colors.text.secondary} />
-        </button>
-      </div>
-      <p style={{ fontSize: 13, color: colors.text.secondary, lineHeight: 1.6, margin: "0 0 18px" }}>
-        This project is free and always will be. If it&apos;s been useful to you, even a small contribution means a lot.
-      </p>
-
-      {/* Tab switcher */}
-      <div style={{ display: "flex", gap: 4, background: tc.bg.tertiary, padding: 4, borderRadius: 8, marginBottom: 18 }}>
-        <button
-          onClick={() => setSupportTab("gcash")}
-          style={{ flex: 1, padding: "8px 0", borderRadius: 6, background: supportTab === "gcash" ? colors.bg.primary : "transparent", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, color: supportTab === "gcash" ? colors.text.primary : colors.text.secondary, transition: "all 0.2s" }}
+      {showSupport && (
+        <div
+          className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm"
+          onClick={closeSupport}
         >
-          GCash
-        </button>
-        <button
-          onClick={() => setSupportTab("kofi")}
-          style={{ flex: 1, padding: "8px 0", borderRadius: 6, background: supportTab === "kofi" ? colors.bg.primary : "transparent", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, color: supportTab === "kofi" ? colors.text.primary : colors.text.secondary, transition: "all 0.2s" }}
-        >
-          Ko-fi
-        </button>
-      </div>
-
-      {/* GCash panel */}
-      {supportTab === "gcash" && (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, background: isDark ? colors.bg.secondary : "#f9fafb", border: `1px solid ${colors.border}`, borderRadius: 14, padding: 16 }}>
-          <div style={{ width: 160, height: 160, borderRadius: 10, overflow: "hidden", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${colors.border}` }}>
-            <img
-              src="/gcash-qr.png"
-              alt="GCash QR Code"
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-                e.currentTarget.parentElement!.innerHTML = '<span style="font-size:11px;color:#9ca3af;text-align:center;padding:12px">QR not available</span>';
-              }}
-            />
-          </div>
-          <span style={{ fontSize: 11, color: colors.text.secondary }}>Scan with your GCash app</span>
-        </div>
-      )}
-
-      {/* Ko-fi panel */}
-      {supportTab === "kofi" && (
-          <a
-          href="https://ko-fi.com/millionsknives47476"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "12px 0", borderRadius: 12, background: "#FF5E5B", color: "#fff", fontSize: 14, fontWeight: 600, textDecoration: "none", transition: "opacity 0.2s", letterSpacing: "0.01em" }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.88"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-        >
-          <Coffee size={15}  />Buy me a Coffee
-        </a>
-      )}
-    </div>
-  </div>
-)}
-        {/* Feedback Modal */}
-        {showFeedback && (
           <div
-            style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
-            onClick={closeFeedback}
+            className="support-modal-content bg-bg-primary text-text-primary rounded-[20px] w-full max-w-90 border border-border-theme shadow-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="feedback-modal-content"
-              style={{ background: colors.bg.primary, borderRadius: 16, padding: 28, width: "100%", maxWidth: 400, border: `1px solid ${colors.border}`, boxShadow: isDark ? "0 25px 50px rgba(0,0,0,0.5)" : "0 25px 50px rgba(0,0,0,0.15)" }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontWeight: 700, fontSize: 18, color: colors.text.primary, marginBottom: 4 }}>Share your feedback</div>
-                <div style={{ fontSize: 13, color: colors.text.secondary }}>Help us improve Enies Hobby.</div>
+            {/* Header */}
+            <div className="flex items-start justify-between mb-1.5">
+              <div className="flex items-center gap-2">
+                <Heart size={16} className="text-red-500 fill-red-500" />
+                <span className="text-[17px] font-bold text-text-primary tracking-[-0.01em]">
+                  Support Enies Hobby
+                </span>
               </div>
+              <button onClick={closeSupport} className="bg-transparent border-0 cursor-pointer p-0 flex text-text-tertiary hover:text-text-primary">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-[13px] text-text-tertiary leading-relaxed mb-4.5 mt-0">
+              This project is free and always will be. If it&apos;s been useful to you, even a small contribution means a lot.
+            </p>
 
-              <div style={{ fontSize: 12, fontWeight: 600, color: colors.text.secondary, marginBottom: 8 }}>What&apos;s this about?</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 20 }}>
-                {FEEDBACK_CATEGORIES.map((cat) => {
-                  const Icon = cat.icon;
-                  const active = feedbackCategory === cat.value;
-                  return (
-                    <button
-                      key={cat.value}
-                      onClick={() => setFeedbackCategory(cat.value)}
-                      style={{
-                        display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-                        padding: "12px 4px", borderRadius: 10, cursor: "pointer",
-                        border: active ? "1.5px solid #ef4444" : `1px solid ${colors.border}`,
-                        background: active ? (isDark ? "rgba(239,68,68,0.15)" : "rgba(239,68,68,0.08)") : "transparent",
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      <Icon size={18} color={active ? "#ef4444" : colors.text.secondary} />
-                      <span style={{ fontSize: 11, fontWeight: 500, color: active ? "#ef4444" : colors.text.secondary }}>{cat.label}</span>
-                    </button>
-                  );
-                })}
+            {/* Tab switcher */}
+            <div className="flex gap-1 bg-bg-tertiary p-1 rounded-lg mb-4.5">
+              <button
+                onClick={() => setSupportTab("gcash")}
+                className={`flex-1 py-2 rounded-md border-0 cursor-pointer text-[13px] font-semibold transition-all ${
+                  supportTab === "gcash" ? "bg-bg-primary text-text-primary shadow-sm" : "bg-transparent text-text-tertiary"
+                }`}
+              >
+                GCash
+              </button>
+              <button
+                onClick={() => setSupportTab("kofi")}
+                className={`flex-1 py-2 rounded-md border-0 cursor-pointer text-[13px] font-semibold transition-all ${
+                  supportTab === "kofi" ? "bg-bg-primary text-text-primary shadow-sm" : "bg-transparent text-text-tertiary"
+                }`}
+              >
+                Ko-fi
+              </button>
+            </div>
+
+            {/* GCash panel */}
+            {supportTab === "gcash" && (
+              <div className="flex flex-col items-center gap-2.5 bg-bg-secondary border border-border-theme rounded-2xl p-4">
+                <div className="w-40 h-40 rounded-[10px] overflow-hidden bg-white flex items-center justify-center border border-border-theme">
+                  <img
+                    src="/gcash-qr.png"
+                    alt="GCash QR Code"
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      e.currentTarget.parentElement!.innerHTML = '<span class="text-[11px] text-gray-400 text-center p-3">QR not available</span>';
+                    }}
+                  />
+                </div>
+                <span className="text-[11px] text-text-tertiary">Scan with your GCash app</span>
               </div>
+            )}
 
-              <style>{`
-                .feedback-mood-range {
-                  -webkit-appearance: none;
-                  appearance: none;
-                  width: 100%;
-                  height: 4px;
-                  border-radius: 999px;
-                  background: ${colors.border};
-                  outline: none;
-                  cursor: pointer;
-                }
-                .feedback-mood-range::-webkit-slider-thumb {
-                  -webkit-appearance: none;
-                  appearance: none;
-                  width: 20px;
-                  height: 20px;
-                  border-radius: 50%;
-                  background: ${colors.bg.primary};
-                  border: 1.5px solid ${colors.border};
-                  cursor: pointer;
-                }
-                .feedback-mood-range::-moz-range-thumb {
-                  width: 20px;
-                  height: 20px;
-                  border-radius: 50%;
-                  background: ${colors.bg.primary};
-                  border: 1.5px solid ${colors.border};
-                  cursor: pointer;
-                  box-sizing: border-box;
-                }
-                .feedback-mood-range::-moz-range-track {
-                  height: 4px;
-                  border-radius: 999px;
-                  background: ${colors.border};
-                }
-              `}</style>
+            {/* Ko-fi panel */}
+            {supportTab === "kofi" && (
+              <a
+                href="https://ko-fi.com/millionsknives47476"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#FF5E5B] text-white text-sm font-semibold no-underline hover:opacity-90 transition-opacity tracking-[0.01em]"
+              >
+                <Coffee size={15} />
+                <span>Buy me a Coffee</span>
+              </a>
+            )}
+          </div>
+        </div>
+      )}
 
-              <div style={{ fontSize: 12, fontWeight: 600, color: colors.text.secondary, marginBottom: 10 }}>
-                How do you feel? <span style={{ color: colors.text.secondary, fontWeight: 400 }}>(optional)</span>
-              </div>
-              <div style={{ textAlign: "center", fontSize: 13, fontWeight: 600, color: colors.text.primary, marginBottom: 8 }}>
-                {MOOD_LABELS[feedbackMood]}
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={4}
-                step={1}
-                value={feedbackMood}
-                onChange={(e) => { setFeedbackMood(Number(e.target.value)); setFeedbackMoodTouched(true); }}
-                className="feedback-mood-range"
-                style={{ marginBottom: 6 }}
-              />
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: colors.text.secondary, marginBottom: 20 }}>
-                <span>Frustrated</span>
-                <span>Delighted</span>
-              </div>
+      {/* Feedback Modal */}
+      {showFeedback && (
+        <div
+          className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={closeFeedback}
+        >
+          <div
+            className="feedback-modal-content bg-bg-primary text-text-primary rounded-2xl p-7 w-full max-w-100 border border-border-theme shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-5">
+              <div className="font-bold text-lg text-text-primary mb-1">Share your feedback</div>
+              <div className="text-[13px] text-text-tertiary">Help us improve Enies Hobby.</div>
+            </div>
 
-              <div style={{ fontSize: 12, fontWeight: 600, color: colors.text.secondary, marginBottom: 8 }}>Tell us more</div>
-              <textarea
-                value={feedbackText}
-                onChange={(e) => setFeedbackText(e.target.value)}
-                placeholder="Type your feedback here..."
-                rows={4}
-                style={{ width: "100%", padding: "12px 14px", fontSize: 13, borderRadius: 10, border: `1px solid ${colors.border}`, background: colors.bg.secondary, color: colors.text.primary, resize: "none", outline: "none", marginBottom: 20, lineHeight: 1.6, fontFamily: "inherit", transition: "border-color 0.2s" }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "#ef4444"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = colors.border; }}
-              />
+            <div className="text-xs font-semibold text-text-tertiary mb-2">What&apos;s this about?</div>
+            <div className="grid grid-cols-4 gap-2 mb-5">
+              {FEEDBACK_CATEGORIES.map((cat) => {
+                const Icon = cat.icon;
+                const active = feedbackCategory === cat.value;
+                return (
+                  <button
+                    key={cat.value}
+                    onClick={() => setFeedbackCategory(cat.value)}
+                    className={`flex flex-col items-center gap-1.5 py-3 px-1 rounded-[10px] cursor-pointer transition-all ${
+                      active
+                        ? "border-[1.5px] border-red-500 bg-red-500/10 text-red-500"
+                        : "border border-border-theme bg-transparent text-text-tertiary hover:border-text-tertiary"
+                    }`}
+                  >
+                    <Icon size={18} />
+                    <span className="text-[11px] font-medium">{cat.label}</span>
+                  </button>
+                );
+              })}
+            </div>
 
-              {feedbackStatus === "error" && (
-                <div style={{ fontSize: 12, color: "#ef4444", marginBottom: 10 }}>Something went wrong. Try again.</div>
-              )}
+            <style>{`
+              .feedback-mood-range {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 100%;
+                height: 4px;
+                border-radius: 999px;
+                background: ${colors.border};
+                outline: none;
+                cursor: pointer;
+              }
+              .feedback-mood-range::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: ${colors.bg.primary};
+                border: 1.5px solid ${colors.border};
+                cursor: pointer;
+              }
+              .feedback-mood-range::-moz-range-thumb {
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: ${colors.bg.primary};
+                border: 1.5px solid ${colors.border};
+                cursor: pointer;
+                box-sizing: border-box;
+              }
+              .feedback-mood-range::-moz-range-track {
+                height: 4px;
+                border-radius: 999px;
+                background: ${colors.border};
+              }
+            `}</style>
 
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  onClick={closeFeedback}
-                  style={{ flex: 1, padding: "11px 0", fontSize: 13, fontWeight: 600, border: `1.5px solid ${colors.border}`, background: "transparent", color: colors.text.primary, borderRadius: 8, cursor: "pointer" }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleFeedbackSubmit}
-                  disabled={!feedbackText.trim() || !feedbackCategory || feedbackStatus === "sending"}
-                  style={{ flex: 1, padding: "11px 0", fontSize: 13, fontWeight: 600, border: "none", background: (feedbackText.trim() && feedbackCategory) ? "#ef4444" : (isDark ? "#374151" : "#e5e7eb"), color: (feedbackText.trim() && feedbackCategory) ? "#fff" : colors.text.secondary, borderRadius: 8, cursor: (feedbackText.trim() && feedbackCategory) ? "pointer" : "not-allowed", transition: "all 0.2s" }}
-                >
-                  {feedbackStatus === "sending" ? "Sending..." : "Send"}
-                </button>
-              </div>
+            <div className="text-xs font-semibold text-text-tertiary mb-2.5">
+              How do you feel? <span className="font-normal text-text-tertiary">(optional)</span>
+            </div>
+            <div className="text-center text-[13px] font-semibold text-text-primary mb-2">
+              {MOOD_LABELS[feedbackMood]}
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={4}
+              step={1}
+              value={feedbackMood}
+              onChange={(e) => { setFeedbackMood(Number(e.target.value)); setFeedbackMoodTouched(true); }}
+              className="feedback-mood-range mb-1.5"
+            />
+            <div className="flex justify-between text-[11px] text-text-tertiary mb-5">
+              <span>Frustrated</span>
+              <span>Delighted</span>
+            </div>
+
+            <div className="text-xs font-semibold text-text-tertiary mb-2">Tell us more</div>
+            <textarea
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+              placeholder="Type your feedback here..."
+              rows={4}
+              className="w-full p-3.5 text-[13px] rounded-[10px] border border-border-theme bg-bg-secondary text-text-primary resize-none outline-none mb-5 leading-relaxed font-inherit transition-colors focus:border-red-500"
+            />
+
+            {feedbackStatus === "error" && (
+              <div className="text-xs text-red-500 mb-2.5">Something went wrong. Try again.</div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={closeFeedback}
+                className="flex-1 py-2.5 text-[13px] font-semibold border-[1.5px] border-border-theme bg-transparent text-text-primary rounded-lg cursor-pointer hover:bg-bg-secondary transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleFeedbackSubmit}
+                disabled={!feedbackText.trim() || !feedbackCategory || feedbackStatus === "sending"}
+                className={`flex-1 py-2.5 text-[13px] font-semibold border-0 rounded-lg transition-all ${
+                  feedbackText.trim() && feedbackCategory && feedbackStatus !== "sending"
+                    ? "bg-red-500 text-white cursor-pointer hover:opacity-90"
+                    : "bg-gray-300 dark:bg-gray-700 text-text-tertiary cursor-not-allowed"
+                }`}
+              >
+                {feedbackStatus === "sending" ? "Sending..." : "Send"}
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
       {/* Overlay (desktop only — mobile uses sidebar-mobile-backdrop) */}
       {expanded && !isMobile && (
         <div 
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 45 }}
+          className="fixed inset-0 bg-black/30 z-45"
           onClick={() => setExpanded(false)}
         />
       )}
 
       {/* Themes Panel */}
       {showAppearance && (
-        <div onClick={() => setShowAppearance(false)} style={{ position: "fixed", inset: 0, zIndex: 50 }}>
+        <div onClick={() => setShowAppearance(false)} className="fixed inset-0 z-50">
           <div
             onClick={(e) => e.stopPropagation()}
-            className={isMobile ? 'theme-popover-mobile' : ''}
-            style={{
-              position: isMobile ? undefined : "absolute",
-              left: isMobile ? undefined : (expanded ? 292 : 82),
-              bottom: isMobile ? undefined : 100,
-              width: isMobile ? undefined : 280,
-              maxHeight: isMobile ? undefined : "calc(100vh - 120px)",
-              overflowY: isMobile ? undefined : "auto",
-              scrollbarWidth: "thin",
-              background: colors.bg.primary,
-              border: `1.5px solid ${isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.12)"}`,
-              borderRadius: 16,
-              padding: 16,
-              boxShadow: isDark
-                ? "0 16px 36px rgba(0,0,0,0.65), 0 0 0 1px rgba(0,0,0,0.4)"
-                : "0 16px 36px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.06)",
-            }}
+            className={`bg-bg-primary text-text-primary border border-border-theme/40 rounded-2xl p-4 shadow-2xl ${
+              isMobile
+                ? "theme-popover-mobile"
+                : "absolute bottom-25 w-70 max-h-[calc(100vh-120px)] overflow-y-auto [scrollbar-width:thin]"
+            }`}
+            style={{ left: isMobile ? undefined : (expanded ? 292 : 82) }}
           >
             {/* Header */}
-            <div style={{ fontWeight: 700, marginBottom: 2, color: colors.text.primary, fontSize: 14 }}>Themes</div>
-            <div style={{ fontSize: 11, color: colors.text.secondary, marginBottom: 14 }}>Choose a theme for your experience</div>
+            <div className="font-bold mb-0.5 text-text-primary text-sm">Themes</div>
+            <div className="text-[11px] text-text-tertiary mb-3.5">Choose a theme for your experience</div>
 
             {/* Mode switcher */}
-            <div style={{ display: "flex", gap: 4, background: tc.bg.tertiary, padding: 4, borderRadius: 8, marginBottom: 12 }}>
+            <div className="flex gap-1 bg-bg-tertiary p-1 rounded-lg mb-3">
               <button
-                onClick={() => setThemeMode("light")}
-                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "7px 0", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: themeMode === "light" ? colors.bg.primary : "transparent", color: themeMode === "light" ? colors.text.primary : colors.text.secondary, transition: "all 0.2s" }}
+                onClick={() => handleSwitchThemeMode("light")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md border-0 cursor-pointer text-xs font-semibold transition-all ${
+                  themeMode === "light" ? "bg-bg-primary text-text-primary shadow-sm" : "bg-transparent text-text-tertiary"
+                }`}
               >
                 <Sun size={13} /> Light
               </button>
               <button
-                onClick={() => setThemeMode("dark")}
-                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "7px 0", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: themeMode === "dark" ? colors.bg.primary : "transparent", color: themeMode === "dark" ? colors.text.primary : colors.text.secondary, transition: "all 0.2s" }}
+                onClick={() => handleSwitchThemeMode("dark")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md border-0 cursor-pointer text-xs font-semibold transition-all ${
+                  themeMode === "dark" ? "bg-bg-primary text-text-primary shadow-sm" : "bg-transparent text-text-tertiary"
+                }`}
               >
                 <Moon size={13} /> Dark
               </button>
             </div>
 
             {/* Single-column theme rows */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div className="flex flex-col gap-1.5">
               {ALL_THEMES.filter((t) => t.preview.dark === (themeMode === "dark")).map((t) => {
                 const isActive = theme === t.value;
                 return (
                   <div
                     key={t.value}
                     onClick={() => setTheme(t.value)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: 8,
-                      borderRadius: 10,
-                      cursor: "pointer",
-                      border: isActive ? `1.5px solid ${colors.accent}` : `1px solid ${colors.border}`,
-                      background: isActive ? (isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)") : "transparent",
-                      transition: "all 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)";
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) e.currentTarget.style.borderColor = colors.border;
-                    }}
+                    className={`flex items-center gap-2.5 p-2 rounded-[10px] cursor-pointer transition-all ${
+                      isActive
+                        ? "border-[1.5px] border-accent-theme bg-accent-theme/10 text-accent-theme"
+                        : "border border-border-theme bg-transparent hover:border-text-tertiary"
+                    }`}
                   >
-                    <div style={{ width: 48, height: 34, borderRadius: 6, background: t.preview.bg, position: "relative", overflow: "hidden", flexShrink: 0, border: `1px solid ${colors.border}` }}>
-                      <div style={{ position: "absolute", top: 5, left: 5, width: 24, height: 4, borderRadius: 2, background: t.preview.dark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)" }} />
-                      <div style={{ position: "absolute", bottom: 5, right: 5, width: 14, height: 4, borderRadius: 2, background: t.preview.bar }} />
+                    <div
+                      className="w-12 h-8.5 rounded-md relative overflow-hidden shrink-0 border border-border-theme"
+                      style={{ background: t.preview.bg }}
+                    >
+                      <div
+                        className="absolute top-1.25 left-1.25 w-6 h-1 rounded-sm"
+                        style={{ background: t.preview.dark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)" }}
+                      />
+                      <div
+                        className="absolute bottom-1.25 right-1.25 w-3.5 h-1 rounded-sm"
+                        style={{ background: t.preview.bar }}
+                      />
                     </div>
-                    <span style={{ flex: 1, fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? colors.accent : colors.text.primary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <span className="flex-1 text-[13px] font-medium whitespace-nowrap overflow-hidden text-ellipsis">
                       {t.name}
                     </span>
-                    {isActive && <Check size={15} color={colors.accent} strokeWidth={3} />}
+                    {isActive && <Check size={15} className="text-accent-theme stroke-3" />}
                   </div>
                 );
               })}

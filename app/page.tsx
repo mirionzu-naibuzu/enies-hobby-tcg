@@ -99,6 +99,28 @@ export default function HomePage() {
   const [stackRevealed, setStackRevealed] = useState(false);
   const [previewRevealed, setPreviewRevealed] = useState(false);
   const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
+
+  const handleSwitchThemeMode = (newMode: "light" | "dark") => {
+    setThemeMode(newMode);
+    if (theme) {
+      if (newMode === "dark" && !theme.includes("dark")) {
+        const darkEquivalent = theme === "light" ? "dark" : `${theme.replace("-light", "")}-dark`;
+        if (ALL_THEMES.some(t => t.value === darkEquivalent)) {
+          setTheme(darkEquivalent);
+        } else {
+          setTheme("dark");
+        }
+      } else if (newMode === "light" && (theme.includes("dark") || theme === "dark")) {
+        const lightEquivalent = theme === "dark" ? "light" : `${theme.replace("-dark", "")}-light`;
+        if (ALL_THEMES.some(t => t.value === lightEquivalent)) {
+          setTheme(lightEquivalent);
+        } else {
+          setTheme("light");
+        }
+      }
+    }
+  };
+
   const [isMobile, setIsMobile] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1618,7 +1640,7 @@ export default function HomePage() {
                       }}
                     >
                       <button
-                        onClick={() => setThemeMode("light")}
+                        onClick={() => handleSwitchThemeMode("light")}
                         style={{
                           flex: 1,
                           display: "flex",
@@ -1639,7 +1661,7 @@ export default function HomePage() {
                         <Sun size={13} /> Light
                       </button>
                       <button
-                        onClick={() => setThemeMode("dark")}
+                        onClick={() => handleSwitchThemeMode("dark")}
                         style={{
                           flex: 1,
                           display: "flex",

@@ -86,27 +86,18 @@ function Chip({
   isDark: boolean;
   accent?: { bg: string; border: string; text: string };
 }) {
-  const activeBg     = accent?.bg     ?? (isDark ? "#f3f4f6" : "#111827");
-  const activeBorder = accent?.border ?? (isDark ? "#f3f4f6" : "#111827");
-  const activeText   = accent?.text   ?? (isDark ? "#111827" : "#ffffff");
-
   return (
     <button
       onClick={onClick}
+      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 whitespace-nowrap cursor-pointer ${
+        active
+          ? "border-transparent text-white"
+          : "border-border-theme text-text-tertiary hover:border-text-secondary bg-transparent"
+      }`}
       style={{
-        paddingLeft: 14,
-        paddingRight: 14,
-        paddingTop: 6,
-        paddingBottom: 6,
-        borderRadius: 9999,
-        fontSize: 12,
-        fontWeight: 600,
-        border: `1px solid ${active ? activeBorder : (isDark ? "#374151" : "#e5e7eb")}`,
-        transition: "all 0.2s",
-        whiteSpace: "nowrap",
-        background: active ? activeBg : "transparent",
-        color: active ? activeText : (isDark ? "#9ca3af" : "#6b7280"),
-        cursor: "pointer",
+        background: active ? (accent?.bg ?? "var(--text-primary)") : "transparent",
+        borderColor: active ? (accent?.border ?? "var(--text-primary)") : undefined,
+        color: active ? (accent?.text ?? "var(--bg-primary)") : undefined,
       }}
     >
       {label}
@@ -145,95 +136,56 @@ function SetDropdown({
   const isSelected = !!activeSetId || isCategoryActive;
 
   return (
-    <div style={{ position: "relative" }}>
+    <div className="relative">
       <button
         onClick={onToggle}
         title={activeSetId ? `${label}: ${activeSetId}` : isCategoryActive ? `All ${label}s` : label}
+        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border cursor-pointer transition-all duration-200 whitespace-nowrap ${
+          isSelected
+            ? "border-transparent text-white shadow-sm"
+            : "border-border-theme text-text-tertiary hover:border-text-secondary bg-transparent"
+        }`}
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          paddingLeft: 14,
-          paddingRight: 14,
-          paddingTop: 6,
-          paddingBottom: 6,
-          borderRadius: 9999,
-          fontSize: 12,
-          fontWeight: 600,
-          border: `1px solid ${isSelected ? accent.border : (isDark ? "#374151" : "#e5e7eb")}`,
           background: isSelected ? accent.bg : "transparent",
-          color: isSelected ? accent.text : (isDark ? "#9ca3af" : "#6b7280"),
-          cursor: "pointer",
-          transition: "all 0.2s",
-          whiteSpace: "nowrap",
+          borderColor: isSelected ? accent.border : undefined,
+          color: isSelected ? accent.text : undefined,
         }}
       >
         <span>{label}</span>
         <ChevronDown
           size={14}
-          style={{
-            transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-            transition: "transform 0.2s",
-            opacity: isSelected ? 0.9 : 0.6,
-          }}
+          className={`transition-transform duration-200 ${isOpen ? "rotate-180" : "rotate-0"} ${
+            isSelected ? "opacity-90" : "opacity-60"
+          }`}
         />
       </button>
 
       {isOpen && (
         <div
-          style={{
-            position: "absolute",
-            top: "calc(100% + 6px)",
-            left: alignRight ? "auto" : 0,
-            right: alignRight ? 0 : "auto",
-            zIndex: 60,
-            minWidth: 230,
-            maxWidth: "min(290px, calc(100vw - 32px))",
-            maxHeight: 280,
-            overflowY: "auto",
-            WebkitOverflowScrolling: "touch",
-            background: colors.bg,
-            border: `1px solid ${colors.border}`,
-            borderRadius: 12,
-            boxShadow: isDark
-              ? "0 12px 32px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.4)"
-              : "0 12px 32px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.06)",
-            padding: 4,
-          }}
+          className={`absolute top-[calc(100%+6px)] z-60 min-w-57.5 max-w-[min(290px,calc(100vw-32px))] max-h-70 overflow-y-auto bg-bg-primary border border-border-theme rounded-xl shadow-2xl p-1 ${
+            alignRight ? "right-0" : "left-0"
+          }`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Option 1: All sets in this category */}
           <div
             onClick={onSelectAllCategory}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "7px 10px",
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-              background: isCategoryActive ? (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)") : "transparent",
-              color: isCategoryActive ? accent.bg : colors.text,
-              transition: "background 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              if (!isCategoryActive) e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)";
-            }}
-            onMouseLeave={(e) => {
-              if (!isCategoryActive) e.currentTarget.style.background = "transparent";
-            }}
+            className={`flex items-center justify-between py-1.75 px-2.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+              isCategoryActive
+                ? "bg-black/5 dark:bg-white/10"
+                : "text-text-primary hover:bg-black/5 dark:hover:bg-white/5"
+            }`}
+            style={{ color: isCategoryActive ? accent.bg : undefined }}
           >
             <span>All {label}s</span>
             {isCategoryActive && <Check size={14} />}
           </div>
 
-          <div style={{ height: 1, background: colors.border, margin: "4px 0" }} />
+          <div className="h-px bg-border-theme my-1" />
 
           {/* List of sets */}
           {sets.length === 0 ? (
-            <div style={{ padding: "8px 10px", fontSize: 11, color: colors.label, fontStyle: "italic" }}>
+            <div className="py-2 px-2.5 text-[11px] text-text-tertiary italic">
               No sets found
             </div>
           ) : (
@@ -244,36 +196,21 @@ function SetDropdown({
                 <div
                   key={s.set_id}
                   onClick={() => onSelectSet(s.set_id)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 8,
-                    padding: "7px 10px",
-                    borderRadius: 8,
-                    fontSize: 12,
-                    cursor: "pointer",
-                    background: active ? (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)") : "transparent",
-                    color: active ? (isDark ? "#fff" : "#000") : colors.text,
-                    fontWeight: active ? 700 : 500,
-                    transition: "background 0.15s",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) e.currentTarget.style.background = "transparent";
-                  }}
+                  className={`flex items-center justify-between gap-2 py-1.75 px-2.5 rounded-lg text-xs cursor-pointer transition-colors ${
+                    active
+                      ? "bg-black/5 dark:bg-white/10 font-bold text-text-primary"
+                      : "text-text-primary hover:bg-black/5 dark:hover:bg-white/5 font-medium"
+                  }`}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, overflow: "hidden" }}>
-                    <span style={{ fontWeight: 700, minWidth: 44, flexShrink: 0 }}>{s.set_id}</span>
+                  <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                    <span className="font-bold min-w-11 shrink-0">{s.set_id}</span>
                     {setName && (
-                      <span style={{ fontSize: 11, color: colors.label, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span className="text-[11px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap">
                         {setName}
                       </span>
                     )}
                   </div>
-                  {active && <Check size={14} color={accent.bg} style={{ flexShrink: 0 }} />}
+                  {active && <Check size={14} color={accent.bg} className="shrink-0" />}
                 </div>
               );
             })
@@ -394,42 +331,18 @@ export default function FilterBar({ sets, filters, onChange, isMobileDrawer }: P
   return (
     <div
       suppressHydrationWarning
-      className="filter-bar"
-      style={{
-        background: colors.bg,
-        borderBottom: `1px solid ${colors.border}`,
-        paddingLeft: 24,
-        paddingRight: 24,
-        paddingTop: 12,
-        paddingBottom: 12,
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        transition: "all 0.3s",
-      }}
+      className="filter-bar bg-bg-primary border-b border-border-theme px-6 py-3 flex flex-col gap-3 transition-colors duration-300"
     >
-      {/* If inside mobile drawer: render compact dropdowns. If on desktop webview: render full Type and Set chip rows */}
+      {/* If inside mobile drawer: compact dropdowns. If on desktop webview: full Type and Set chip rows */}
       {isMobileDrawer ? (
         <div
           ref={dropdownRef}
-          className="filter-bar-row"
-          style={{ display: "flex", alignItems: "center", gap: 12, position: "relative" }}
+          className="filter-bar-row flex items-center gap-3 relative"
         >
-          <span
-            className="filter-bar-label"
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: colors.label,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              width: 32,
-              flexShrink: 0,
-            }}
-          >
+          <span className="filter-bar-label text-xs font-bold text-text-tertiary uppercase tracking-wider w-8 shrink-0">
             Sets
           </span>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <div className="flex gap-2 flex-wrap items-center">
             {/* Booster Pack Dropdown */}
             <SetDropdown
               category="booster"
@@ -539,11 +452,11 @@ export default function FilterBar({ sets, filters, onChange, isMobileDrawer }: P
       ) : (
         <>
           {/* Set Type row (Desktop Webview) */}
-          <div className="filter-bar-row" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span className="filter-bar-label" style={{ fontSize: 12, fontWeight: 700, color: colors.label, textTransform: "uppercase", letterSpacing: "0.05em", width: 32, flexShrink: 0 }}>
+          <div className="filter-bar-row flex items-center gap-3">
+            <span className="filter-bar-label text-xs font-bold text-text-tertiary uppercase tracking-wider w-8 shrink-0">
               Type
             </span>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <div className="flex gap-2 flex-wrap">
               {(Object.keys(SET_TYPE_META) as SetCategory[]).map((type) => (
                 <Chip
                   key={type}
@@ -557,17 +470,17 @@ export default function FilterBar({ sets, filters, onChange, isMobileDrawer }: P
           </div>
 
           {/* Set row (Desktop Webview) */}
-          <div className="filter-bar-row" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span className="filter-bar-label" style={{ fontSize: 12, fontWeight: 700, color: colors.label, textTransform: "uppercase", letterSpacing: "0.05em", width: 32, flexShrink: 0 }}>
+          <div className="filter-bar-row flex items-center gap-3">
+            <span className="filter-bar-label text-xs font-bold text-text-tertiary uppercase tracking-wider w-8 shrink-0">
               Set
             </span>
-            <div style={{ display: "flex", overflowX: "auto", paddingBottom: 4, minHeight: 40, alignItems: "center", gap: 6 }}>
+            <div className="flex overflow-x-auto pb-1 min-h-10 items-center gap-1.5">
               {activeSetType === "limited_product" ? (
-                <span style={{ fontSize: 12, color: colors.label, fontStyle: "italic" }}>
+                <span className="text-xs text-text-tertiary italic">
                   Showing all Limited Product Cards
                 </span>
               ) : visibleSets.length === 0 ? (
-                <span style={{ fontSize: 12, color: colors.label, fontStyle: "italic" }}>
+                <span className="text-xs text-text-tertiary italic">
                   {activeSetType ? "No sets found" : "Select a set type"}
                 </span>
               ) : (
@@ -587,12 +500,11 @@ export default function FilterBar({ sets, filters, onChange, isMobileDrawer }: P
       )}
 
       {/* Color + Card Type + Rarity */}
-      <div className="filter-bar-groups" style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
-
+      <div className="filter-bar-groups flex flex-wrap gap-6">
         {/* Color */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: colors.label, textTransform: "uppercase", letterSpacing: "0.05em" }}>Color</span>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Color</span>
+          <div className="flex gap-1.5 items-center">
             {[...COLORS, "Multicolor"].map((c) => {
               const isMulticolor = c === "Multicolor";
               const active = isMulticolor ? multicolorActive : selectedColors.includes(c);
@@ -602,21 +514,15 @@ export default function FilterBar({ sets, filters, onChange, isMobileDrawer }: P
                   key={c}
                   title={c}
                   onClick={() => handleColorClick(c)}
+                  className={`w-6 h-6 rounded-full shrink-0 border-0 cursor-pointer transition-all duration-200 ${
+                    active ? "scale-115" : "scale-100"
+                  } ${dimmed ? "opacity-35" : "opacity-100"}`}
                   style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: "50%",
-                    flexShrink: 0,
-                    border: "none",
-                    cursor: "pointer",
                     background: isMulticolor
                       ? "radial-gradient(circle at center, rgba(255,255,255,0.15), transparent 60%), conic-gradient(from 180deg, #ef4444, #facc15, #22c55e, #3b82f6, #a855f7, #000000, #ef4444)"
                       : COLOR_DOT[c],
                     outline: active ? `3px solid ${isMulticolor ? "#808080" : COLOR_DOT[c]}` : "none",
                     outlineOffset: 2,
-                    opacity: dimmed ? 0.35 : 1,
-                    transform: active ? "scale(1.15)" : "scale(1)",
-                    transition: "all 0.2s",
                   }}
                 />
               );
@@ -625,9 +531,9 @@ export default function FilterBar({ sets, filters, onChange, isMobileDrawer }: P
         </div>
 
         {/* Card Type */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: colors.label, textTransform: "uppercase", letterSpacing: "0.05em" }}>Type</span>
-          <div style={{ display: "flex", gap: 6 }}>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Type</span>
+          <div className="flex gap-1.5">
             {CARD_TYPES.map((t) => (
               <Chip
                 key={t}
@@ -641,9 +547,9 @@ export default function FilterBar({ sets, filters, onChange, isMobileDrawer }: P
         </div>
 
         {/* Rarity */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: colors.label, textTransform: "uppercase", letterSpacing: "0.05em" }}>Rarity</span>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Rarity</span>
+          <div className="flex gap-1.5 items-center">
             {RARITIES.map((r) => (
               <Chip
                 key={r}
@@ -661,7 +567,6 @@ export default function FilterBar({ sets, filters, onChange, isMobileDrawer }: P
             />
           </div>
         </div>
-
       </div>
     </div>
   );

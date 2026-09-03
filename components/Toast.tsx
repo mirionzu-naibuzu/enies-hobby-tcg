@@ -112,15 +112,7 @@ function ConfettiBurst() {
   return (
     <canvas
       ref={canvasRef}
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: 320,
-        pointerEvents: "none",
-        zIndex: 9998,
-      }}
+      className="fixed top-0 left-0 w-full h-[320px] pointer-events-none z-[9998]"
     />
   );
 }
@@ -176,56 +168,20 @@ export default function Toast({ toast, isDark = true }: ToastProps) {
       <div
         role="status"
         aria-live="polite"
-        className="impeccable-toast"
-        style={{
-          position: "fixed",
-          top: 20,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 9999,
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 9,
-          height: 38,
-          padding: "0 16px 0 10px",
-          borderRadius: 9999,
-          background: isDark
-            ? "rgba(18, 18, 20, 0.88)"
-            : "rgba(255, 255, 255, 0.94)",
-          backdropFilter: "blur(18px)",
-          WebkitBackdropFilter: "blur(18px)",
-          border: `1px solid ${
-            isDark ? "rgba(255, 255, 255, 0.11)" : "rgba(0, 0, 0, 0.08)"
-          }`,
-          boxShadow: isDark
-            ? "0 10px 30px -4px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08)"
-            : "0 10px 25px -4px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8)",
-          color: isDark ? "#f3f4f6" : "#111827",
-          fontSize: 13,
-          fontWeight: 500,
-          letterSpacing: "-0.015em",
-          pointerEvents: "none",
-          whiteSpace: "nowrap",
-          userSelect: "none",
-          animation: "impeccableToastIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards",
-        }}
+        className={`impeccable-toast fixed top-5 left-1/2 -translate-x-1/2 z-[9999] inline-flex items-center gap-2.25 h-9.5 pl-2.5 pr-4 rounded-full backdrop-blur-[18px] pointer-events-none select-none whitespace-nowrap text-[13px] font-medium tracking-[-0.015em] border transition-all ${
+          isDark
+            ? "bg-[#121214]/90 text-[#f3f4f6] border-white/10 shadow-[0_10px_30px_-4px_rgba(0,0,0,0.6),0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)]"
+            : "bg-white/95 text-[#111827] border-black/10 shadow-[0_10px_25px_-4px_rgba(0,0,0,0.1),0_2px_6px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)]"
+        }`}
+        style={{ animation: "impeccableToastIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards" }}
       >
         <div
-          style={{
-            width: 22,
-            height: 22,
-            borderRadius: "50%",
-            background: badgeBg,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: badgeColor,
-            flexShrink: 0,
-          }}
+          className="w-5.5 h-5.5 rounded-full flex items-center justify-center shrink-0"
+          style={{ background: badgeBg, color: badgeColor }}
         >
           {icon}
         </div>
-        <span style={{ lineHeight: 1 }}>{toast.message}</span>
+        <span className="leading-none">{toast.message}</span>
       </div>
     </>
   );

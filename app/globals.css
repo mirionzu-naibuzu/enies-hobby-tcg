@@ -1,9 +1,127 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.dark, .dark *, .marineford-dark, .marineford-dark *, .thrillerbark-dark, .thrillerbark-dark *, .alabasta-dark, .alabasta-dark *, .fishman-dark, .fishman-dark *, [class*="-dark"], [class*="-dark"] *));
 
-:root {
+@theme {
   --font-display: var(--font-impact), "Impact", "Arial Narrow", sans-serif;
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-tertiary: var(--bg-tertiary);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-border-theme: var(--border-theme);
+  --color-accent-theme: var(--accent-theme);
+}
+
+:root, .light {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-tertiary: #6b7280;
+  --border-theme: #e5e7eb;
+  --accent-theme: #ef4444;
+}
+
+.dark {
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #374151;
+  --text-primary: #f3f4f6;
+  --text-secondary: #d1d5db;
+  --text-tertiary: #9ca3af;
+  --border-theme: #374151;
+  --accent-theme: #ef4444;
+}
+
+.marineford-light {
+  --bg-primary: #f0f4f8;
+  --bg-secondary: #e2eaf2;
+  --bg-tertiary: #ccdbe8;
+  --text-primary: #1a3a5c;
+  --text-secondary: #2d5a8a;
+  --text-tertiary: #5a85aa;
+  --border-theme: #b8d0e8;
+  --accent-theme: #1e6091;
+}
+
+.marineford-dark {
+  --bg-primary: #0d1b2a;
+  --bg-secondary: #132336;
+  --bg-tertiary: #1a2f45;
+  --text-primary: #e8f2fa;
+  --text-secondary: #a8c8e8;
+  --text-tertiary: #5a85aa;
+  --border-theme: #1e3a55;
+  --accent-theme: #2980b9;
+}
+
+.thrillerbark-light {
+  --bg-primary: #f5f0ff;
+  --bg-secondary: #ede8fa;
+  --bg-tertiary: #e0d8f5;
+  --text-primary: #2d1b69;
+  --text-secondary: #4c3a8a;
+  --text-tertiary: #7c6aaa;
+  --border-theme: #c8b8f0;
+  --accent-theme: #7c3aed;
+}
+
+.thrillerbark-dark {
+  --bg-primary: #0f0a1a;
+  --bg-secondary: #18102e;
+  --bg-tertiary: #221840;
+  --text-primary: #f0ebff;
+  --text-secondary: #c4b5fd;
+  --text-tertiary: #7c6aaa;
+  --border-theme: #2d1b55;
+  --accent-theme: #7c3aed;
+}
+
+.alabasta-light {
+  --bg-primary: #fffbf0;
+  --bg-secondary: #fdf4d8;
+  --bg-tertiary: #f9e8a8;
+  --text-primary: #3d2800;
+  --text-secondary: #7a5c00;
+  --text-tertiary: #a07830;
+  --border-theme: #e8c858;
+  --accent-theme: #d97706;
+}
+
+.alabasta-dark {
+  --bg-primary: #17130c;
+  --bg-secondary: #211a10;
+  --bg-tertiary: #2c2318;
+  --text-primary: #ede0c4;
+  --text-secondary: #c4a06a;
+  --text-tertiary: #8a6e48;
+  --border-theme: #3a2e1a;
+  --accent-theme: #c8850a;
+}
+
+.fishman-light {
+  --bg-primary: #f0f9ff;
+  --bg-secondary: #ddf0fa;
+  --bg-tertiary: #b8e4f5;
+  --text-primary: #0a2c42;
+  --text-secondary: #1a5a80;
+  --text-tertiary: #3a8aaa;
+  --border-theme: #88c8e8;
+  --accent-theme: #0891b2;
+}
+
+.fishman-dark {
+  --bg-primary: #030e18;
+  --bg-secondary: #071826;
+  --bg-tertiary: #0c2435;
+  --text-primary: #e0f5ff;
+  --text-secondary: #7ac8ea;
+  --text-tertiary: #3a8aaa;
+  --border-theme: #0c2435;
+  --accent-theme: #0ea5e9;
 }
 
 html,
@@ -13,9 +131,12 @@ body {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   font-family: var(--font-sans), "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* ── SKELETON & ANIMATIONS ── */
@@ -538,6 +659,11 @@ body {
   display: block;
 }
 
+.app-sidebar {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-theme);
+}
+
 @media (max-width: 768px) {
   .mobile-topbar {
     display: flex !important;
@@ -551,6 +677,8 @@ body {
     padding: 0 16px;
     box-sizing: border-box;
     z-index: 35;
+    background-color: var(--bg-secondary) !important;
+    border-color: var(--border-theme) !important;
   }
 
   .home-mobile-menu-btn {
@@ -558,6 +686,8 @@ body {
   }
 
   .app-sidebar {
+    background-color: var(--bg-secondary) !important;
+    border-color: var(--border-theme) !important;
     width: min(280px, 85vw) !important;
     transform: translateX(-100%) !important;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -2360,6 +2490,7 @@ body {
   line-height: 1.35;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .dashboard-next-set-detail {

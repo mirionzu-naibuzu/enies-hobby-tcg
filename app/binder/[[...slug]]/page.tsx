@@ -125,66 +125,42 @@ function parseBinderUrl(path: string) {
 }
 
 function AuthGate({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: () => void }) {
-  const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  const tc = getColors(theme, mounted);
-
-  const themeVars = useMemo(
-    () =>
-      ({
-        "--dashboard-bg": tc.bg.primary,
-        "--dashboard-surface": tc.bg.secondary,
-        "--dashboard-muted": tc.bg.tertiary,
-        "--dashboard-text": tc.text.primary,
-        "--dashboard-secondary-text": tc.text.secondary,
-        "--dashboard-tertiary-text": tc.text.tertiary,
-        "--dashboard-border": tc.border,
-        "--dashboard-accent": tc.accent,
-      } as React.CSSProperties),
-    [tc]
-  );
-
   return (
     <div
       suppressHydrationWarning
-      className="dashboard-page dashboard-wrapper"
-      style={themeVars}
+      className="dashboard-page dashboard-wrapper min-h-screen bg-bg-primary text-text-primary ml-17.5 transition-colors duration-300"
     >
       <Sidebar />
-      <main
-        className="dashboard-main"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <section className="dashboard-arrival dashboard-auth-gate">
-          <div className="dashboard-arrival-copy">
-            <span className="dashboard-eyebrow">Collection Binder</span>
-            <h1>Track your collection, mark cards as owned, and build custom binders.</h1>
-            <p>
+      <main className="dashboard-main flex items-center justify-center min-h-screen p-6">
+        <section className="dashboard-arrival dashboard-auth-gate bg-bg-secondary border border-border-theme rounded-2xl p-8 max-w-160 flex items-center justify-between gap-8 shadow-xl">
+          <div className="dashboard-arrival-copy flex-1">
+            <span className="dashboard-eyebrow text-xs font-bold uppercase tracking-wider text-accent-theme block mb-2">
+              Collection Binder
+            </span>
+            <h1 className="text-2xl font-black tracking-tight text-text-primary mb-3">
+              Track your collection, mark cards as owned, and build custom binders.
+            </h1>
+            <p className="text-sm text-text-secondary leading-relaxed mb-6">
               Sign in to track your collection progress in real-time, mark cards as owned, build custom binders, and manage your chase wishlist.
             </p>
-            <div className="dashboard-arrival-actions">
+            <div className="dashboard-arrival-actions flex items-center gap-3">
               <button
                 type="button"
-                className="dashboard-button dashboard-button-primary"
+                className="dashboard-button dashboard-button-primary bg-text-primary text-bg-primary font-bold text-sm py-2.5 px-5 rounded-lg border-0 cursor-pointer hover:opacity-90 transition-opacity"
                 onClick={onSignIn}
               >
                 Sign in
               </button>
               <button
                 type="button"
-                className="dashboard-button dashboard-button-secondary"
+                className="dashboard-button dashboard-button-secondary bg-transparent border border-border-theme text-text-primary font-bold text-sm py-2.5 px-5 rounded-lg cursor-pointer hover:bg-bg-tertiary transition-colors"
                 onClick={onSignUp}
               >
                 Create free account
               </button>
             </div>
           </div>
-          <div className="dashboard-arrival-mark" aria-hidden="true">
+          <div className="dashboard-arrival-mark text-accent-theme shrink-0" aria-hidden="true">
             <BookOpen size={42} strokeWidth={1.75} />
           </div>
         </section>
@@ -193,11 +169,14 @@ function AuthGate({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: () =
   );
 }
 
-function ProgressBar({ value, total, color = "#111827" }: { value: number; total: number; color?: string }) {
+function ProgressBar({ value, total, color = "currentColor" }: { value: number; total: number; color?: string }) {
   const pct = total === 0 ? 0 : Math.floor((value / total) * 100);
   return (
-    <div style={{ height: 5, background: "rgba(128,128,128,0.18)", borderRadius: 99, overflow: "hidden", marginTop: 10 }}>
-      <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 99, transition: "width 0.4s ease" }} />
+    <div className="h-1.25 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden mt-2.5">
+      <div
+        className="h-full rounded-full transition-all duration-400 ease-out"
+        style={{ width: `${pct}%`, background: color }}
+      />
     </div>
   );
 }
@@ -287,48 +266,40 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
   };
 
   return (
-    <div className="card-modal-outer" style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.78)" : "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => { setModalCard(null); setShowOwnershipPicker(false); }}>
-      <div className="card-modal-nav-row" style={{ display: "flex", alignItems: "center", gap: 16, width: "100%", maxWidth: 960 }} onClick={(e) => e.stopPropagation()}>
+    <div
+      className="card-modal-outer fixed inset-0 z-60 flex items-center justify-center p-3 md:p-6 bg-black/60 dark:bg-black/80 backdrop-blur-sm"
+      onClick={() => { setModalCard(null); setShowOwnershipPicker(false); }}
+    >
+      <div
+        className="card-modal-nav-row flex items-center justify-center gap-4 w-full max-w-240"
+        onClick={(e) => e.stopPropagation()}
+      >
         {(!isMobile || isLandscape) && (
-          <button className="card-modal-prev" onClick={() => { const i = Math.max(modalIndex - 1, 0); setModalIndex(i); setModalCard(modalCards[i]); setShowOwnershipPicker(false); }} disabled={modalIndex <= 0} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: modalIndex > 0 ? "pointer" : "not-allowed", opacity: modalIndex <= 0 ? 0.3 : 1, transition: "all 0.2s", boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
+          <button
+            className="card-modal-prev shrink-0 w-11 h-11 rounded-full bg-bg-primary shadow-xl border border-border-theme flex items-center justify-center text-text-primary transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
+            onClick={() => { const i = Math.max(modalIndex - 1, 0); setModalIndex(i); setModalCard(modalCards[i]); setShowOwnershipPicker(false); }}
+            disabled={modalIndex <= 0}
+          >
             <ChevronLeft size={20} />
           </button>
         )}
         <div
-          className="card-modal-container"
+          className="card-modal-container flex-1 bg-bg-primary rounded-[20px] shadow-2xl border border-border-theme overflow-hidden max-h-[90vh] flex flex-col"
           onTouchStart={handleModalTouchStart}
           onTouchEnd={handleModalTouchEnd}
-          style={{ flex: 1, background: c.bg, borderRadius: 20, border: `1px solid ${c.border}`, overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.5)" : "0 32px 64px rgba(0,0,0,0.15)" }}
         >
-          <div className="card-modal-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: `1px solid ${c.border}`, flexShrink: 0 }}>
+          <div className="card-modal-header flex justify-between items-center py-4.5 px-6 border-b border-border-theme shrink-0 gap-4">
             <div>
-              <div style={{ fontWeight: 900, fontSize: 22, color: c.text, letterSpacing: "-0.02em" }}>{modalCard.name}</div>
-              <div style={{ fontSize: 12, color: c.textTer, fontFamily: "monospace", marginTop: 2 }}>{isDon ? "DON!!" : modalCard.id}</div>
+              <div className="font-black text-[22px] text-text-primary tracking-tight">{modalCard.name}</div>
+              <div className="text-xs text-text-tertiary font-mono mt-0.5">{isDon ? "DON!!" : modalCard.id}</div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="flex items-center gap-2">
               {isDon ? (
                 <button
-                  className="card-modal-btn"
+                  className="card-modal-btn flex items-center justify-center gap-1.5 py-1.75 px-3 rounded-lg text-xs font-semibold cursor-pointer transition-all border border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:opacity-90"
                   onClick={() => onToggleWishlist(cardKey)}
                   title={wished ? "Wishlist" : "Add to wishlist"}
                   aria-label={wished ? "Wishlist" : "Add to wishlist"}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                    padding: isMobile ? "7px 9px" : "7px 12px",
-                    borderRadius: 8,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                    border: `1px solid ${wished ? "#f59e0b" : c.border}`,
-                    background: wished
-                      ? (isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.08)")
-                      : "transparent",
-                    color: wished ? "#d97706" : c.textTer,
-                  }}
                 >
                   <Star size={13} fill={wished ? "currentColor" : "none"} />
                   {!isMobile && (
@@ -338,26 +309,18 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
                   )}
                 </button>
               ) : (
-                <div style={{ position: "relative" }}>
+                <div className="relative">
                   <button
-                    className="card-modal-btn"
+                    className={`card-modal-btn flex items-center justify-center gap-1.5 py-1.75 px-3 rounded-lg text-xs font-semibold cursor-pointer transition-all border ${
+                      owned
+                        ? "border-green-600 bg-green-600/15 text-green-600 dark:text-green-400"
+                        : wished
+                        ? "border-amber-500 bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                        : "border-border-theme bg-transparent text-text-tertiary hover:text-text-primary"
+                    }`}
                     onClick={() => setShowOwnershipPicker(p => !p)}
                     title={owned ? "Owned" : wished ? "Wishlist" : "Not owned"}
                     aria-label={owned ? "Owned" : wished ? "Wishlist" : "Not owned"}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 6,
-                      padding: isMobile ? "7px 9px" : "7px 12px",
-                      borderRadius: 8,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      transition: "all 0.2s",
-                      border: `1px solid ${owned ? "#16a34a" : wished ? "#f59e0b" : c.border}`,
-                      background: owned ? (isDark ? "rgba(22,163,74,0.15)" : "rgba(22,163,74,0.08)") : wished ? (isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.08)") : "transparent",
-                      color: owned ? "#16a34a" : wished ? "#d97706" : c.textTer }}
                   >
                     {owned ? <Check size={13} /> : wished ? <Star size={13} fill="currentColor" /> : null}
                     {!isMobile && (
@@ -367,31 +330,51 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
                     )}
                   </button>
                   {showOwnershipPicker && (
-                    <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: 200, background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, overflow: "hidden", boxShadow: isDark ? "0 16px 40px rgba(0,0,0,0.5)" : "0 16px 40px rgba(0,0,0,0.12)", zIndex: 10 }} onClick={(e) => e.stopPropagation()}>
-                      <div style={{ padding: "6px 8px" }}>
-                        <button onClick={() => { onToggleOwned(cardKey); setShowOwnershipPicker(false); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, textAlign: "left" as const, transition: "all 0.15s", background: owned ? (isDark ? "rgba(22,163,74,0.15)" : "rgba(22,163,74,0.08)") : "transparent", color: owned ? "#16a34a" : c.text }} onMouseEnter={(e) => { if (!owned) e.currentTarget.style.background = c.bgSec; }} onMouseLeave={(e) => { if (!owned) e.currentTarget.style.background = "transparent"; }}>
-                          <div style={{ width: 18, height: 18, borderRadius: "50%", border: `1.5px solid ${owned ? "#16a34a" : c.border}`, background: owned ? "#16a34a" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            {owned && <Check size={10} color="#fff" strokeWidth={3} />}
-                          </div>
-                          I own this card
-                        </button>
-                        <button onClick={() => { onToggleWishlist(cardKey); setShowOwnershipPicker(false); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, textAlign: "left" as const, transition: "all 0.15s", background: wished ? (isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.08)") : "transparent", color: wished ? "#d97706" : c.text }} onMouseEnter={(e) => { if (!wished) e.currentTarget.style.background = c.bgSec; }} onMouseLeave={(e) => { if (!wished) e.currentTarget.style.background = "transparent"; }}>
-                          <div style={{ width: 18, height: 18, borderRadius: "50%", border: `1.5px solid ${wished ? "#d97706" : c.border}`, background: wished ? "#f59e0b" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            {wished && <Star size={10} fill="#fff" color="#fff" />}
-                          </div>
-                          Add to wishlist
-                        </button>
-                      </div>
+                    <div
+                      className="absolute top-[calc(100%+8px)] right-0 w-48 bg-bg-primary border border-border-theme rounded-xl overflow-hidden shadow-2xl z-10 p-1.5"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={() => { onToggleOwned(cardKey); setShowOwnershipPicker(false); }}
+                        className={`w-full flex items-center gap-2.5 py-2.25 px-2.5 rounded-lg border-0 cursor-pointer text-[13px] text-left transition-colors ${
+                          owned ? "bg-green-600/15 text-green-600 dark:text-green-400" : "bg-transparent text-text-primary hover:bg-bg-secondary"
+                        }`}
+                      >
+                        <div className={`w-4.5 h-4.5 rounded-full border-[1.5px] flex items-center justify-center shrink-0 ${
+                          owned ? "border-green-600 bg-green-600 text-white" : "border-border-theme bg-transparent"
+                        }`}>
+                          {owned && <Check size={10} color="#fff" strokeWidth={3} />}
+                        </div>
+                        <span>I own this card</span>
+                      </button>
+                      <button
+                        onClick={() => { onToggleWishlist(cardKey); setShowOwnershipPicker(false); }}
+                        className={`w-full flex items-center gap-2.5 py-2.25 px-2.5 rounded-lg border-0 cursor-pointer text-[13px] text-left transition-colors ${
+                          wished ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" : "bg-transparent text-text-primary hover:bg-bg-secondary"
+                        }`}
+                      >
+                        <div className={`w-4.5 h-4.5 rounded-full border-[1.5px] flex items-center justify-center shrink-0 ${
+                          wished ? "border-amber-500 bg-amber-500 text-white" : "border-border-theme bg-transparent"
+                        }`}>
+                          {wished && <Star size={10} fill="#fff" color="#fff" />}
+                        </div>
+                        <span>Add to wishlist</span>
+                      </button>
                     </div>
                   )}
                 </div>
               )}
-              <button onClick={() => { setModalCard(null); setShowOwnershipPicker(false); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}><X size={20} color={c.textTer} /></button>
+              <button
+                onClick={() => { setModalCard(null); setShowOwnershipPicker(false); }}
+                className="bg-transparent border-0 cursor-pointer p-1 text-text-tertiary hover:text-text-primary flex items-center justify-center"
+              >
+                <X size={20} />
+              </button>
             </div>
           </div>
-          <div className="card-modal-body" style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
-            <div className="card-modal-image-pane" style={{ width: "48%", flexShrink: 0, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 20px 24px 28px" }}>
-              <div style={{ width: "100%", maxWidth: 360, margin: "0 auto" }}>
+          <div className="card-modal-body flex flex-col md:flex-row flex-1 overflow-hidden min-h-0">
+            <div className="card-modal-image-pane w-full md:w-[48%] shrink-0 bg-bg-primary flex items-center justify-center p-6 md:pl-7 md:pr-5">
+              <div className="w-full max-w-90 mx-auto">
                 <ModalCardImage
                   key={modalCard.images?.large ?? modalCard.images?.small ?? modalCard.id}
                   src={modalCard.images?.large || modalCard.images?.small || "/card-placeholder.png"}
@@ -402,16 +385,23 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
                 />
               </div>
             </div>
-            <div className="card-modal-details-pane" style={{ flex: 1, minWidth: 0, overflowY: "auto", padding: "24px 28px 24px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
-              <div className="card-modal-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="card-modal-details-pane flex-1 min-w-0 overflow-y-auto p-6 md:pl-4 md:pr-7 flex flex-col gap-3.5">
+              <div className="card-modal-detail-grid grid grid-cols-2 gap-2.5">
                 {([["Type", modalCard.type], ["Rarity", modalCard.rarity?.replace(/^PR$/i, "P")], ["Color", modalCard.color], ["Cost", modalCard.cost], ["Power", modalCard.power], ["Counter", modalCard.counter], ["Attribute", modalCard.attribute?.name], ["Family", modalCard.family], ["Set", modalCard.set?.name]] as [string, unknown][]).filter(([, v]) => v != null && v !== "" && v !== "-").map(([label, value]) => (
-                  <div key={String(label)} style={{ background: c.bgSec, borderRadius: 10, padding: "10px 14px", border: `1px solid ${c.border}`, minWidth: 0, gridColumn: label === "Set" ? "1 / -1" : undefined }}>
-                    <div style={{ fontSize: 11, color: c.textTer, marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>{label}</div>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: c.text, lineHeight: 1.4, wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal" }}>
+                  <div
+                    key={String(label)}
+                    className={`bg-bg-secondary rounded-[10px] p-2.5 md:px-3.5 border border-border-theme min-w-0 ${
+                      label === "Set" ? "col-span-2" : ""
+                    }`}
+                  >
+                    <div className="text-[11px] text-text-tertiary mb-0.75 uppercase tracking-wider font-bold">
+                      {label}
+                    </div>
+                    <div className="font-semibold text-sm text-text-primary leading-snug wrap-break-word whitespace-normal">
                       {label === "Family" && typeof value === "string" && value.includes("/") ? (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                        <div className="flex flex-col gap-0.5">
                           {value.split("/").map((part, idx) => (
-                            <div key={idx} style={{ lineHeight: 1.35 }}>{part.trim()}</div>
+                            <div key={idx} className="leading-tight">{part.trim()}</div>
                           ))}
                         </div>
                       ) : (
@@ -421,14 +411,38 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
                   </div>
                 ))}
               </div>
-              {modalCard.ability && (<div style={{ background: c.bgSec, borderRadius: 10, padding: "12px 14px", border: `1px solid ${c.border}`, wordBreak: "break-word", overflowWrap: "break-word" }}><div style={{ fontSize: 11, color: c.textTer, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Effect</div><div style={{ fontSize: 14, color: c.text, lineHeight: 1.7 }}>{modalCard.ability}</div></div>)}
-              {modalCard.trigger && modalCard.trigger !== "" && (<div style={{ background: isDark ? "rgba(217,119,6,0.1)" : "rgba(251,191,36,0.08)", borderRadius: 10, padding: "12px 14px", border: `1px solid ${isDark ? "rgba(217,119,6,0.2)" : "rgba(251,191,36,0.2)"}`, wordBreak: "break-word", overflowWrap: "break-word" }}><div style={{ fontSize: 11, color: isDark ? "#fbbf24" : "#d97706", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Trigger</div><div style={{ fontSize: 14, color: c.text, lineHeight: 1.7 }}>{modalCard.trigger}</div></div>)}
+              {modalCard.ability && (
+                <div className="bg-bg-secondary rounded-[10px] p-3 md:px-3.5 border border-border-theme">
+                  <div className="text-[11px] text-text-tertiary mb-1.5 uppercase tracking-wider font-bold">
+                    Effect
+                  </div>
+                  <div className="text-sm text-text-primary leading-relaxed">
+                    {modalCard.ability}
+                  </div>
+                </div>
+              )}
+              {modalCard.trigger && modalCard.trigger !== "" && (
+                <div className="bg-amber-500/10 rounded-[10px] p-3 md:px-3.5 border border-amber-500/25">
+                  <div className="text-[11px] text-amber-600 dark:text-amber-400 mb-1.5 uppercase tracking-wider font-bold">
+                    Trigger
+                  </div>
+                  <div className="text-sm text-text-primary leading-relaxed">
+                    {modalCard.trigger}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-          <div className="card-modal-footer" style={{ borderTop: `1px solid ${c.border}`, padding: "10px 24px", textAlign: "center", fontSize: 12, color: c.textTer, flexShrink: 0 }}>{modalIndex + 1} / {modalCards.length}</div>
+          <div className="card-modal-footer border-t border-border-theme py-2.5 px-6 text-center text-xs text-text-tertiary shrink-0">
+            {modalIndex + 1} / {modalCards.length}
+          </div>
         </div>
         {(!isMobile || isLandscape) && (
-          <button className="card-modal-next" onClick={() => { const i = Math.min(modalIndex + 1, modalCards.length - 1); setModalIndex(i); setModalCard(modalCards[i]); setShowOwnershipPicker(false); }} disabled={modalIndex >= modalCards.length - 1} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: modalIndex < modalCards.length - 1 ? "pointer" : "not-allowed", opacity: modalIndex >= modalCards.length - 1 ? 0.3 : 1, transition: "all 0.2s", boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
+          <button
+            className="card-modal-next shrink-0 w-11 h-11 rounded-full bg-bg-primary shadow-xl border border-border-theme flex items-center justify-center text-text-primary transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
+            onClick={() => { const i = Math.min(modalIndex + 1, modalCards.length - 1); setModalIndex(i); setModalCard(modalCards[i]); setShowOwnershipPicker(false); }}
+            disabled={modalIndex >= modalCards.length - 1}
+          >
             <ChevronRight size={20} />
           </button>
         )}
@@ -437,10 +451,20 @@ function CardModal({ modalCard, modalIndex, modalCards, setModalCard, setModalIn
   );
 }
 
-function DonCardModal({ card, index, cards, onClose, onNav, c, tc, isDark }: {
-  card: any; index: number; cards: any[];
-  onClose: () => void; onNav: (i: number) => void;
-  c: any; tc: any; isDark: boolean;
+function DonCardModal({
+  card,
+  index,
+  cards,
+  onClose,
+  onNav,
+  isDark,
+}: {
+  card: any;
+  index: number;
+  cards: any[];
+  onClose: () => void;
+  onNav: (i: number) => void;
+  isDark: boolean;
 }) {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -453,21 +477,33 @@ function DonCardModal({ card, index, cards, onClose, onNav, c, tc, isDark }: {
   }, [index, cards]);
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.78)" : "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={onClose}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16, width: "100%", maxWidth: 860 }} onClick={(e) => e.stopPropagation()}>
-        <button onClick={() => onNav(index - 1)} disabled={index <= 0} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: index > 0 ? "pointer" : "not-allowed", opacity: index <= 0 ? 0.3 : 1, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
+    <div
+      className="fixed inset-0 z-60 flex items-center justify-center p-6 bg-black/60 dark:bg-black/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="flex items-center gap-4 w-full max-w-215"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={() => onNav(index - 1)}
+          disabled={index <= 0}
+          className="shrink-0 w-11 h-11 rounded-full bg-bg-primary shadow-xl border border-border-theme flex items-center justify-center text-text-primary transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
+        >
           <ChevronLeft size={20} />
         </button>
-        <div style={{ flex: 1, background: c.bg, borderRadius: 20, border: `1px solid ${c.border}`, overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.5)" : "0 32px 64px rgba(0,0,0,0.15)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: `1px solid ${c.border}`, flexShrink: 0 }}>
+        <div className="flex-1 bg-bg-primary rounded-[20px] shadow-2xl border border-border-theme overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="flex justify-between items-center py-4.5 px-6 border-b border-border-theme shrink-0">
             <div>
-              <div style={{ fontWeight: 900, fontSize: 20, color: c.text, letterSpacing: "-0.02em" }}>{card.card_name}</div>
-              <div style={{ fontSize: 12, color: c.textTer, marginTop: 2 }}>DON!! Card</div>
+              <div className="font-black text-xl text-text-primary tracking-tight">{card.card_name}</div>
+              <div className="text-xs text-text-tertiary mt-0.5">DON!! Card</div>
             </div>
-            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}><X size={20} color={c.textTer} /></button>
+            <button onClick={onClose} className="bg-transparent border-0 cursor-pointer p-1 text-text-tertiary hover:text-text-primary">
+              <X size={20} />
+            </button>
           </div>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-            <div style={{ width: "100%", maxWidth: 320 }}>
+          <div className="flex-1 flex items-center justify-center p-6">
+            <div className="w-full max-w-80">
               <ModalCardImage
                 key={card.card_image || card.card_name || index}
                 src={card.card_image || "/card-placeholder.png"}
@@ -477,9 +513,15 @@ function DonCardModal({ card, index, cards, onClose, onNav, c, tc, isDark }: {
               />
             </div>
           </div>
-          <div style={{ borderTop: `1px solid ${c.border}`, padding: "10px 24px", textAlign: "center", fontSize: 12, color: c.textTer, flexShrink: 0 }}>{index + 1} / {cards.length}</div>
+          <div className="border-t border-border-theme py-2.5 px-6 text-center text-xs text-text-tertiary shrink-0">
+            {index + 1} / {cards.length}
+          </div>
         </div>
-        <button onClick={() => onNav(index + 1)} disabled={index >= cards.length - 1} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: c.bg, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, cursor: index < cards.length - 1 ? "pointer" : "not-allowed", opacity: index >= cards.length - 1 ? 0.3 : 1, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)" }}>
+        <button
+          onClick={() => onNav(index + 1)}
+          disabled={index >= cards.length - 1}
+          className="shrink-0 w-11 h-11 rounded-full bg-bg-primary shadow-xl border border-border-theme flex items-center justify-center text-text-primary transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
+        >
           <ChevronRight size={20} />
         </button>
       </div>
@@ -1009,8 +1051,8 @@ export default function BinderPage() {
   };
 
   if (loadingUser) return (
-    <div className="binder-wrapper" style={{ minHeight: "100vh", background: tc.bg.primary, marginLeft: 70, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ fontSize: 13, color: tc.text.tertiary }}>Loading...</div>
+    <div className="binder-wrapper min-h-screen bg-bg-primary ml-17.5 flex items-center justify-center">
+      <div className="text-[13px] text-text-tertiary">Loading...</div>
     </div>
   );
 
@@ -1047,139 +1089,44 @@ export default function BinderPage() {
     const hasActiveFilters = activeSetFilterCount > 0;
     const allSetOwned = allSetCards.length > 0 && allSetCards.every(c => ownedSet.has(getCardKey(c)));
 
-    const chipStyle = (active: boolean) => ({
-      paddingLeft: 12, paddingRight: 12, paddingTop: 4, paddingBottom: 4,
-      borderRadius: 9999 as const, fontSize: 12, fontWeight: 600, cursor: "pointer" as const,
-      whiteSpace: "nowrap" as const, transition: "all 0.2s",
-      border: `1px solid ${active ? (isDark ? "#f3f4f6" : "#111827") : c.border}`,
-      background: active ? (isDark ? "#f3f4f6" : "#111827") : "transparent",
-      color: active ? (isDark ? "#111827" : "#ffffff") : c.textTer,
-    });
+    const chipClass = (active: boolean) =>
+      `px-3 py-1 rounded-full text-xs font-semibold cursor-pointer whitespace-nowrap transition-all border ${
+        active
+          ? "border-text-primary bg-text-primary text-bg-primary"
+          : "border-border-theme bg-transparent text-text-tertiary hover:text-text-primary"
+      }`;
 
     return (
-      <div suppressHydrationWarning className="binder-wrapper" style={{ minHeight: "100vh", background: c.bg, color: c.text, marginLeft: 70 }}>
+      <div suppressHydrationWarning className="binder-wrapper min-h-screen bg-bg-primary text-text-primary ml-17.5">
         <style>{FLIP_STYLE}</style>
         <Sidebar />
 
-        <div className="binder-set-header" style={{ padding: "20px 32px", borderBottom: `0.5px solid ${c.border}`, display: "flex", alignItems: "center", gap: 16, position: "sticky", top: 0, background: c.bg, zIndex: 20 }}>
+        <div className="binder-set-header px-8 py-5 border-b border-border-theme flex items-center gap-4 sticky top-0 bg-bg-primary z-20">
           <button
             onClick={handleCloseSet}
             title="Back"
-            style={{ background: "none", border: "none", cursor: "pointer", color: c.textSec, display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, flexShrink: 0 }}
+            className="bg-transparent border-0 cursor-pointer text-text-secondary hover:text-text-primary flex items-center justify-center w-11 h-11 shrink-0"
           >
             <ChevronLeft size={20} />
           </button>
-          <div style={{ width: "0.5px", height: 16, background: c.border, flexShrink: 0 }} />
-          <div style={{ minWidth: 0, overflow: "hidden" }}>
-            <span style={{ fontSize: 15, fontWeight: 600, color: c.text }}>{openSetId} · {SET_NAMES[openSetId] ?? openSetId}</span>
-            <span style={{ fontSize: 13, color: c.textTer, marginLeft: 10 }}>{totalSetOwned} / {allSetCards.length} · {totalSetPct}%</span>
+          <div className="w-px h-4 bg-border-theme shrink-0" />
+          <div className="min-w-0 overflow-hidden">
+            <span className="text-[15px] font-semibold text-text-primary">{openSetId} · {SET_NAMES[openSetId] ?? openSetId}</span>
+            <span className="text-[13px] text-text-tertiary ml-2.5">{totalSetOwned} / {allSetCards.length} · {totalSetPct}%</span>
           </div>
-          <div className="binder-set-progress-wrap" style={{ flex: 1, maxWidth: 200, marginLeft: "auto" }}>
-            <ProgressBar value={totalSetOwned} total={allSetCards.length} color={tc.text.primary} />
+          <div className="binder-set-progress-wrap flex-1 max-w-50 ml-auto">
+            <ProgressBar value={totalSetOwned} total={allSetCards.length} color="var(--text-primary)" />
           </div>
         </div>
 
-        {/* Desktop FilterBar in Set view — only rendered on desktop screens */}
+        {/* Desktop FilterBar in Set view */}
         {!isMobile && (
           <div className="desktop-filterbar">
-            <div style={{ background: c.bg, borderBottom: `1px solid ${c.border}`, paddingLeft: 24, paddingRight: 24, paddingTop: 12, paddingBottom: 12, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16 }}>
+            <div className="bg-bg-primary border-b border-border-theme px-6 py-3 flex flex-wrap items-center gap-4">
               {/* Color */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Color</span>
-                <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                  {[...FILTER_COLORS, "Multicolor"].map((color) => {
-                    const isMulti = color === "Multicolor";
-                    const active = isMulti ? multicolorActive : selectedColors.includes(color);
-                    const dimmed = !active && selectedColors.length > 0;
-                    return (
-                      <button key={color} title={color}
-                        onClick={() => {
-                          if (isMulti) { setSetViewFilters(f => ({ ...f, colors: multicolorActive ? [] : ["Multicolor"] })); return; }
-                          if (multicolorActive) { setSetViewFilters(f => ({ ...f, colors: [color] })); return; }
-                          const cur = selectedColors;
-                          if (cur.includes(color)) setSetViewFilters(f => ({ ...f, colors: cur.filter(c => c !== color) }));
-                          else { const next = cur.length >= 2 ? [cur[1], color] : [...cur, color]; setSetViewFilters(f => ({ ...f, colors: next })); }
-                        }}
-                        style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, border: "none", cursor: "pointer", background: isMulti ? "conic-gradient(from 180deg, #ef4444, #facc15, #22c55e, #3b82f6, #a855f7, #000000, #ef4444)" : COLOR_DOT[color], outline: active ? `3px solid ${isMulti ? "#808080" : COLOR_DOT[color]}` : "none", outlineOffset: 2, opacity: dimmed ? 0.35 : 1, transform: active ? "scale(1.15)" : "scale(1)", transition: "all 0.2s" }}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-              {/* Type */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Type</span>
-                <div style={{ display: "flex", gap: 6 }}>
-                  {FILTER_TYPES.map(t => <button key={t} onClick={() => setSetViewFilters(f => ({ ...f, type: f.type === t ? undefined : t }))} style={chipStyle(setViewFilters.type === t)}>{t}</button>)}
-                </div>
-              </div>
-              {/* Rarity */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Rarity</span>
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  {FILTER_RARITIES.map(r => <button key={r} onClick={() => setSetViewFilters(f => ({ ...f, rarity: f.rarity === r ? undefined : r }))} style={chipStyle(setViewFilters.rarity === r)}>{r}</button>)}
-                  <button onClick={() => setSetViewFilters(f => ({ ...f, spOnly: !f.spOnly }))} style={chipStyle(!!setViewFilters.spOnly)}>SP</button>
-                </div>
-              </div>
-              {/* Show */}
-              {!allSetOwned && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.05em" }}>Show</span>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => setSetViewFilters(f => ({ ...f, owned: f.owned === "owned" ? undefined : "owned" }))} style={{ ...chipStyle(setViewFilters.owned === "owned"), border: `1px solid ${setViewFilters.owned === "owned" ? "#16a34a" : c.border}`, background: setViewFilters.owned === "owned" ? "#16a34a" : "transparent", color: setViewFilters.owned === "owned" ? "#fff" : c.textTer }}>Owned</button>
-                    <button onClick={() => setSetViewFilters(f => ({ ...f, owned: f.owned === "not_owned" ? undefined : "not_owned" }))} style={{ ...chipStyle(setViewFilters.owned === "not_owned"), border: `1px solid ${setViewFilters.owned === "not_owned" ? (isDark ? "#f3f4f6" : "#111827") : c.border}`, background: setViewFilters.owned === "not_owned" ? (isDark ? "#f3f4f6" : "#111827") : "transparent", color: setViewFilters.owned === "not_owned" ? (isDark ? "#111827" : "#fff") : c.textTer }}>Not owned</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Mobile Floating Slide-Down Filter Drawer in Set view */}
-        {isMobile && binderFiltersOpen && (
-          <>
-            <div
-              className="filter-drawer-backdrop"
-              onClick={() => setBinderFiltersOpen(false)}
-              style={{
-                position: "fixed",
-                top: 112,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: "rgba(0, 0, 0, 0.45)",
-                backdropFilter: "blur(2px)",
-                WebkitBackdropFilter: "blur(2px)",
-                zIndex: 35,
-              }}
-            />
-            <div
-              className="filter-drawer-panel"
-              style={{
-                position: "fixed",
-                top: 112,
-                left: 0,
-                right: 0,
-                maxHeight: "calc(100vh - 120px)",
-                overflowY: "auto",
-                background: c.bg,
-                borderBottom: `1px solid ${c.border}`,
-                boxShadow: isDark
-                  ? "0 20px 40px rgba(0, 0, 0, 0.6)"
-                  : "0 20px 40px rgba(0, 0, 0, 0.15)",
-                zIndex: 36,
-                padding: "20px 24px 28px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 20,
-              }}
-            >
-              {/* Color Filter */}
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
-                  Color
-                </div>
-                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Color</span>
+                <div className="flex gap-1.5 items-center flex-wrap">
                   {[...FILTER_COLORS, "Multicolor"].map((color) => {
                     const isMulti = color === "Multicolor";
                     const active = isMulti ? multicolorActive : selectedColors.includes(color);
@@ -1195,21 +1142,123 @@ export default function BinderPage() {
                           if (cur.includes(color)) setSetViewFilters(f => ({ ...f, colors: cur.filter(c => c !== color) }));
                           else { const next = cur.length >= 2 ? [cur[1], color] : [...cur, color]; setSetViewFilters(f => ({ ...f, colors: next })); }
                         }}
+                        className={`w-6 h-6 rounded-full shrink-0 border-0 cursor-pointer transition-all ${
+                          dimmed ? "opacity-35" : "opacity-100"
+                        } ${active ? "scale-115 ring-2 ring-offset-2 ring-neutral-400" : ""}`}
                         style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: "50%",
-                          flexShrink: 0,
-                          border: "none",
-                          cursor: "pointer",
                           background: isMulti
                             ? "conic-gradient(from 180deg, #ef4444, #facc15, #22c55e, #3b82f6, #a855f7, #000000, #ef4444)"
                             : COLOR_DOT[color],
-                          outline: active ? `3px solid ${isMulti ? "#808080" : COLOR_DOT[color]}` : "none",
-                          outlineOffset: 3,
-                          opacity: dimmed ? 0.35 : 1,
-                          transform: active ? "scale(1.15)" : "scale(1)",
-                          transition: "all 0.2s",
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Type */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Type</span>
+                <div className="flex gap-1.5">
+                  {FILTER_TYPES.map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setSetViewFilters(f => ({ ...f, type: f.type === t ? undefined : t }))}
+                      className={chipClass(setViewFilters.type === t)}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Rarity */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Rarity</span>
+                <div className="flex gap-1.5 items-center">
+                  {FILTER_RARITIES.map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setSetViewFilters(f => ({ ...f, rarity: f.rarity === r ? undefined : r }))}
+                      className={chipClass(setViewFilters.rarity === r)}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setSetViewFilters(f => ({ ...f, spOnly: !f.spOnly }))}
+                    className={chipClass(!!setViewFilters.spOnly)}
+                  >
+                    SP
+                  </button>
+                </div>
+              </div>
+              {/* Show */}
+              {!allSetOwned && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Show</span>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => setSetViewFilters(f => ({ ...f, owned: f.owned === "owned" ? undefined : "owned" }))}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold cursor-pointer whitespace-nowrap transition-all border ${
+                        setViewFilters.owned === "owned"
+                          ? "border-green-600 bg-green-600 text-white"
+                          : "border-border-theme bg-transparent text-text-tertiary hover:text-text-primary"
+                      }`}
+                    >
+                      Owned
+                    </button>
+                    <button
+                      onClick={() => setSetViewFilters(f => ({ ...f, owned: f.owned === "not_owned" ? undefined : "not_owned" }))}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold cursor-pointer whitespace-nowrap transition-all border ${
+                        setViewFilters.owned === "not_owned"
+                          ? "border-text-primary bg-text-primary text-bg-primary"
+                          : "border-border-theme bg-transparent text-text-tertiary hover:text-text-primary"
+                      }`}
+                    >
+                      Not owned
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Floating Slide-Down Filter Drawer in Set view */}
+        {isMobile && binderFiltersOpen && (
+          <>
+            <div
+              className="filter-drawer-backdrop fixed top-28 inset-x-0 bottom-0 bg-black/45 backdrop-blur-[2px] z-35"
+              onClick={() => setBinderFiltersOpen(false)}
+            />
+            <div className="filter-drawer-panel fixed top-28 inset-x-0 max-h-[calc(100vh-120px)] overflow-y-auto bg-bg-primary border-b border-border-theme shadow-2xl z-36 p-5 md:p-7 flex flex-col gap-5">
+              {/* Color Filter */}
+              <div>
+                <div className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-2.5">
+                  Color
+                </div>
+                <div className="flex gap-2.5 items-center flex-wrap">
+                  {[...FILTER_COLORS, "Multicolor"].map((color) => {
+                    const isMulti = color === "Multicolor";
+                    const active = isMulti ? multicolorActive : selectedColors.includes(color);
+                    const dimmed = !active && selectedColors.length > 0;
+                    return (
+                      <button
+                        key={color}
+                        title={color}
+                        onClick={() => {
+                          if (isMulti) { setSetViewFilters(f => ({ ...f, colors: multicolorActive ? [] : ["Multicolor"] })); return; }
+                          if (multicolorActive) { setSetViewFilters(f => ({ ...f, colors: [color] })); return; }
+                          const cur = selectedColors;
+                          if (cur.includes(color)) setSetViewFilters(f => ({ ...f, colors: cur.filter(c => c !== color) }));
+                          else { const next = cur.length >= 2 ? [cur[1], color] : [...cur, color]; setSetViewFilters(f => ({ ...f, colors: next })); }
+                        }}
+                        className={`w-8 h-8 rounded-full shrink-0 border-0 cursor-pointer transition-all ${
+                          dimmed ? "opacity-35" : "opacity-100"
+                        } ${active ? "scale-115 ring-2 ring-offset-2 ring-neutral-400" : ""}`}
+                        style={{
+                          background: isMulti
+                            ? "conic-gradient(from 180deg, #ef4444, #facc15, #22c55e, #3b82f6, #a855f7, #000000, #ef4444)"
+                            : COLOR_DOT[color],
                         }}
                       />
                     );
@@ -1219,15 +1268,15 @@ export default function BinderPage() {
 
               {/* Type Filter */}
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+                <div className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-2.5">
                   Card Type
                 </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div className="flex gap-2 flex-wrap">
                   {FILTER_TYPES.map(t => (
                     <button
                       key={t}
                       onClick={() => setSetViewFilters(f => ({ ...f, type: f.type === t ? undefined : t }))}
-                      style={chipStyle(setViewFilters.type === t)}
+                      className={chipClass(setViewFilters.type === t)}
                     >
                       {t}
                     </button>
@@ -1237,22 +1286,22 @@ export default function BinderPage() {
 
               {/* Rarity Filter */}
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+                <div className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-2.5">
                   Rarity
                 </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <div className="flex gap-2 flex-wrap items-center">
                   {FILTER_RARITIES.map(r => (
                     <button
                       key={r}
                       onClick={() => setSetViewFilters(f => ({ ...f, rarity: f.rarity === r ? undefined : r }))}
-                      style={chipStyle(setViewFilters.rarity === r)}
+                      className={chipClass(setViewFilters.rarity === r)}
                     >
                       {r}
                     </button>
                   ))}
                   <button
                     onClick={() => setSetViewFilters(f => ({ ...f, spOnly: !f.spOnly }))}
-                    style={chipStyle(!!setViewFilters.spOnly)}
+                    className={chipClass(!!setViewFilters.spOnly)}
                   >
                     SP
                   </button>
@@ -1262,29 +1311,27 @@ export default function BinderPage() {
               {/* Ownership Filter */}
               {!allSetOwned && (
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: c.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+                  <div className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-2.5">
                     Ownership Status
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <div className="flex gap-2 flex-wrap">
                     <button
                       onClick={() => setSetViewFilters(f => ({ ...f, owned: f.owned === "owned" ? undefined : "owned" }))}
-                      style={{
-                        ...chipStyle(setViewFilters.owned === "owned"),
-                        border: `1px solid ${setViewFilters.owned === "owned" ? "#16a34a" : c.border}`,
-                        background: setViewFilters.owned === "owned" ? "#16a34a" : "transparent",
-                        color: setViewFilters.owned === "owned" ? "#fff" : c.textTer,
-                      }}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold cursor-pointer whitespace-nowrap transition-all border ${
+                        setViewFilters.owned === "owned"
+                          ? "border-green-600 bg-green-600 text-white"
+                          : "border-border-theme bg-transparent text-text-tertiary hover:text-text-primary"
+                      }`}
                     >
                       Owned
                     </button>
                     <button
                       onClick={() => setSetViewFilters(f => ({ ...f, owned: f.owned === "not_owned" ? undefined : "not_owned" }))}
-                      style={{
-                        ...chipStyle(setViewFilters.owned === "not_owned"),
-                        border: `1px solid ${setViewFilters.owned === "not_owned" ? (isDark ? "#f3f4f6" : "#111827") : c.border}`,
-                        background: setViewFilters.owned === "not_owned" ? (isDark ? "#f3f4f6" : "#111827") : "transparent",
-                        color: setViewFilters.owned === "not_owned" ? (isDark ? "#111827" : "#fff") : c.textTer,
-                      }}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold cursor-pointer whitespace-nowrap transition-all border ${
+                        setViewFilters.owned === "not_owned"
+                          ? "border-text-primary bg-text-primary text-bg-primary"
+                          : "border-border-theme bg-transparent text-text-tertiary hover:text-text-primary"
+                      }`}
                     >
                       Not owned
                     </button>
@@ -1294,24 +1341,10 @@ export default function BinderPage() {
 
               {/* Reset All Filters Button */}
               {hasActiveFilters && (
-                <div style={{ paddingTop: 8, borderTop: `1px solid ${c.border}` }}>
+                <div className="pt-2 border-t border-border-theme">
                   <button
                     onClick={() => setSetViewFilters({})}
-                    style={{
-                      width: "100%",
-                      padding: "12px 0",
-                      borderRadius: 10,
-                      border: `1px solid ${c.border}`,
-                      background: c.bgSec,
-                      color: c.text,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 6,
-                    }}
+                    className="w-full py-3 rounded-lg border border-border-theme bg-bg-secondary text-text-primary text-xs font-semibold cursor-pointer flex items-center justify-center gap-1.5 hover:bg-bg-tertiary"
                   >
                     <X size={14} />
                     <span>Clear all filters ({activeSetFilterCount})</span>
@@ -1322,7 +1355,7 @@ export default function BinderPage() {
           </>
         )}
 
-        <div className="binder-card-grid" style={{ padding: "32px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 22 }}>
+        <div className="binder-card-grid p-8 grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5.5">
           {setCards.map((card, i) => {
             const cardKey = getCardKey(card);
             const owned = ownedSet.has(cardKey);
@@ -1330,10 +1363,14 @@ export default function BinderPage() {
             const shouldFlip = animatedFlipKey < flipKey && i < 18;
             const isLastFlip = i === Math.min(17, setCards.length - 1);
             return (
-              <div key={`${flipKey}-${cardKey}||${i}`} style={{ position: "relative", perspective: shouldFlip ? "1000px" : "none" }}>
+              <div
+                key={`${flipKey}-${cardKey}||${i}`}
+                className="relative"
+                style={{ perspective: shouldFlip ? "1000px" : "none" }}
+              >
                 <div
+                  className="relative"
                   style={{
-                    position: "relative",
                     transformStyle: shouldFlip ? "preserve-3d" : "flat",
                     animationName: shouldFlip ? "cardFlipIn" : "none",
                     animationDuration: "0.5s",
@@ -1345,54 +1382,37 @@ export default function BinderPage() {
                   onAnimationEnd={isLastFlip ? () => setAnimatedFlipKey(flipKey) : undefined}
                 >
                   {shouldFlip && (
-                    <div style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)", position: "absolute", inset: 0, borderRadius: 16, overflow: "hidden" }}>
-                      <img src={card.type?.toUpperCase() === "LEADER" ? "/card-back-leader.png" : "/card-back.png"} alt="" style={{ width: "100%", height: "100%" }} />
+                    <div className="absolute inset-0 rounded-2xl overflow-hidden backface-hidden [-webkit-backface-visibility:hidden] transform-[rotateY(180deg)]">
+                      <img src={card.type?.toUpperCase() === "LEADER" ? "/card-back-leader.png" : "/card-back.png"} alt="" className="w-full h-full object-cover" />
                     </div>
                   )}
-                  <div style={{ backfaceVisibility: shouldFlip ? "hidden" : "visible", WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible" }}>
+                  <div
+                    style={{
+                      backfaceVisibility: shouldFlip ? "hidden" : "visible",
+                      WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible",
+                    }}
+                  >
                     <div
                       onClick={() => { setModalCards(setCards); setModalIndex(i); setModalCard(setCards[i]); }}
-                      style={{
-                        borderRadius: 14,
-                        overflow: "hidden",
-                        border: `1px solid ${owned ? (isDark ? "#4ade80" : "#16a34a") : c.border}`,
-                        background: c.bgSec,
-                        boxShadow: owned ? "0 10px 30px rgba(34,197,94,0.15)" : "0 10px 25px rgba(0,0,0,0.25)",
-                        transition: "all 0.25s ease",
-                        opacity: owned ? 1 : 0.55,
-                        cursor: "pointer",
-                      }}
+                      className={`rounded-[14px] overflow-hidden bg-bg-secondary transition-all duration-250 cursor-pointer ${
+                        owned
+                          ? "border border-green-500 shadow-[0_10px_30px_rgba(34,197,94,0.15)] opacity-100"
+                          : "border border-border-theme shadow-[0_10px_25px_rgba(0,0,0,0.25)] opacity-55"
+                      }`}
                     >
-                      <div style={{ aspectRatio: "5 / 7", overflow: "hidden", position: "relative" }}>
+                      <div className="aspect-5/7 overflow-hidden relative">
                         <Image
                           src={card.images?.small || "/card-placeholder.png"}
                           alt={card.name}
                           fill
                           sizes="(max-width: 540px) 45vw, (max-width: 1024px) 22vw, 175px"
-                          style={{ objectFit: "cover" }}
+                          className="object-cover"
                           onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }}
                         />
                       </div>
                     </div>
                     {wished && (i >= 18 || animatedFlipKey >= flipKey) && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: 8,
-                          left: 8,
-                          width: 22,
-                          height: 22,
-                          borderRadius: "50%",
-                          background: "#f59e0b",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#fff",
-                          boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-                          pointerEvents: "none",
-                          zIndex: 5,
-                        }}
-                      >
+                      <div className="absolute top-2 left-2 w-5.5 h-5.5 rounded-full bg-amber-500 flex items-center justify-center text-white shadow-md pointer-events-none z-5">
                         <Star size={12} fill="#fff" color="#fff" />
                       </div>
                     )}
@@ -1402,20 +1422,24 @@ export default function BinderPage() {
             );
           })}
           {setCards.length === 0 && (
-            <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "64px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div style={{ width: 56, height: 56, borderRadius: "50%", background: c.bgSec, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14, color: c.textTer }}>
+            <div className="col-span-full text-center py-16 flex flex-col items-center">
+              <div className="w-14 h-14 rounded-full bg-bg-secondary border border-border-theme flex items-center justify-center mb-3.5 text-text-tertiary">
                 <Search size={26} strokeWidth={1.75} />
               </div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: c.text, marginBottom: 4 }}>No cards match these filters</div>
-              <div style={{ fontSize: 13, color: c.textTer }}>Try adjusting or resetting your filter criteria.</div>
-              <button onClick={() => setSetViewFilters({})} style={{ marginTop: 14, fontSize: 13, color: tc.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 600, padding: "4px 8px" }}>Clear filters</button>
+              <div className="text-[15px] font-semibold text-text-primary mb-1">No cards match these filters</div>
+              <div className="text-[13px] text-text-tertiary">Try adjusting or resetting your filter criteria.</div>
+              <button onClick={() => setSetViewFilters({})} className="mt-3.5 text-[13px] text-accent-theme bg-transparent border-0 cursor-pointer font-semibold py-1 px-2 hover:opacity-75">Clear filters</button>
             </div>
           )}
         </div>
 
         {modalCard && <CardModal modalCard={modalCard} modalIndex={modalIndex} modalCards={modalCards} setModalCard={setModalCard} setModalIndex={setModalIndex} c={c} tc={tc} isDark={isDark} ownedSet={ownedSet} wishlistSet={wishlistSet} onToggleOwned={handleToggleOwned} onToggleWishlist={handleToggleWishlist} />}
         {showScrollTop && !modalCard && (
-          <button className="binder-scroll-top" aria-label="Scroll to top" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ position: "fixed", bottom: 32, left: "50%", transform: "translateX(-50%)", width: 48, height: 48, borderRadius: "50%", background: c.bgTer, color: c.text, border: `1px solid ${c.border}`, cursor: "pointer", boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.4)" : "0 4px 20px rgba(0,0,0,0.3)", zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+          <button
+            className="binder-scroll-top fixed bottom-8 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-bg-tertiary text-text-primary border border-border-theme cursor-pointer shadow-xl z-40 flex items-center justify-center transition-all hover:scale-105"
+            aria-label="Scroll to top"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          >
             <ArrowUp size={20} strokeWidth={2.5} />
           </button>
         )}
@@ -1436,33 +1460,47 @@ export default function BinderPage() {
     const binderCardList = [...sortByCardId(regularBinderCards), ...donBinderCards] as Card[];
 
     return (
-      <div suppressHydrationWarning className="binder-wrapper" style={{ minHeight: "100vh", background: c.bg, color: c.text, marginLeft: 70 }}>
+      <div suppressHydrationWarning className="binder-wrapper min-h-screen bg-bg-primary text-text-primary ml-17.5">
         <style>{FLIP_STYLE}</style>
         <Sidebar />
 
-        <div className="binder-custom-header" style={{ padding: "16px 28px", borderBottom: `0.5px solid ${c.border}`, display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, background: c.bg, zIndex: 20 }}>
+        <div className="binder-custom-header py-4 px-7 border-b border-border-theme flex items-center gap-3 sticky top-0 bg-bg-primary z-20">
           <button
             onClick={handleCloseBinder}
             title="Back"
-            style={{ background: "none", border: "none", cursor: "pointer", color: c.textSec, display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, flexShrink: 0 }}
+            className="bg-transparent border-0 cursor-pointer text-text-secondary hover:text-text-primary flex items-center justify-center w-11 h-11 shrink-0"
           >
             <ChevronLeft size={20} />
           </button>
-          <div style={{ width: "0.5px", height: 16, background: c.border, flexShrink: 0 }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, overflow: "hidden", flex: "1 1 auto" }}>
-            <span style={{ fontSize: isMobile ? 16 : 20, fontWeight: 700, letterSpacing: "-0.02em", color: c.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{binder?.name}</span>
-            <span style={{ fontSize: 13, color: c.textTer, whiteSpace: "nowrap", flexShrink: 0 }}>· {openBinderCards.length} {openBinderCards.length === 1 ? "card" : "cards"}</span>
+          <div className="w-px h-4 bg-border-theme shrink-0" />
+          <div className="flex items-center gap-2 min-w-0 overflow-hidden flex-initial">
+            <span className="text-base md:text-xl font-bold tracking-tight text-text-primary overflow-hidden text-ellipsis whitespace-nowrap">{binder?.name}</span>
+            <span className="text-[13px] text-text-tertiary whitespace-nowrap shrink-0">· {openBinderCards.length} {openBinderCards.length === 1 ? "card" : "cards"}</span>
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+          <div className="flex gap-2 items-center shrink-0 ml-auto">
             {selectionMode && selectedCardKeys.size > 0 && (
-              <button title={`Remove ${selectedCardKeys.size} cards`} onClick={() => setBulkDeleteConfirm(true)} style={{ width: 34, height: 34, borderRadius: 8, border: "none", cursor: "pointer", background: "#ef4444", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", transition: "opacity 0.2s" }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
+              <button
+                title={`Remove ${selectedCardKeys.size} cards`}
+                onClick={() => setBulkDeleteConfirm(true)}
+                className="w-8.5 h-8.5 rounded-lg border-0 cursor-pointer bg-red-500 text-white flex items-center justify-center hover:opacity-85 transition-opacity"
+              >
                 <Trash2 size={15} />
               </button>
             )}
-            <button title={selectionMode ? "Cancel selection" : "Select cards"} onClick={() => { setSelectionMode(p => !p); setSelectedCardKeys(new Set()); }} style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${selectionMode ? tc.accent : c.border}`, cursor: "pointer", background: selectionMode ? `${tc.accent}18` : "transparent", color: selectionMode ? tc.accent : c.textTer, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+            <button
+              title={selectionMode ? "Cancel selection" : "Select cards"}
+              onClick={() => { setSelectionMode(p => !p); setSelectedCardKeys(new Set()); }}
+              className={`w-8.5 h-8.5 rounded-lg border cursor-pointer flex items-center justify-center transition-all ${
+                selectionMode ? "border-accent-theme bg-accent-theme/15 text-accent-theme" : "border-border-theme bg-transparent text-text-tertiary hover:text-text-primary"
+              }`}
+            >
               <CheckSquare size={15} />
             </button>
-            <button title="Browse cards" onClick={() => router.push("/browse")} style={{ padding: isMobile ? "7px 12px" : "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", background: tc.accent, color: "#fff", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", transition: "opacity 0.2s" }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
+            <button
+              title="Browse cards"
+              onClick={() => router.push("/browse")}
+              className="py-1.75 md:py-2 px-3 md:px-4 rounded-lg border-0 cursor-pointer bg-accent-theme text-white text-[13px] font-semibold flex items-center gap-1.5 whitespace-nowrap hover:opacity-85 transition-opacity"
+            >
               <span>{isMobile ? "Browse" : "Browse cards"}</span>
               <ArrowRight size={14} />
             </button>
@@ -1470,9 +1508,9 @@ export default function BinderPage() {
         </div>
 
         {loadingBinderCards ? (
-          <div style={{ padding: "32px" }} />
+          <div className="p-8" />
         ) : (
-          <div className="binder-card-grid" style={{ padding: "32px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 22 }}>
+          <div className="binder-card-grid p-8 grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5.5">
             {binderCardList.map((card, i) => {
               const isDonCard = card.set?.name === "DON!!";
               const cardKey = isDonCard ? getDonCardKey(card as any) : getCardKey(card);
@@ -1481,18 +1519,30 @@ export default function BinderPage() {
               const isLastFlip = i === Math.min(17, binderCardList.length - 1);
               const backSrc = isDonCard ? "/don-back.png" : card.type?.toUpperCase() === "LEADER" ? "/card-back-leader.png" : "/card-back.png";
               return (
-                <div key={`${flipKey}-${cardKey}||${i}`} style={{ position: "relative", perspective: shouldFlip ? "1000px" : "none" }}>
+                <div key={`${flipKey}-${cardKey}||${i}`} className="relative" style={{ perspective: shouldFlip ? "1000px" : "none" }}>
                   <div
-                    style={{ position: "relative", transformStyle: shouldFlip ? "preserve-3d" : "flat", animationName: shouldFlip ? "cardFlipIn" : "none", animationDuration: "0.5s", animationTimingFunction: "ease", animationFillMode: "forwards", animationDelay: shouldFlip ? `${i * 0.03}s` : "0s", willChange: shouldFlip ? "transform" : "auto" }}
+                    className="relative"
+                    style={{
+                      transformStyle: shouldFlip ? "preserve-3d" : "flat",
+                      animationName: shouldFlip ? "cardFlipIn" : "none",
+                      animationDuration: "0.5s",
+                      animationTimingFunction: "ease",
+                      animationFillMode: "forwards",
+                      animationDelay: shouldFlip ? `${i * 0.03}s` : "0s",
+                      willChange: shouldFlip ? "transform" : "auto",
+                    }}
                     onAnimationEnd={isLastFlip ? () => setAnimatedFlipKey(flipKey) : undefined}
                   >
                     {shouldFlip && (
-                      <div style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)", position: "absolute", inset: 0, borderRadius: 16, overflow: "hidden" }}>
-                        <img src={backSrc} alt="" style={{ width: "100%", height: "100%"}} />
+                      <div className="absolute inset-0 rounded-2xl overflow-hidden backface-hidden [-webkit-backface-visibility:hidden] transform-[rotateY(180deg)]">
+                        <img src={backSrc} alt="" className="w-full h-full object-cover" />
                       </div>
                     )}
                     <div
-                      style={{ backfaceVisibility: shouldFlip ? "hidden" : "visible", WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible" }}
+                      style={{
+                        backfaceVisibility: shouldFlip ? "hidden" : "visible",
+                        WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible",
+                      }}
                       onClick={() => {
                         if (selectionMode) { setSelectedCardKeys(prev => { const next = new Set(prev); next.has(cardKey) ? next.delete(cardKey) : next.add(cardKey); return next; }); }
                         else if (isDonCard) {
@@ -1505,17 +1555,37 @@ export default function BinderPage() {
                         }
                       }}
                     >
-                      <div style={{ borderRadius: 14, overflow: "hidden", border: `1px solid ${isSelected ? tc.accent : c.border}`, background: c.bgSec, boxShadow: isSelected ? `0 0 0 2px ${tc.accent}` : "0 10px 25px rgba(0,0,0,0.25)", transition: "all 0.2s ease", opacity: selectionMode && !isSelected ? 0.5 : 1, cursor: selectionMode ? "pointer" : "default" }}>
-                        <div style={{ aspectRatio: "5 / 7", overflow: "hidden" }}>
-                          <img src={card.images?.small || "/card-placeholder.png"} alt={card.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }} />
+                      <div
+                        className={`rounded-[14px] overflow-hidden bg-bg-secondary transition-all duration-200 ${
+                          selectionMode ? "cursor-pointer" : "cursor-default"
+                        } ${
+                          isSelected
+                            ? "border border-accent-theme ring-2 ring-accent-theme shadow-[0_10px_25px_rgba(0,0,0,0.25)]"
+                            : "border border-border-theme shadow-[0_10px_25px_rgba(0,0,0,0.25)]"
+                        } ${
+                          selectionMode && !isSelected ? "opacity-50" : "opacity-100"
+                        }`}
+                      >
+                        <div className="aspect-5/7 overflow-hidden">
+                          <img
+                            src={card.images?.small || "/card-placeholder.png"}
+                            alt={card.name}
+                            className="w-full h-full object-cover block"
+                            onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }}
+                          />
                         </div>
                       </div>
                       {selectionMode ? (
-                        <div style={{ position: "absolute", top: 8, right: 8, width: 22, height: 22, borderRadius: "50%", background: isSelected ? tc.accent : "rgba(0,0,0,0.4)", border: `2px solid ${isSelected ? tc.accent : "rgba(255,255,255,0.5)"}`, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
+                        <div className={`absolute top-2 right-2 w-5.5 h-5.5 rounded-md border-2 flex items-center justify-center transition-all ${
+                          isSelected ? "bg-accent-theme border-accent-theme" : "bg-black/40 border-white/50"
+                        }`}>
                           {isSelected && <Check size={12} color="#fff" strokeWidth={3} />}
                         </div>
                       ) : (
-                        <button onClick={(e) => { e.stopPropagation(); handleToggleBinderCard(cardKey); }} style={{ position: "absolute", top: 8, right: 8, width: 22, height: 22, borderRadius: "50%", background: "rgba(0,0,0,0.5)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleToggleBinderCard(cardKey); }}
+                          className="absolute top-2 right-2 w-5.5 h-5.5 rounded-full bg-black/50 border-0 cursor-pointer flex items-center justify-center hover:bg-black/75 transition-colors"
+                        >
                           <X size={11} color="#fff" />
                         </button>
                       )}
@@ -1525,39 +1595,55 @@ export default function BinderPage() {
               );
             })}
             {openBinderCards.length === 0 && (
-              <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "64px 0", color: c.textTer, display: "flex", flexDirection: "column", alignItems: "center" }}>
-                <img src="/nocard.png" alt="No cards" style={{ width: 150, height: 150, objectFit: "contain", marginBottom: 12, opacity: isDark ? 0.85 : 1 }} />
-                <div style={{ fontSize: 14, color: c.textSec }}>No cards in this binder yet.</div>
-                <div style={{ fontSize: 13, color: c.textTer, marginTop: 4 }}>Add cards from the browse page.</div>
+              <div className="col-span-full text-center py-16 text-text-tertiary flex flex-col items-center">
+                <img src="/nocard.png" alt="No cards" className="w-37.5 h-37.5 object-contain mb-3 opacity-85" />
+                <div className="text-sm text-text-secondary">No cards in this binder yet.</div>
+                <div className="text-[13px] text-text-tertiary mt-1">Add cards from the browse page.</div>
               </div>
             )}
           </div>
         )}
 
         {bulkDeleteConfirm && (
-          <div style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setBulkDeleteConfirm(false)}>
-            <div style={{ background: c.bg, borderRadius: 16, padding: 32, width: "100%", maxWidth: 320, boxShadow: isDark ? "0 25px 50px rgba(0,0,0,0.5)" : "0 25px 50px rgba(0,0,0,0.2)", border: `1px solid ${c.border}` }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ fontWeight: 900, fontSize: 20, color: c.text, marginBottom: 8 }}>Remove {selectedCardKeys.size} cards?</div>
-                <div style={{ fontSize: 14, color: c.textSec }}>These {selectedCardKeys.size} card{selectedCardKeys.size > 1 ? "s" : ""} will be removed from this binder. This can't be undone.</div>
+          <div
+            className="fixed inset-0 bg-black/60 dark:bg-black/75 z-100 flex items-center justify-center p-4 backdrop-blur-xs"
+            onClick={() => setBulkDeleteConfirm(false)}
+          >
+            <div
+              className="bg-bg-primary rounded-2xl p-8 w-full max-w-80 shadow-2xl border border-border-theme"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-6">
+                <div className="font-black text-xl text-text-primary mb-2">Remove {selectedCardKeys.size} cards?</div>
+                <div className="text-sm text-text-secondary leading-relaxed">These {selectedCardKeys.size} card{selectedCardKeys.size > 1 ? "s" : ""} will be removed from this binder. This can&apos;t be undone.</div>
               </div>
-              <div style={{ display: "flex", gap: 12 }}>
-                <button onClick={() => setBulkDeleteConfirm(false)} style={{ flex: 1, padding: "12px 0", fontSize: 14, fontWeight: 600, border: `1.5px solid ${c.border}`, background: "transparent", color: c.text, borderRadius: 8, cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.background = c.bgSec; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>Cancel</button>
-                <button onClick={async () => {
-                  const count = selectedCardKeys.size;
-                  for (const cardKey of selectedCardKeys) {
-                    if (user) {
-                      await removeCardFromBinder(openBinderId!, cardKey);
-                    } else {
-                      removeGuestBinderCard(openBinderId!, cardKey);
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setBulkDeleteConfirm(false)}
+                  className="flex-1 py-3 text-sm font-semibold border border-border-theme bg-transparent text-text-primary rounded-lg cursor-pointer hover:bg-bg-secondary transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    const count = selectedCardKeys.size;
+                    for (const cardKey of selectedCardKeys) {
+                      if (user) {
+                        await removeCardFromBinder(openBinderId!, cardKey);
+                      } else {
+                        removeGuestBinderCard(openBinderId!, cardKey);
+                      }
                     }
-                  }
-                  setOpenBinderCards(prev => prev.filter(id => !selectedCardKeys.has(id)));
-                  setBinderCounts(prev => ({ ...prev, [openBinderId!]: Math.max((prev[openBinderId!] ?? selectedCardKeys.size) - selectedCardKeys.size, 0) }));
-                  setBinderPreviewCards(prev => ({ ...prev, [openBinderId!]: (prev[openBinderId!] ?? []).filter(c => !selectedCardKeys.has(getCardKey(c))) }));
-                  setSelectedCardKeys(new Set()); setSelectionMode(false); setBulkDeleteConfirm(false);
-                  showToast(`${count} card${count > 1 ? "s" : ""} removed from binder`);
-                }} style={{ flex: 1, padding: "12px 0", fontSize: 14, fontWeight: 600, border: "none", background: "#ef4444", color: "white", borderRadius: 8, cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>Remove</button>
+                    setOpenBinderCards(prev => prev.filter(id => !selectedCardKeys.has(id)));
+                    setBinderCounts(prev => ({ ...prev, [openBinderId!]: Math.max((prev[openBinderId!] ?? selectedCardKeys.size) - selectedCardKeys.size, 0) }));
+                    setBinderPreviewCards(prev => ({ ...prev, [openBinderId!]: (prev[openBinderId!] ?? []).filter(c => !selectedCardKeys.has(getCardKey(c))) }));
+                    setSelectedCardKeys(new Set()); setSelectionMode(false); setBulkDeleteConfirm(false);
+                    showToast(`${count} card${count > 1 ? "s" : ""} removed from binder`);
+                  }}
+                  className="flex-1 py-3 text-sm font-semibold border-0 bg-red-500 text-white rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                >
+                  Remove
+                </button>
               </div>
             </div>
           </div>
@@ -1571,13 +1657,15 @@ export default function BinderPage() {
             cards={donModalCards}
             onClose={() => setDonModalIndex(-1)}
             onNav={(i) => setDonModalIndex(i)}
-            c={c}
-            tc={tc}
             isDark={isDark}
           />
         )}
         {showScrollTop && !modalCard && donModalIndex < 0 && (
-          <button className="binder-scroll-top" aria-label="Scroll to top" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ position: "fixed", bottom: 32, left: "50%", transform: "translateX(-50%)", width: 48, height: 48, borderRadius: "50%", background: c.bgTer, color: c.text, border: `1px solid ${c.border}`, cursor: "pointer", boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.4)" : "0 4px 20px rgba(0,0,0,0.3)", zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+          <button
+            className="binder-scroll-top fixed bottom-8 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-bg-tertiary text-text-primary border border-border-theme cursor-pointer shadow-xl z-40 flex items-center justify-center transition-all hover:scale-105"
+            aria-label="Scroll to top"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          >
             <ArrowUp size={20} strokeWidth={2.5} />
           </button>
         )}
@@ -1592,38 +1680,29 @@ export default function BinderPage() {
   const totalCards = allCards.length;
 
   return (
-    <div suppressHydrationWarning className="binder-wrapper" style={{ minHeight: "100vh", background: c.bg, color: c.text, marginLeft: 70 }}>
+    <div suppressHydrationWarning className="binder-wrapper min-h-screen bg-bg-primary text-text-primary ml-17.5">
       <Sidebar />
 
-      <div style={{ padding: "32px 32px 0" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 24 }}>
+      <div className="px-8 pt-8 pb-0">
+        <div className="flex items-end justify-between mb-6">
           <div>
-            <h1 style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-0.06em", lineHeight: 0.95, color: c.text, marginBottom: 4 }}>Binder</h1>
-            <p style={{ fontSize: 13, color: c.textSec }}>{totalOwned} of {totalCards} cards owned</p>
+            <h1 className="text-[34px] font-extrabold tracking-[-0.06em] leading-[0.95] text-text-primary mb-1">Binder</h1>
+            <p className="text-[13px] text-text-secondary">{totalOwned} of {totalCards} cards owned</p>
           </div>
-          <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 22, fontWeight: 400, letterSpacing: "-0.02em", color: c.text }}>{totalCards === 0 ? 0 : Math.floor((totalOwned / totalCards) * 100)}%</div>
-            <div style={{ fontSize: 11, color: c.textTer }}>collection complete</div>
+          <div className="text-right">
+            <div className="text-[22px] font-normal tracking-tight text-text-primary">{totalCards === 0 ? 0 : Math.floor((totalOwned / totalCards) * 100)}%</div>
+            <div className="text-[11px] text-text-tertiary">collection complete</div>
           </div>
         </div>
-        <ProgressBar value={totalOwned} total={totalCards} color={tc.text.primary} />
-        <div className="binder-tabs" style={{ display: "flex", gap: 0, marginTop: 28, borderBottom: `0.5px solid ${c.border}` }}>
+        <ProgressBar value={totalOwned} total={totalCards} color="var(--text-primary)" />
+        <div className="binder-tabs flex gap-0 mt-7 border-b border-border-theme">
           {(["sets", "custom", "wishlist"] as const).map((t) => (
             <button
               key={t}
               onClick={() => handleTabChange(t)}
-              style={{
-                padding: "12px 0",
-                marginRight: 24,
-                fontSize: 13,
-                fontWeight: 500,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: tab === t ? c.text : c.textTer,
-                borderBottom: tab === t ? `1.5px solid ${c.text}` : "1.5px solid transparent",
-                transition: "all 0.15s",
-              }}
+              className={`py-3 mr-6 text-[13px] font-medium bg-transparent border-0 cursor-pointer border-b-[1.5px] transition-all ${
+                tab === t ? "text-text-primary border-b-text-primary" : "text-text-tertiary border-b-transparent hover:text-text-primary"
+              }`}
             >
               {t === "sets" ? "Set binders" : t === "custom" ? "My binders" : "My wishlist"}
             </button>
@@ -1631,47 +1710,26 @@ export default function BinderPage() {
         </div>
       </div>
 
-      <div className="binder-content-wrap" style={{ padding: "24px 32px" }}>
+      <div className="binder-content-wrap px-8 py-6">
         {!user && !loadingUser && (
-          <div style={{
-            background: isDark ? "rgba(239, 68, 68, 0.12)" : "rgba(239, 68, 68, 0.07)",
-            border: `1px solid ${isDark ? "rgba(239, 68, 68, 0.3)" : "rgba(239, 68, 68, 0.2)"}`,
-            borderRadius: 14,
-            padding: "14px 20px",
-            marginBottom: 24,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 16,
-            flexWrap: "wrap",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: c.text }}>
-              <Sparkles size={16} style={{ color: tc.accent, flexShrink: 0 }} />
+          <div className="bg-red-500/10 border border-red-500/25 rounded-[14px] p-3.5 md:px-5 mb-6 flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-2.5 text-[13px] text-text-primary">
+              <Sparkles size={16} className="text-accent-theme shrink-0" />
               <span>
                 <strong>Guest Collection:</strong> Your binders and progress are stored locally on this device. Sign in to save permanently across all your devices!
               </span>
             </div>
             <button
               onClick={() => setShowAuthModal(true)}
-              style={{
-                background: tc.accent,
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "8px 18px",
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                boxShadow: "0 2px 8px rgba(239, 68, 68, 0.25)",
-              }}
+              className="bg-accent-theme text-white border-0 rounded-lg py-2 px-4.5 text-[13px] font-bold cursor-pointer whitespace-nowrap shadow-sm hover:opacity-90 transition-opacity"
             >
               Sign In to Sync &rarr;
             </button>
           </div>
         )}
+
         {tab === "sets" && (
-          <div className="binder-sets-grid" style={{ display: "grid", gap: 24 }}>
+          <div className="binder-sets-grid grid gap-6">
             {availableSets.map((setId) => {
               const setCards = cardsBySet[setId] ?? [];
               const ownedCount = setCards.filter(card => ownedSet.has(getCardKey(card))).length;
@@ -1679,50 +1737,59 @@ export default function BinderPage() {
               return (
                 <div
                   key={setId}
-                  className="binder-deck-card"
+                  className="binder-deck-card relative overflow-hidden rounded-3xl p-6.5 cursor-pointer bg-bg-secondary border border-border-theme shadow-md hover:-translate-y-1.5 hover:scale-[1.015] transition-all duration-250"
                   onClick={() => handleOpenSet(setId)}
-                  style={{
-                    position: "relative",
-                    overflow: "hidden",
-                    borderRadius: 24,
-                    padding: "26px 26px",
-                    cursor: "pointer",
-                    background: isDark ? `radial-gradient(circle at top left, rgba(99,102,241,0.18), transparent 35%), linear-gradient(180deg, ${tc.bg.secondary}, ${tc.bg.primary})` : tc.bg.secondary,
-                    border: `1px solid ${tc.border}`,
-                    boxShadow: isDark ? "0 10px 40px rgba(0,0,0,0.45)" : "0 10px 30px rgba(0,0,0,0.06)",
-                    transition: "all 0.25s ease",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px) scale(1.015)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0px) scale(1)"; }}
                 >
-                  <div style={{ position: "absolute", width: 220, height: 220, borderRadius: "50%", background: `${tc.accent}22`, filter: "blur(80px)", top: -120, right: -80, pointerEvents: "none" }} />
-                  <div className="binder-set-code" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.18em", color: c.textTer, marginBottom: 8, fontWeight: 600 }}>{setId}</div>
-                  <div className="binder-set-title" style={{ fontSize: 26, lineHeight: 1.15, fontWeight: 800, letterSpacing: "-0.03em", color: c.text, marginBottom: 20, maxWidth: "100%" }}>{SET_NAMES[setId] ?? setId}</div>
-                  <div className="binder-mini-cards-wrap" style={{ position: "relative", height: 140, marginBottom: 24 }}>
+                  <div className="absolute w-55 h-55 rounded-full bg-accent-theme/15 blur-[80px] -top-30 -right-20 pointer-events-none" />
+                  <div className="binder-set-code text-[11px] uppercase tracking-[0.18em] text-text-tertiary mb-2 font-semibold">{setId}</div>
+                  <div className="binder-set-title text-[26px] leading-[1.15] font-extrabold tracking-tight text-text-primary mb-5 max-w-full">{SET_NAMES[setId] ?? setId}</div>
+                  <div className="binder-mini-cards-wrap relative h-35 mb-6">
                     {setCards.slice(0, 4).map((card, i) => (
-                      <div key={i} className="binder-mini-card" style={{ position: "absolute", left: `${i * 48}px`, top: i % 2 === 0 ? 0 : 8, width: 86, height: 122, borderRadius: 12, overflow: "hidden", background: tc.bg.tertiary, border: `1px solid ${tc.border}`, transform: `rotate(${i % 2 === 0 ? "-5deg" : "5deg"})`, boxShadow: "0 16px 36px rgba(0,0,0,0.4)" }}>
-                        {card.images?.small && <img src={card.images.small} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
+                      <div
+                        key={i}
+                        className="binder-mini-card absolute w-21.5 h-30.5 rounded-xl overflow-hidden bg-bg-tertiary border border-border-theme shadow-2xl"
+                        style={{
+                          left: `${i * 48}px`,
+                          top: i % 2 === 0 ? 0 : 8,
+                          transform: `rotate(${i % 2 === 0 ? "-5deg" : "5deg"})`,
+                        }}
+                      >
+                        {card.images?.small && (
+                          <img
+                            src={card.images.small}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.currentTarget.style.display = "none"; }}
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
                   <div>
-                    <div className="binder-stats-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10 }}>
+                    <div className="binder-stats-row flex justify-between items-end mb-2.5">
                       <div>
-                        <div className="binder-pct-text" style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.04em", color: pct === 100 ? "#22c55e" : c.text, display: "flex", alignItems: "center", gap: 6 }}>
+                        <div className={`binder-pct-text text-2xl font-bold tracking-tight flex items-center gap-1.5 ${pct === 100 ? "text-green-500" : "text-text-primary"}`}>
                           <span>{pct}%</span>
-                          {pct === 100 && <Crown size={16} color="#eab308" fill="#eab308" />}
+                          {pct === 100 && <Crown size={16} className="text-yellow-500 fill-yellow-500" />}
                         </div>
-                        <div className="binder-stat-subtext" style={{ fontSize: 12, color: pct === 100 ? "#22c55e" : c.textTer, marginTop: 2, fontWeight: pct === 100 ? 600 : 400 }}>
+                        <div className={`binder-stat-subtext text-xs mt-0.5 ${pct === 100 ? "text-green-500 font-semibold" : "text-text-tertiary font-normal"}`}>
                           {pct === 100 ? "Master Set Complete!" : "collection complete"}
                         </div>
                       </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div className="binder-count-text" style={{ fontSize: 14, fontWeight: 600, color: c.text }}>{ownedCount} / {setCards.length}</div>
-                        <div className="binder-stat-subtext" style={{ fontSize: 12, color: c.textTer, marginTop: 2 }}>cards collected</div>
+                      <div className="text-right">
+                        <div className="binder-count-text text-sm font-semibold text-text-primary">{ownedCount} / {setCards.length}</div>
+                        <div className="binder-stat-subtext text-xs text-text-tertiary mt-0.5">cards collected</div>
                       </div>
                     </div>
-                    <div className="binder-progress-bar" style={{ position: "relative", height: 6, borderRadius: 999, overflow: "hidden", background: isDark ? "rgba(255,255,255,0.06)" : tc.bg.tertiary }}>
-                      <div style={{ width: `${pct}%`, height: "100%", borderRadius: 999, background: pct === 100 ? "linear-gradient(90deg,#22c55e,#4ade80)" : `linear-gradient(90deg,${tc.accent},${tc.accent}aa)`, boxShadow: pct === 100 ? "0 0 20px rgba(34,197,94,0.5)" : `0 0 24px ${tc.accent}66`, transition: "all 0.4s ease", position: "relative", overflow: "hidden" }}>
+                    <div className="binder-progress-bar relative h-1.5 rounded-full overflow-hidden bg-bg-tertiary">
+                      <div
+                        className="h-full rounded-full relative overflow-hidden transition-all duration-400"
+                        style={{
+                          width: `${pct}%`,
+                          background: pct === 100 ? "linear-gradient(90deg,#22c55e,#4ade80)" : `linear-gradient(90deg,var(--accent-theme),var(--accent-theme))`,
+                          boxShadow: pct === 100 ? "0 0 20px rgba(34,197,94,0.5)" : "0 0 24px rgba(239,68,68,0.4)",
+                        }}
+                      >
                         {pct === 100 && <div className="binder-completion-shimmer" />}
                       </div>
                     </div>
@@ -1735,67 +1802,38 @@ export default function BinderPage() {
 
         {tab === "custom" && (
           <div>
-              {!isMobile && binders.length > 0 && (
-                <div style={{ marginBottom: 24 }}>
-                  <button 
-                    onClick={openCreateBinder} 
-                    style={{ 
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "10px 18px", 
-                      borderRadius: 10, 
-                      border: "none", 
-                      cursor: "pointer", 
-                      background: tc.accent, 
-                      color: "#fff", 
-                      fontSize: 13, 
-                      fontWeight: 600, 
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.12)", 
-                      transition: "all 0.2s ease" 
-                    }} 
-                    onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; e.currentTarget.style.transform = "translateY(-1px)"; }} 
-                    onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
-                  >
-                    <Plus size={15} />
-                    <span>Create Binder</span>
-                  </button>
-                </div>
-              )}
+            {!isMobile && binders.length > 0 && (
+              <div className="mb-6">
+                <button
+                  onClick={openCreateBinder}
+                  className="inline-flex items-center gap-2 py-2.5 px-4.5 rounded-xl border-0 cursor-pointer bg-accent-theme text-white text-[13px] font-semibold shadow-sm hover:opacity-90 hover:-translate-y-0.5 transition-all"
+                >
+                  <Plus size={15} />
+                  <span>Create Binder</span>
+                </button>
+              </div>
+            )}
 
-            <div className="binder-sets-grid" style={{ display: "grid", gap: 24 }}>
+            <div className="binder-sets-grid grid gap-6">
               {binders.map((binder) => {
                 const binderCards = binderPreviewCards[binder.id] ?? [];
                 return (
                   <div
                     key={binder.id}
-                    className="binder-deck-card"
+                    className="binder-deck-card relative overflow-hidden rounded-3xl p-6.5 cursor-pointer bg-bg-secondary border border-border-theme shadow-lg hover:-translate-y-1.5 hover:scale-[1.015] transition-all duration-250"
                     onClick={() => {
                       if (renamingId !== binder.id) {
                         handleOpenBinder(binder.id);
                       }
                     }}
-                    style={{
-                      position: "relative",
-                      overflow: "hidden",
-                      borderRadius: 24,
-                      padding: "26px 26px",
-                      cursor: "pointer",
-                      background: isDark ? `radial-gradient(circle at top right, ${tc.accent}22, transparent 35%), linear-gradient(180deg, ${tc.bg.secondary}, ${tc.bg.primary})` : tc.bg.secondary,
-                      border: `1px solid ${tc.border}`,
-                      boxShadow: "0 10px 40px rgba(0,0,0,0.35)",
-                      transition: "all 0.25s ease",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px) scale(1.015)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0px) scale(1)"; }}
                   >
-                    <div style={{ position: "absolute", width: 240, height: 240, borderRadius: "50%", background: `${tc.accent}22`, filter: "blur(90px)", top: -120, right: -80, pointerEvents: "none" }} />
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, minHeight: 34, gap: 10 }}>
-                      <div className="binder-set-title" style={{ fontSize: 24, lineHeight: 1.2, fontWeight: 800, letterSpacing: "-0.03em", color: c.text, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: "1 1 auto" }}>
+                    <div className="absolute w-60 h-60 rounded-full bg-accent-theme/15 blur-[90px] -top-30 -right-20 pointer-events-none" />
+                    <div className="flex justify-between items-center mb-5 min-h-8.5 gap-2.5">
+                      <div className="binder-set-title text-2xl leading-tight font-extrabold tracking-tight text-text-primary min-w-0 overflow-hidden text-ellipsis whitespace-nowrap flex-initial">
                         {binder.name}
                       </div>
                       {/* Kebab Action Menu */}
-                      <div style={{ position: "relative", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                      <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1804,31 +1842,11 @@ export default function BinderPage() {
                           aria-label={`Options for ${binder.name}`}
                           aria-haspopup="true"
                           aria-expanded={activeMenuBinderId === binder.id}
-                          style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 8,
-                            border: `1px solid ${activeMenuBinderId === binder.id ? tc.accent : "transparent"}`,
-                            background: activeMenuBinderId === binder.id
-                              ? isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"
-                              : isDark ? "rgba(255,255,255,0.04)" : tc.bg.tertiary,
-                            color: activeMenuBinderId === binder.id ? c.text : c.textTer,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            transition: "all 0.15s ease",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = c.text;
-                            e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
-                          }}
-                          onMouseLeave={(e) => {
-                            if (activeMenuBinderId !== binder.id) {
-                              e.currentTarget.style.color = c.textTer;
-                              e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.04)" : tc.bg.tertiary;
-                            }
-                          }}
+                          className={`w-8.5 h-8.5 rounded-lg border cursor-pointer flex items-center justify-center transition-all ${
+                            activeMenuBinderId === binder.id
+                              ? "border-accent-theme bg-bg-tertiary text-text-primary"
+                              : "border-transparent bg-bg-tertiary text-text-tertiary hover:text-text-primary"
+                          }`}
                         >
                           <MoreVertical size={16} />
                         </button>
@@ -1836,23 +1854,7 @@ export default function BinderPage() {
                         {/* Dropdown Menu */}
                         {activeMenuBinderId === binder.id && (
                           <div
-                            style={{
-                              position: "absolute",
-                              top: 40,
-                              right: 0,
-                              minWidth: 150,
-                              background: c.bg,
-                              border: `1px solid ${c.border}`,
-                              borderRadius: 12,
-                              boxShadow: isDark
-                                ? "0 16px 36px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.3)"
-                                : "0 16px 36px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06)",
-                              padding: "6px",
-                              zIndex: 60,
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: 2,
-                            }}
+                            className="absolute top-10 right-0 min-w-37.5 bg-bg-primary border border-border-theme rounded-xl shadow-2xl p-1.5 z-60 flex flex-col gap-0.5"
                           >
                             <button
                               onClick={(e) => {
@@ -1861,30 +1863,9 @@ export default function BinderPage() {
                                 setRenamingId(binder.id);
                                 setRenameValue(binder.name);
                               }}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                padding: "8px 10px",
-                                width: "100%",
-                                borderRadius: 8,
-                                border: "none",
-                                background: "transparent",
-                                color: c.text,
-                                fontSize: 13,
-                                fontWeight: 500,
-                                cursor: "pointer",
-                                textAlign: "left",
-                                transition: "background 0.15s",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = "transparent";
-                              }}
+                              className="flex items-center gap-2.5 p-2 w-full rounded-lg border-0 bg-transparent text-text-primary text-[13px] font-medium cursor-pointer text-left hover:bg-bg-secondary transition-colors"
                             >
-                              <Pencil size={14} style={{ color: c.textTer }} />
+                              <Pencil size={14} className="text-text-tertiary" />
                               <span>Rename</span>
                             </button>
 
@@ -1894,51 +1875,38 @@ export default function BinderPage() {
                                 setActiveMenuBinderId(null);
                                 setDeleteConfirmId(binder.id);
                               }}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                padding: "8px 10px",
-                                width: "100%",
-                                borderRadius: 8,
-                                border: "none",
-                                background: "transparent",
-                                color: "#ef4444",
-                                fontSize: 13,
-                                fontWeight: 500,
-                                cursor: "pointer",
-                                textAlign: "left",
-                                transition: "background 0.15s",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = "rgba(239, 68, 68, 0.12)";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = "transparent";
-                              }}
+                              className="flex items-center gap-2.5 p-2 w-full rounded-lg border-0 bg-transparent text-red-500 text-[13px] font-medium cursor-pointer text-left hover:bg-red-500/10 transition-colors"
                             >
-                              <Trash2 size={14} style={{ color: "#ef4444" }} />
+                              <Trash2 size={14} className="text-red-500" />
                               <span>Delete binder</span>
                             </button>
                           </div>
                         )}
                       </div>
                     </div>
-                    <div className="binder-mini-cards-wrap" style={{ position: "relative", height: 140, marginBottom: 24 }}>
+                    <div className="binder-mini-cards-wrap relative h-35 mb-6">
                       {binderCards.length > 0 ? binderCards.map((card, i) => (
-                        <div key={i} className="binder-mini-card" style={{ position: "absolute", left: `${i * 48}px`, top: i % 2 === 0 ? 0 : 8, width: 86, height: 122, borderRadius: 12, overflow: "hidden", background: tc.bg.tertiary, border: `1px solid ${tc.border}`, transform: `rotate(${i % 2 === 0 ? "-5deg" : "5deg"})`, boxShadow: "0 16px 36px rgba(0,0,0,0.4)" }}>
-                          {card.images?.small && <img src={card.images.small} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                        <div
+                          key={i}
+                          className="binder-mini-card absolute w-21.5 h-30.5 rounded-xl overflow-hidden bg-bg-tertiary border border-border-theme shadow-2xl"
+                          style={{
+                            left: `${i * 48}px`,
+                            top: i % 2 === 0 ? 0 : 8,
+                            transform: `rotate(${i % 2 === 0 ? "-5deg" : "5deg"})`,
+                          }}
+                        >
+                          {card.images?.small && <img src={card.images.small} alt="" className="w-full h-full object-cover" />}
                         </div>
                       )) : (
-                        <div style={{ height: "100%", borderRadius: 16, border: `1px dashed ${tc.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: c.textTer, fontSize: 14 }}>No cards yet</div>
+                        <div className="h-full rounded-2xl border border-dashed border-border-theme flex items-center justify-center text-text-tertiary text-sm">No cards yet</div>
                       )}
                     </div>
-                    <div className="binder-stats-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                    <div className="binder-stats-row flex justify-between items-end">
                       <div>
-                        <div className="binder-pct-text" style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.04em", color: c.text }}>{binderCounts[binder.id] ?? 0}</div>
-                        <div className="binder-stat-subtext" style={{ fontSize: 12, color: c.textTer, marginTop: 2 }}>cards collected</div>
+                        <div className="binder-pct-text text-2xl font-bold tracking-tight text-text-primary">{binderCounts[binder.id] ?? 0}</div>
+                        <div className="binder-stat-subtext text-xs text-text-tertiary mt-0.5">cards collected</div>
                       </div>
-                      <div className="binder-stat-subtext" style={{ fontSize: 12, color: c.textTer, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <div className="binder-stat-subtext text-xs text-text-tertiary inline-flex items-center gap-1">
                         <span>Open Binder</span>
                         <ArrowRight size={13} />
                       </div>
@@ -1949,31 +1917,15 @@ export default function BinderPage() {
             </div>
 
             {binders.length === 0 && !creatingBinder && (
-              <div style={{ textAlign: "center", padding: "50px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                <img src="/no-binder.png" alt="No custom binders" style={{ width: 180, height: 180, objectFit: "contain", opacity: isDark ? 0.92 : 1, marginBottom: 12 }} />
-                <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em", color: c.text, marginBottom: 6 }}>No custom collections yet</div>
-                <div style={{ fontSize: 14, color: c.textTer, maxWidth: 360, lineHeight: 1.5, marginBottom: 20 }}>
+              <div className="text-center py-12 flex flex-col items-center">
+                <img src="/no-binder.png" alt="No custom binders" className="w-45 h-45 object-contain opacity-90 mb-3" />
+                <div className="text-[22px] font-extrabold tracking-tight text-text-primary mb-1.5">No custom collections yet</div>
+                <div className="text-sm text-text-tertiary max-w-90 leading-relaxed mb-5">
                   Build themed binders for your favorite crews, manga chase grails, or tournament deck cores.
                 </div>
                 <button
                   onClick={openCreateBinder}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "10px 20px",
-                    borderRadius: 12,
-                    border: "none",
-                    background: tc.accent,
-                    color: "#fff",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    boxShadow: "0 4px 14px rgba(0,0,0,0.18)",
-                    transition: "all 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
+                  className="inline-flex items-center gap-2 py-2.5 px-5 rounded-xl border-0 bg-accent-theme text-white text-sm font-semibold cursor-pointer shadow-md hover:opacity-90 hover:-translate-y-0.5 transition-all"
                 >
                   <Plus size={16} />
                   <span>Create your first binder</span>
@@ -2006,7 +1958,7 @@ export default function BinderPage() {
             })
           )).sort();
 
-          // Color filter handler supporting 2 colors selection (matching Browse page)
+          // Color filter handler supporting 2 colors selection
           const handleWishlistColorClick = (color: string) => {
             const multicolorActive = wishlistColors.includes("Multicolor");
             if (color === "Multicolor") {
@@ -2058,83 +2010,41 @@ export default function BinderPage() {
           const hasWishlistFilters = !!wishlistSearch.trim() || wishlistColors.length > 0 || !!wishlistSetId;
 
           return rawWishlistCards.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "50px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div style={{ width: 64, height: 64, borderRadius: "50%", background: isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.1)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, color: "#f59e0b" }}>
+            <div className="text-center py-12 flex flex-col items-center">
+              <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mb-4 text-amber-500">
                 <Star size={32} fill="#f59e0b" />
               </div>
-              <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em", color: c.text, marginBottom: 6 }}>Your treasure hunt hasn't started yet</div>
-              <div style={{ fontSize: 14, color: c.textTer, maxWidth: 380, lineHeight: 1.5 }}>
+              <div className="text-[22px] font-extrabold tracking-tight text-text-primary mb-1.5">Your treasure hunt hasn&apos;t started yet</div>
+              <div className="text-sm text-text-tertiary max-w-95 leading-relaxed">
                 Star your favorite cards while exploring the database to curate your personal wishlist.
               </div>
             </div>
           ) : (
-            <div className="binder-wishlist-wrap" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div className="binder-wishlist-wrap flex flex-col gap-5">
               {/* Wishlist Header Toolbar & Metrics */}
-              <div
-                className="binder-wishlist-toolbar"
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  padding: "14px 18px",
-                  borderRadius: 14,
-                  background: c.bgSec,
-                  border: `1px solid ${c.border}`,
-                }}
-              >
+              <div className="binder-wishlist-toolbar flex flex-wrap items-center justify-between gap-3 p-3.5 md:px-4.5 rounded-2xl bg-bg-secondary border border-border-theme">
                 {/* Left: Summary Metrics */}
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <div
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: c.text,
-                      background: c.bgTer,
-                      padding: "5px 12px",
-                      borderRadius: 8,
-                      border: `1px solid ${c.border}`,
-                    }}
-                  >
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <div className="inline-flex items-center gap-1.5 text-[13px] font-bold text-text-primary bg-bg-tertiary py-1.25 px-3 rounded-lg border border-border-theme">
                     <Star size={13} fill="#f59e0b" color="#f59e0b" />
                     <span>{rawWishlistCards.length} {rawWishlistCards.length === 1 ? "card" : "cards"}</span>
                   </div>
                 </div>
 
                 {/* Right: Search & Quick Filters */}
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", flex: isMobile ? "1 1 100%" : "0 1 auto" }}>
+                <div className="flex items-center gap-2.5 flex-wrap w-full md:w-auto">
                   {/* Search Box */}
-                  <div style={{ position: "relative", minWidth: isMobile ? "100%" : 200, flex: isMobile ? "1 1 100%" : "0 1 auto" }}>
+                  <div className="relative min-w-full md:min-w-50 flex-initial">
                     <Search
                       size={14}
-                      style={{
-                        position: "absolute",
-                        left: 10,
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        color: c.textTer,
-                        pointerEvents: "none",
-                      }}
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none"
                     />
                     <input
                       ref={wishlistSearchInputRef}
                       value={wishlistSearch}
                       onChange={(e) => setWishlistSearch(e.target.value)}
                       placeholder="Search wishlist (/)"
-                      style={{
-                        width: "100%",
-                        padding: "7px 28px 7px 30px",
-                        borderRadius: 8,
-                        border: `1px solid ${c.border}`,
-                        background: c.bg,
-                        color: c.text,
-                        outline: "none",
-                        fontSize: 13,
-                      }}
+                      className="w-full py-1.75 pl-7.5 pr-7 rounded-lg border border-border-theme bg-bg-primary text-text-primary text-[13px] outline-none placeholder:text-text-tertiary focus:border-accent-theme"
                     />
                     {wishlistSearch && (
                       <button
@@ -2143,18 +2053,7 @@ export default function BinderPage() {
                           wishlistSearchInputRef.current?.focus();
                         }}
                         aria-label="Clear search"
-                        style={{
-                          position: "absolute",
-                          right: 6,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          color: c.textTer,
-                          padding: 2,
-                          display: "flex",
-                        }}
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-transparent border-0 cursor-pointer text-text-tertiary p-0.5 flex hover:text-text-primary"
                       >
                         <X size={13} />
                       </button>
@@ -2163,31 +2062,18 @@ export default function BinderPage() {
 
                   {/* Custom Set Selector Dropdown */}
                   {wishlistAvailableSets.length > 0 && (
-                    <div style={{ position: "relative" }}>
+                    <div className="relative">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setWishlistSetDropdownOpen((prev) => !prev);
                         }}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 6,
-                          height: 34,
-                          padding: "0 12px",
-                          borderRadius: 8,
-                          border: `1px solid ${wishlistSetId ? tc.accent : c.border}`,
-                          background: wishlistSetId
-                            ? (isDark ? "rgba(239,68,68,0.12)" : "rgba(239,68,68,0.06)")
-                            : c.bg,
-                          color: wishlistSetId ? tc.accent : c.text,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          transition: "all 0.15s ease",
-                          whiteSpace: "nowrap",
-                        }}
+                        className={`inline-flex items-center gap-1.5 h-8.5 px-3 rounded-lg border text-xs font-semibold cursor-pointer whitespace-nowrap transition-all ${
+                          wishlistSetId
+                            ? "border-accent-theme bg-accent-theme/10 text-accent-theme"
+                            : "border-border-theme bg-bg-primary text-text-primary hover:bg-bg-secondary"
+                        }`}
                       >
                         <span>
                           {wishlistSetId
@@ -2198,33 +2084,13 @@ export default function BinderPage() {
                         </span>
                         <ChevronDown
                           size={13}
-                          style={{
-                            transform: wishlistSetDropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
-                            transition: "transform 0.2s ease",
-                            opacity: 0.7,
-                          }}
+                          className={`opacity-70 transition-transform duration-200 ${wishlistSetDropdownOpen ? "rotate-180" : "rotate-0"}`}
                         />
                       </button>
 
                       {wishlistSetDropdownOpen && (
                         <div
-                          style={{
-                            position: "absolute",
-                            top: "calc(100% + 6px)",
-                            left: 0,
-                            zIndex: 70,
-                            minWidth: 200,
-                            maxWidth: "min(280px, calc(100vw - 32px))",
-                            maxHeight: 260,
-                            overflowY: "auto",
-                            background: c.bg,
-                            border: `1px solid ${c.border}`,
-                            borderRadius: 12,
-                            boxShadow: isDark
-                              ? "0 12px 32px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.4)"
-                              : "0 12px 32px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.06)",
-                            padding: 4,
-                          }}
+                          className="absolute top-[calc(100%+6px)] left-0 z-70 min-w-50 max-w-[min(280px,calc(100vw-32px))] max-h-65 overflow-y-auto bg-bg-primary border border-border-theme rounded-xl shadow-2xl p-1"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {/* Option: All Sets */}
@@ -2233,33 +2099,15 @@ export default function BinderPage() {
                               setWishlistSetId(null);
                               setWishlistSetDropdownOpen(false);
                             }}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              padding: "8px 10px",
-                              borderRadius: 8,
-                              fontSize: 12,
-                              fontWeight: 600,
-                              cursor: "pointer",
-                              background: !wishlistSetId
-                                ? (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)")
-                                : "transparent",
-                              color: !wishlistSetId ? tc.accent : c.text,
-                              transition: "background 0.15s",
-                            }}
-                            onMouseEnter={(e) => {
-                              if (wishlistSetId) e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)";
-                            }}
-                            onMouseLeave={(e) => {
-                              if (wishlistSetId) e.currentTarget.style.background = "transparent";
-                            }}
+                            className={`flex items-center justify-between p-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                              !wishlistSetId ? "bg-bg-tertiary text-accent-theme" : "text-text-primary hover:bg-bg-secondary"
+                            }`}
                           >
                             <span>All Sets</span>
                             {!wishlistSetId && <Check size={13} strokeWidth={2.5} />}
                           </div>
 
-                          <div style={{ height: 1, background: c.border, margin: "4px 0" }} />
+                          <div className="h-px bg-border-theme my-1" />
 
                           {/* Available sets */}
                           {wishlistAvailableSets.map((s) => {
@@ -2272,31 +2120,13 @@ export default function BinderPage() {
                                   setWishlistSetId(s);
                                   setWishlistSetDropdownOpen(false);
                                 }}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "space-between",
-                                  padding: "8px 10px",
-                                  borderRadius: 8,
-                                  fontSize: 12,
-                                  fontWeight: isSelected ? 700 : 500,
-                                  cursor: "pointer",
-                                  background: isSelected
-                                    ? (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)")
-                                    : "transparent",
-                                  color: isSelected ? tc.accent : c.text,
-                                  transition: "background 0.15s",
-                                }}
-                                onMouseEnter={(e) => {
-                                  if (!isSelected) e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)";
-                                }}
-                                onMouseLeave={(e) => {
-                                  if (!isSelected) e.currentTarget.style.background = "transparent";
-                                }}
+                                className={`flex items-center justify-between p-2 rounded-lg text-xs cursor-pointer transition-colors ${
+                                  isSelected ? "bg-bg-tertiary text-accent-theme font-bold" : "text-text-primary font-medium hover:bg-bg-secondary"
+                                }`}
                               >
-                                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                                  <span style={{ fontSize: 12, fontWeight: 650 }}>{s}</span>
-                                  {fullName && <span style={{ fontSize: 10, color: c.textTer }}>{fullName}</span>}
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-xs font-semibold">{s}</span>
+                                  {fullName && <span className="text-[10px] text-text-tertiary">{fullName}</span>}
                                 </div>
                                 {isSelected && <Check size={13} strokeWidth={2.5} />}
                               </div>
@@ -2308,7 +2138,7 @@ export default function BinderPage() {
                   )}
 
                   {/* Color Dot Filters */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div className="flex items-center gap-1.5">
                     {[...FILTER_COLORS, "Multicolor"].map(color => {
                       const isMulti = color === "Multicolor";
                       const active = wishlistColors.includes(color);
@@ -2317,20 +2147,13 @@ export default function BinderPage() {
                           key={color}
                           title={color}
                           onClick={() => handleWishlistColorClick(color)}
+                          className={`w-5.5 h-5.5 rounded-full shrink-0 border-0 cursor-pointer transition-all ${
+                            active || wishlistColors.length === 0 ? "opacity-100" : "opacity-35"
+                          } ${active ? "scale-115 ring-2 ring-offset-1 ring-neutral-400" : ""}`}
                           style={{
-                            width: 22,
-                            height: 22,
-                            borderRadius: "50%",
-                            border: "none",
-                            cursor: "pointer",
                             background: isMulti
                               ? "conic-gradient(from 180deg, #ef4444, #facc15, #22c55e, #3b82f6, #a855f7, #000000, #ef4444)"
                               : COLOR_DOT[color],
-                            outline: active ? `2px solid ${isMulti ? "#808080" : COLOR_DOT[color]}` : "none",
-                            outlineOffset: 2,
-                            transform: active ? "scale(1.15)" : "scale(1)",
-                            opacity: active || wishlistColors.length === 0 ? 1 : 0.35,
-                            transition: "all 0.15s ease",
                           }}
                         />
                       );
@@ -2345,18 +2168,7 @@ export default function BinderPage() {
                         setWishlistColors([]);
                         setWishlistSetId(null);
                       }}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: tc.accent,
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        padding: "4px 8px",
-                      }}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-accent-theme bg-transparent border-0 cursor-pointer py-1 px-2 hover:opacity-80"
                     >
                       <X size={12} />
                       <span>Reset</span>
@@ -2366,48 +2178,25 @@ export default function BinderPage() {
               </div>
 
               {/* Wishlist Card Grid */}
-              <div
-                className="binder-card-grid"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))",
-                  gap: 20,
-                }}
-              >
+              <div className="binder-card-grid grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-5">
                 {filteredWishlistCards.map((card, i) => {
                   const isDonCard = card.set?.name === "DON!!";
                   const cardKey = isDonCard ? getDonCardKey(card as any) : getCardKey(card);
                   return (
-                    <div key={`${cardKey}||${i}`} style={{ position: "relative" }}>
+                    <div key={`${cardKey}||${i}`} className="relative">
                       <div
                         onClick={() => {
                           setModalCards(filteredWishlistCards);
                           setModalIndex(i);
                           setModalCard(card);
                         }}
-                        style={{
-                          borderRadius: 14,
-                          overflow: "hidden",
-                          border: `1px solid #f59e0b`,
-                          background: c.bgSec,
-                          boxShadow: "0 10px 25px rgba(245,158,11,0.15)",
-                          cursor: "pointer",
-                          transition: "all 0.2s ease",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = "translateY(-4px)";
-                          e.currentTarget.style.boxShadow = "0 16px 32px rgba(245,158,11,0.25)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = "translateY(0)";
-                          e.currentTarget.style.boxShadow = "0 10px 25px rgba(245,158,11,0.15)";
-                        }}
+                        className="rounded-[14px] overflow-hidden border border-amber-500 bg-bg-secondary shadow-[0_10px_25px_rgba(245,158,11,0.15)] cursor-pointer hover:-translate-y-1 hover:shadow-[0_16px_32px_rgba(245,158,11,0.25)] transition-all duration-200"
                       >
-                        <div style={{ aspectRatio: "5 / 7", overflow: "hidden", position: "relative" }}>
+                        <div className="aspect-5/7 overflow-hidden relative">
                           <img
                             src={card.images?.small || "/card-placeholder.png"}
                             alt={card.name}
-                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                            className="w-full h-full object-cover block"
                             onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }}
                           />
                         </div>
@@ -2419,35 +2208,14 @@ export default function BinderPage() {
 
               {/* No cards matching filters */}
               {filteredWishlistCards.length === 0 && (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "48px 0",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 52,
-                      height: 52,
-                      borderRadius: "50%",
-                      background: c.bgSec,
-                      border: `1px solid ${c.border}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginBottom: 12,
-                      color: c.textTer,
-                    }}
-                  >
+                <div className="text-center py-12 flex flex-col items-center">
+                  <div className="w-13 h-13 rounded-full bg-bg-secondary border border-border-theme flex items-center justify-center mb-3 text-text-tertiary">
                     <Search size={24} strokeWidth={1.75} />
                   </div>
-                  <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.02em", color: c.text, marginBottom: 4 }}>
+                  <div className="text-[17px] font-extrabold tracking-tight text-text-primary mb-1">
                     No treasure found in these waters
                   </div>
-                  <div style={{ fontSize: 13, color: c.textTer }}>
+                  <div className="text-[13px] text-text-tertiary">
                     Try adjusting your search query or clearing color filters.
                   </div>
                   <button
@@ -2456,16 +2224,7 @@ export default function BinderPage() {
                       setWishlistColors([]);
                       setWishlistSetId(null);
                     }}
-                    style={{
-                      marginTop: 14,
-                      fontSize: 13,
-                      color: tc.accent,
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      padding: "4px 8px",
-                    }}
+                    className="mt-3.5 text-[13px] text-accent-theme bg-transparent border-0 cursor-pointer font-semibold py-1 px-2 hover:opacity-80"
                   >
                     Clear filters
                   </button>
@@ -2475,34 +2234,31 @@ export default function BinderPage() {
           );
         })()}
       </div>
+
       {modalCard && <CardModal modalCard={modalCard} modalIndex={modalIndex} modalCards={modalCards} setModalCard={setModalCard} setModalIndex={setModalIndex} c={c} tc={tc} isDark={isDark} ownedSet={ownedSet} wishlistSet={wishlistSet} onToggleOwned={handleToggleOwned} onToggleWishlist={handleToggleWishlist} />}
       
       {deleteConfirmId && (
         <div
-          style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          className="fixed inset-0 bg-black/60 dark:bg-black/75 z-100 flex items-center justify-center p-4 backdrop-blur-xs"
           onClick={() => { if (!deletingLoading) setDeleteConfirmId(null); }}
         >
-          <div style={{ background: c.bg, borderRadius: 16, padding: 32, width: "100%", maxWidth: 320, boxShadow: isDark ? "0 25px 50px rgba(0,0,0,0.5)" : "0 25px 50px rgba(0,0,0,0.2)", border: `1px solid ${c.border}` }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontWeight: 900, fontSize: 20, color: c.text, marginBottom: 8 }}>Delete binder?</div>
-              <div style={{ fontSize: 14, color: c.textSec }}>"{binders.find(b => b.id === deleteConfirmId)?.name}" will be permanently deleted.</div>
+          <div className="bg-bg-primary rounded-2xl p-8 w-full max-w-80 shadow-2xl border border-border-theme" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-6">
+              <div className="font-black text-xl text-text-primary mb-2">Delete binder?</div>
+              <div className="text-sm text-text-secondary leading-relaxed">&ldquo;{binders.find(b => b.id === deleteConfirmId)?.name}&rdquo; will be permanently deleted.</div>
             </div>
-            <div style={{ display: "flex", gap: 12 }}>
+            <div className="flex gap-3">
               <button
                 disabled={deletingLoading}
                 onClick={() => setDeleteConfirmId(null)}
-                style={{ flex: 1, padding: "12px 0", fontSize: 14, fontWeight: 600, border: `1.5px solid ${c.border}`, background: "transparent", color: c.text, borderRadius: 8, cursor: deletingLoading ? "not-allowed" : "pointer", opacity: deletingLoading ? 0.5 : 1 }}
-                onMouseEnter={(e) => { if (!deletingLoading) e.currentTarget.style.background = c.bgSec; }}
-                onMouseLeave={(e) => { if (!deletingLoading) e.currentTarget.style.background = "transparent"; }}
+                className="flex-1 py-3 text-sm font-semibold border border-border-theme bg-transparent text-text-primary rounded-lg cursor-pointer hover:bg-bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 disabled={deletingLoading}
                 onClick={() => handleDeleteBinder(deleteConfirmId)}
-                style={{ flex: 1, padding: "12px 0", fontSize: 14, fontWeight: 600, border: "none", background: "#ef4444", color: "white", borderRadius: 8, cursor: deletingLoading ? "not-allowed" : "pointer", opacity: deletingLoading ? 0.6 : 1, transition: "all 0.2s" }}
-                onMouseEnter={(e) => { if (!deletingLoading) e.currentTarget.style.opacity = "0.9"; }}
-                onMouseLeave={(e) => { if (!deletingLoading) e.currentTarget.style.opacity = "1"; }}
+                className="flex-1 py-3 text-sm font-semibold border-0 bg-red-500 text-white rounded-lg cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {deletingLoading ? "Deleting..." : "Delete"}
               </button>
@@ -2516,24 +2272,7 @@ export default function BinderPage() {
         <button
           onClick={openCreateBinder}
           aria-label="Create Binder"
-          style={{
-            position: "fixed",
-            bottom: 24,
-            right: 24,
-            width: 52,
-            height: 52,
-            borderRadius: 14,
-            background: tc.accent,
-            color: "#fff",
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 4px 14px rgba(0,0,0,0.22)",
-            cursor: "pointer",
-            zIndex: 90,
-            transition: "all 0.2s ease",
-          }}
+          className="fixed bottom-6 right-6 w-13 h-13 rounded-2xl bg-accent-theme text-white border-0 flex items-center justify-center shadow-lg cursor-pointer z-90 hover:opacity-90 transition-all"
         >
           <Plus size={22} strokeWidth={2.5} />
         </button>
@@ -2542,11 +2281,11 @@ export default function BinderPage() {
       {/* Create Binder Modal */}
       {creatingBinder && (
         <div
-          style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          className="fixed inset-0 bg-black/60 dark:bg-black/75 z-100 flex items-center justify-center p-4 backdrop-blur-xs"
           onClick={() => { if (!creatingBinderLoading) { setCreatingBinder(false); setNewBinderName(""); } }}
         >
-          <div style={{ background: c.bg, borderRadius: 24, padding: 24, width: "100%", maxWidth: 360, boxShadow: "0 25px 50px rgba(0,0,0,0.25)", border: `1px solid ${c.border}` }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ fontWeight: 800, fontSize: 20, color: c.text, marginBottom: 16 }}>Create Binder</div>
+          <div className="bg-bg-primary rounded-3xl p-6 w-full max-w-90 shadow-2xl border border-border-theme" onClick={(e) => e.stopPropagation()}>
+            <div className="font-extrabold text-xl text-text-primary mb-4">Create Binder</div>
             <input 
               autoFocus 
               disabled={creatingBinderLoading}
@@ -2557,31 +2296,20 @@ export default function BinderPage() {
                 if (e.key === "Escape" && !creatingBinderLoading) { setCreatingBinder(false); setNewBinderName(""); } 
               }} 
               placeholder={binderPlaceholder} 
-              style={{ width: "100%", background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)", border: `1px solid ${c.border}`, borderRadius: 12, padding: "14px 16px", outline: "none", fontSize: 16, color: c.text, fontFamily: "inherit", marginBottom: 20, opacity: creatingBinderLoading ? 0.6 : 1 }} 
+              className="w-full bg-black/5 dark:bg-white/5 border border-border-theme rounded-xl px-4 py-3.5 outline-none text-base text-text-primary font-inherit mb-5 focus:border-accent-theme disabled:opacity-60" 
             />
-            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+            <div className="flex gap-3 justify-end">
               <button
                 disabled={creatingBinderLoading}
                 onClick={() => { setCreatingBinder(false); setNewBinderName(""); }}
-                style={{ padding: "10px 16px", fontSize: 14, fontWeight: 600, border: "none", background: "transparent", color: c.textSec, cursor: creatingBinderLoading ? "not-allowed" : "pointer", borderRadius: 8, opacity: creatingBinderLoading ? 0.5 : 1 }}
+                className="py-2.5 px-4 text-sm font-semibold border-0 bg-transparent text-text-secondary cursor-pointer rounded-lg hover:text-text-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 disabled={!newBinderName.trim() || creatingBinderLoading}
                 onClick={handleCreateBinder}
-                style={{
-                  padding: "10px 20px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  border: "none",
-                  background: tc.accent,
-                  color: "white",
-                  borderRadius: 8,
-                  cursor: (!newBinderName.trim() || creatingBinderLoading) ? "not-allowed" : "pointer",
-                  opacity: (!newBinderName.trim() || creatingBinderLoading) ? 0.6 : 1,
-                  transition: "all 0.15s ease",
-                }}
+                className="py-2.5 px-5 text-sm font-semibold border-0 bg-accent-theme text-white rounded-lg cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {creatingBinderLoading ? "Creating..." : "Create"}
               </button>
@@ -2593,31 +2321,14 @@ export default function BinderPage() {
       {/* Rename Binder Modal */}
       {renamingId && (
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)",
-            zIndex: 100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 16,
-          }}
+          className="fixed inset-0 bg-black/60 dark:bg-black/75 z-100 flex items-center justify-center p-4 backdrop-blur-xs"
           onClick={() => { if (!renamingLoading) { setRenamingId(null); setRenameValue(""); } }}
         >
           <div
-            style={{
-              background: c.bg,
-              borderRadius: 24,
-              padding: 24,
-              width: "100%",
-              maxWidth: 360,
-              boxShadow: "0 25px 50px rgba(0,0,0,0.25)",
-              border: `1px solid ${c.border}`,
-            }}
+            className="bg-bg-primary rounded-3xl p-6 w-full max-w-90 shadow-2xl border border-border-theme"
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ fontWeight: 800, fontSize: 20, color: c.text, marginBottom: 16 }}>Rename Binder</div>
+            <div className="font-extrabold text-xl text-text-primary mb-4">Rename Binder</div>
             <input
               autoFocus
               disabled={renamingLoading}
@@ -2628,53 +2339,20 @@ export default function BinderPage() {
                 if (e.key === "Escape" && !renamingLoading) { setRenamingId(null); setRenameValue(""); }
               }}
               placeholder="Binder name..."
-              style={{
-                width: "100%",
-                background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
-                border: `1px solid ${c.border}`,
-                borderRadius: 12,
-                padding: "14px 16px",
-                outline: "none",
-                fontSize: 16,
-                color: c.text,
-                fontFamily: "inherit",
-                marginBottom: 20,
-                opacity: renamingLoading ? 0.6 : 1,
-              }}
+              className="w-full bg-black/5 dark:bg-white/5 border border-border-theme rounded-xl px-4 py-3.5 outline-none text-base text-text-primary font-inherit mb-5 focus:border-accent-theme disabled:opacity-60"
             />
-            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+            <div className="flex gap-3 justify-end">
               <button
                 disabled={renamingLoading}
                 onClick={() => { setRenamingId(null); setRenameValue(""); }}
-                style={{
-                  padding: "10px 16px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  border: "none",
-                  background: "transparent",
-                  color: c.textSec,
-                  cursor: renamingLoading ? "not-allowed" : "pointer",
-                  borderRadius: 8,
-                  opacity: renamingLoading ? 0.5 : 1,
-                }}
+                className="py-2.5 px-4 text-sm font-semibold border-0 bg-transparent text-text-secondary cursor-pointer rounded-lg hover:text-text-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 disabled={!renameValue.trim() || renamingLoading}
                 onClick={() => handleRenameBinder(renamingId)}
-                style={{
-                  padding: "10px 20px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  border: "none",
-                  background: tc.accent,
-                  color: "white",
-                  borderRadius: 8,
-                  cursor: (!renameValue.trim() || renamingLoading) ? "not-allowed" : "pointer",
-                  opacity: (!renameValue.trim() || renamingLoading) ? 0.6 : 1,
-                  transition: "all 0.15s ease",
-                }}
+                className="py-2.5 px-5 text-sm font-semibold border-0 bg-accent-theme text-white rounded-lg cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {renamingLoading ? "Saving..." : "Save"}
               </button>
@@ -2686,28 +2364,9 @@ export default function BinderPage() {
       {/* Scroll to Top on Main Binder Page */}
       {showScrollTop && !modalCard && (
         <button
-          className="binder-scroll-top"
+          className="binder-scroll-top fixed bottom-8 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-bg-tertiary text-text-primary border border-border-theme cursor-pointer shadow-xl z-40 flex items-center justify-center transition-all hover:scale-105"
           aria-label="Scroll to top"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          style={{
-            position: "fixed",
-            bottom: 32,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: 48,
-            height: 48,
-            borderRadius: "50%",
-            background: c.bgTer,
-            color: c.text,
-            border: `1px solid ${c.border}`,
-            cursor: "pointer",
-            boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.4)" : "0 4px 20px rgba(0,0,0,0.2)",
-            zIndex: 40,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "all 0.2s",
-          }}
         >
           <ArrowUp size={20} strokeWidth={2.5} />
         </button>

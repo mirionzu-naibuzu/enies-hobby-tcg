@@ -29,49 +29,23 @@ export default function AppearancePopover() {
   }, []);
 
   return (
-    <div style={{ position: "relative" }} ref={ref}>
-      
+    <div className="relative" ref={ref}>
       {/* Trigger Button */}
       <button
         onClick={() => setOpen(!open)}
-        style={{
-          padding: "10px 14px",
-          borderRadius: 10,
-          border: "1px solid #e5e7eb",
-          background: "white",
-          cursor: "pointer",
-        }}
+        className="px-3.5 py-2.5 rounded-[10px] border border-gray-200 bg-white cursor-pointer text-sm font-medium hover:bg-gray-50"
       >
         Appearance
       </button>
 
       {/* Popover */}
       {open && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: "110%",
-            left: 0,
-            width: 260,
-            background: "#fff",
-            borderRadius: 16,
-            padding: 16,
-            boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
-            border: "1px solid #e5e7eb",
-            zIndex: 50,
-          }}
-        >
-          <div style={{ fontWeight: 700, marginBottom: 12 }}>
+        <div className="absolute bottom-[110%] left-0 w-65 bg-white rounded-2xl p-4 shadow-[0_20px_40px_rgba(0,0,0,0.15)] border border-gray-200 z-50">
+          <div className="font-bold mb-3 text-sm text-gray-900">
             Appearance
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 12,
-            }}
-          >
+          <div className="grid grid-cols-2 gap-3">
             {themes.map((theme) => {
               const active = selected === theme.value;
 
@@ -79,89 +53,37 @@ export default function AppearancePopover() {
                 <div
                   key={theme.value}
                   onClick={() => setSelected(theme.value)}
-                  style={{
-                    borderRadius: 12,
-                    padding: 8,
-                    cursor: "pointer",
-                    border: active
-                      ? "2px solid #8b5cf6"
-                      : "1px solid #e5e7eb",
-                    background: "#f9fafb",
-                  }}
+                  className={`rounded-xl p-2 cursor-pointer bg-gray-50 transition-all ${
+                    active ? "border-2 border-purple-500" : "border border-gray-200"
+                  }`}
                 >
                   {/* Preview */}
                   <div
-                    style={{
-                      height: 60,
-                      borderRadius: 8,
-                      background:
-                        theme.value.includes("dark")
-                          ? "#1f2937"
-                          : "#f3f4f6",
-                      position: "relative",
-                      padding: 6,
-                    }}
+                    className={`h-15 rounded-lg relative p-1.5 ${
+                      theme.value.includes("dark") ? "bg-gray-800" : "bg-gray-100"
+                    }`}
                   >
+                    <div className="h-2 w-3/5 bg-gray-300 rounded mb-1.5" />
+                    <div className="h-4 w-4 bg-gray-400 rounded-md" />
                     <div
-                      style={{
-                        height: 8,
-                        width: "60%",
-                        background: "#d1d5db",
-                        borderRadius: 4,
-                        marginBottom: 6,
-                      }}
-                    />
-
-                    <div
-                      style={{
-                        height: 16,
-                        width: 16,
-                        background: "#9ca3af",
-                        borderRadius: 6,
-                      }}
-                    />
-
-                    <div
-                      style={{
-                        position: "absolute",
-                        bottom: 6,
-                        right: 6,
-                        height: 8,
-                        width: 40,
-                        borderRadius: 10,
-                        background:
-                          theme.value.includes("violet")
-                            ? "#8b5cf6"
-                            : theme.value.includes("bloom")
-                            ? "#fb7185"
-                            : "#f97316",
-                      }}
+                      className={`absolute bottom-1.5 right-1.5 h-2 w-10 rounded-[10px] ${
+                        theme.value.includes("violet")
+                          ? "bg-purple-500"
+                          : theme.value.includes("bloom")
+                          ? "bg-rose-400"
+                          : "bg-orange-500"
+                      }`}
                     />
 
                     {/* Check */}
                     {active && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: 6,
-                          right: 6,
-                          background: "#8b5cf6",
-                          borderRadius: "50%",
-                          padding: 2,
-                        }}
-                      >
+                      <div className="absolute top-1.5 right-1.5 bg-purple-500 rounded-full p-0.5">
                         <Check size={12} color="white" />
                       </div>
                     )}
                   </div>
 
-                  <div
-                    style={{
-                      textAlign: "center",
-                      fontSize: 12,
-                      marginTop: 6,
-                    }}
-                  >
+                  <div className="text-center text-xs mt-1.5 text-gray-700 font-medium">
                     {theme.name}
                   </div>
                 </div>

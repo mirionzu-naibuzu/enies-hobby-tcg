@@ -56,9 +56,8 @@ export default function AboutPage() {
 
   return (
     <div
-      className="about-wrapper"
+      className="about-wrapper min-h-screen bg-bg-primary text-text-primary transition-colors duration-300 ml-17.5"
       suppressHydrationWarning
-      style={{ minHeight: "100vh", background: c.bg, color: c.text, transition: "background-color 0.3s", marginLeft: 70 }}
     >
       <style>{`
         @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
@@ -67,24 +66,21 @@ export default function AboutPage() {
         .fu2 { animation: fadeUp 0.5s ease 0.2s forwards; opacity:0; }
         .fu3 { animation: fadeUp 0.5s ease 0.3s forwards; opacity:0; }
         .fu4 { animation: fadeUp 0.5s ease 0.4s forwards; opacity:0; }
-        .nav-link:hover { color: ${c.text} !important; }
-        .tech-card:hover { border-color: ${isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)"} !important; background: ${c.bgSec} !important; }
-        .footer-link:hover { color: ${c.text} !important; }
       `}</style>
 
       <Sidebar />
 
       {/* ── HERO ── */}
-      <section className="fu about-hero" style={{ padding: "64px 48px 48px", borderBottom: `1px solid ${c.border}`, maxWidth: 900, lineHeight: 1.7 }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-          <span style={{ background: c.accent, color: "#fff", fontSize: 9, fontWeight: 500, padding: "3px 8px", borderRadius: 3, letterSpacing: "0.07em", textTransform: "uppercase" as const }}>About</span>
-          <span style={{ fontSize: 11, color: c.textTer }}>Open source · Fan-made · Free forever</span>
+      <section className="fu about-hero px-6 py-12 md:px-12 md:py-16 border-b border-border-theme max-w-225 leading-relaxed">
+        <div className="inline-flex items-center gap-2 mb-5">
+          <span className="bg-accent-theme text-white text-[9px] font-medium px-2 py-0.5 rounded-[3px] tracking-wider uppercase">About</span>
+          <span className="text-[11px] text-text-tertiary">Open source · Fan-made · Free forever</span>
         </div>
-        <h1 className="about-hero-title" style={{ fontFamily: "var(--font-display), 'Anton', 'Impact', sans-serif", fontSize: 68, lineHeight: 0.95, letterSpacing: "0.01em", color: c.text, marginBottom: 20 }}>
+        <h1 className="about-hero-title font-display text-5xl md:text-[68px] leading-[0.95] tracking-[0.01em] text-text-primary mb-5">
           BUILT FOR<br />
-          <span style={{ color: c.accent }}>COLLECTORS</span><span style={{ opacity: 0.25 }}>.</span>
+          <span className="text-accent-theme">COLLECTORS</span><span className="opacity-25">.</span>
         </h1>
-        <p style={{ fontSize: 15, color: c.textSec, lineHeight: 1.7, maxWidth: 560, margin: 0 }}>
+        <p className="text-[15px] text-text-secondary leading-relaxed max-w-140 m-0">
           Enies Hobby is a fan-made collection tracker and card browser for the One Piece Trading Card Game.
           It started as a personal project to solve a simple problem — having a fast, clean way to browse every English card —
           and grew into something with authentication, binders, themes, and a full DON!! card section.
@@ -92,79 +88,64 @@ export default function AboutPage() {
       </section>
 
       {/* ── COLOR BAND ── */}
-      <div style={{ display: "flex", height: 3 }}>
+      <div className="flex h-0.75">
         {["#ef4444","#22c55e","#3b82f6","#a855f7","#374151","#eab308"].map((col) => (
-          <div key={col} style={{ flex: 1, background: col }} />
+          <div key={col} className="flex-1" style={{ background: col }} />
         ))}
       </div>
 
       {/* ── FEATURES GRID ── */}
-      <section className="fu1" style={{ padding: "0", borderBottom: `1px solid ${c.border}` }}>
-        <div style={{ padding: "20px 24px 12px", borderBottom: `1px solid ${c.border}` }}>
-          <span style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: c.textTer }}>What's inside</span>
+      <section className="fu1 border-b border-border-theme">
+        <div className="px-6 py-4 border-b border-border-theme">
+          <span className="text-[9px] font-semibold uppercase tracking-wider text-text-tertiary">What&apos;s inside</span>
         </div>
-        <div className="about-features-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)" }}>
+        <div className="about-features-grid grid grid-cols-1 md:grid-cols-3">
           {FEATURES.map((f, i) => (
             <div
               key={f.n}
-              style={{
-                padding: "24px",
-                borderRight: (i % 3 !== 2) ? `1px solid ${c.border}` : "none",
-                borderBottom: i < 3 ? `1px solid ${c.border}` : "none",
-              }}
+              className={`p-6 ${i % 3 !== 2 ? "md:border-r border-border-theme" : ""} ${i < 3 ? "border-b border-border-theme" : ""}`}
             >
-              <div style={{ fontFamily: "var(--font-display), 'Anton', 'Impact', sans-serif", fontSize: 12, color: c.textTer, marginBottom: 10, letterSpacing: "0.06em" }}>{f.n}</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: c.text, marginBottom: 6 }}>{f.title}</div>
-              <div style={{ fontSize: 12, color: c.textSec, lineHeight: 1.65 }}>{f.desc}</div>
+              <div className="font-display text-xs text-text-tertiary mb-2.5 tracking-wider">{f.n}</div>
+              <div className="text-[13px] font-semibold text-text-primary mb-1.5">{f.title}</div>
+              <div className="text-xs text-text-secondary leading-relaxed">{f.desc}</div>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── THE STORY + TECH ── */}
-      <section className="fu2 about-story-tech" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderBottom: `1px solid ${c.border}` }}>
-
+      <section className="fu2 about-story-tech grid grid-cols-1 md:grid-cols-2 border-b border-border-theme">
         {/* Story */}
-        <div style={{ padding: "28px 24px", borderRight: `1px solid ${c.border}` }}>
-          <div style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: c.textTer, marginBottom: 16 }}>The story</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <p style={{ fontSize: 13, color: c.textSec, lineHeight: 1.7, margin: 0 }}>
+        <div className="p-7 md:border-r border-border-theme">
+          <div className="text-[9px] font-semibold uppercase tracking-wider text-text-tertiary mb-4">The story</div>
+          <div className="flex flex-col gap-3.5 text-[13px] text-text-secondary leading-relaxed">
+            <p className="m-0">
               This started as a side project — a quick weekend thing to build a card browser without the bloat of
-              existing sites. One Piece TCG was growing fast and the tooling wasn't keeping up.
+              existing sites. One Piece TCG was growing fast and the tooling wasn&apos;t keeping up.
             </p>
-            <p style={{ fontSize: 13, color: c.textSec, lineHeight: 1.7, margin: 0 }}>
+            <p className="m-0">
               What began as a simple grid of cards with filters slowly grew: auth came in, then binders,
               then the DON!! page, then themes inspired by the arcs of the series itself.
               Each feature was added because it was something genuinely wanted.
             </p>
-            <p style={{ fontSize: 13, color: c.textSec, lineHeight: 1.7, margin: 0 }}>
-              It's still growing. Deck builder, price tracking, and set completion tracking are all on the horizon.
+            <p className="m-0">
+              It&apos;s still growing. Deck builder, price tracking, and set completion tracking are all on the horizon.
               If you have ideas, the feedback button in the sidebar is always open.
             </p>
           </div>
         </div>
 
         {/* Tech stack */}
-        <div style={{ padding: "28px 24px" }}>
-          <div style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: c.textTer, marginBottom: 16 }}>Built with</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div className="p-7">
+          <div className="text-[9px] font-semibold uppercase tracking-wider text-text-tertiary mb-4">Built with</div>
+          <div className="flex flex-col gap-1.5">
             {TECH_STACK.map((t) => (
               <div
                 key={t.label}
-                className="tech-card"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "10px 14px",
-                  borderRadius: 10,
-                  border: `1px solid ${c.border}`,
-                  background: "transparent",
-                  transition: "all 0.2s",
-                }}
+                className="tech-card flex items-center justify-between py-2.5 px-3.5 rounded-[10px] border border-border-theme bg-transparent hover:bg-bg-secondary hover:border-text-tertiary/40 transition-colors"
               >
-                <span style={{ fontSize: 13, fontWeight: 600, color: isDark ? t.darkColor : t.color }}>{t.label}</span>
-                <span style={{ fontSize: 12, color: c.textTer }}>{t.desc}</span>
+                <span className="text-[13px] font-semibold" style={{ color: isDark ? t.darkColor : t.color }}>{t.label}</span>
+                <span className="text-xs text-text-tertiary">{t.desc}</span>
               </div>
             ))}
           </div>
@@ -172,12 +153,12 @@ export default function AboutPage() {
       </section>
 
       {/* ── DATA SOURCE ── */}
-      <section className="fu3" style={{ padding: "28px 24px", borderBottom: `1px solid ${c.border}` }}>
-        <div style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: c.textTer, marginBottom: 16 }}>Card data</div>
-        <div className="about-data-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, maxWidth: 700 }}>
-          <div style={{ background: c.bgSec, borderRadius: 12, padding: "16px 18px", border: `1px solid ${c.border}` }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: c.text, marginBottom: 6 }}>optcgapi.com</div>
-            <p style={{ fontSize: 12, color: c.textSec, lineHeight: 1.65, margin: "0 0 10px" }}>
+      <section className="fu3 p-7 border-b border-border-theme">
+        <div className="text-[9px] font-semibold uppercase tracking-wider text-text-tertiary mb-4">Card data</div>
+        <div className="about-data-grid grid grid-cols-1 md:grid-cols-2 gap-3 max-w-175">
+          <div className="bg-bg-secondary rounded-xl p-4.5 border border-border-theme">
+            <div className="text-xs font-semibold text-text-primary mb-1.5">optcgapi.com</div>
+            <p className="text-xs text-text-secondary leading-relaxed m-0 mb-2.5">
               All card data — names, abilities, images, costs, rarities — is sourced from the community-run OPTCG API.
               Card images are hosted by their CDN.
             </p>
@@ -185,14 +166,14 @@ export default function AboutPage() {
               href="https://optcgapi.com"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: c.accent, textDecoration: "none", fontWeight: 500 }}
+              className="inline-flex items-center gap-1 text-xs text-accent-theme no-underline font-medium hover:underline"
             >
               optcgapi.com <ExternalLink size={11} />
             </a>
           </div>
-          <div style={{ background: c.bgSec, borderRadius: 12, padding: "16px 18px", border: `1px solid ${c.border}` }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: c.text, marginBottom: 6 }}>English only</div>
-            <p style={{ fontSize: 12, color: c.textSec, lineHeight: 1.65, margin: 0 }}>
+          <div className="bg-bg-secondary rounded-xl p-4.5 border border-border-theme">
+            <div className="text-xs font-semibold text-text-primary mb-1.5">English only</div>
+            <p className="text-xs text-text-secondary leading-relaxed m-0">
               This site only covers the English card set. Not all sets may be immediately available after release —
               the API is community-maintained and may lag behind new releases by a few days.
             </p>
@@ -201,33 +182,30 @@ export default function AboutPage() {
       </section>
 
       {/* ── SUPPORT STRIP ── */}
-      <section className="fu4 about-support-strip" style={{ padding: "32px 24px", borderBottom: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" as const, gap: 16 }}>
+      <section className="fu4 about-support-strip p-7 border-b border-border-theme flex items-center justify-between flex-wrap gap-4">
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-            <Heart size={14} style={{ color: "#ef4444", fill: "#ef4444" }} />
-            <span style={{ fontSize: 14, fontWeight: 600, color: c.text }}>Support this project</span>
+          <div className="flex items-center gap-2 mb-1.5">
+            <Heart size={14} className="text-red-500 fill-red-500" />
+            <span className="text-sm font-semibold text-text-primary">Support this project</span>
           </div>
-          <p style={{ fontSize: 13, color: c.textSec, margin: 0, maxWidth: 440, lineHeight: 1.6 }}>
-            Enies Hobby is free and will always stay free. If it's saved you time hunting down card info,
+          <p className="text-[13px] text-text-secondary m-0 max-w-110 leading-relaxed">
+            Enies Hobby is free and will always stay free. If it&apos;s saved you time hunting down card info,
             a small contribution keeps the servers running and the dev caffeinated.
           </p>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div className="flex gap-2.5">
           <a
             href="https://ko-fi.com/millionsknives47476"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "#FF5E5B", color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none", transition: "opacity 0.2s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.88"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+            className="inline-flex items-center gap-2 py-2.5 px-4.5 rounded-[10px] bg-[#FF5E5B] text-white text-[13px] font-semibold no-underline hover:opacity-90 transition-opacity"
           >
-            <Coffee size={15}  />Ko-fi
+            <Coffee size={15} />
+            <span>Ko-fi</span>
           </a>
           <button
             onClick={() => router.push("/browse")}
-            style={{ padding: "10px 18px", borderRadius: 10, background: "transparent", border: `1px solid ${c.border}`, color: c.text, fontSize: 13, cursor: "pointer", transition: "all 0.2s", display: "inline-flex", alignItems: "center", gap: 6 }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = c.bgSec; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+            className="py-2.5 px-4.5 rounded-[10px] bg-transparent border border-border-theme text-text-primary text-[13px] cursor-pointer hover:bg-bg-secondary transition-colors inline-flex items-center gap-1.5 font-medium"
           >
             <span>Browse cards</span>
             <ArrowRight size={14} />
@@ -236,27 +214,27 @@ export default function AboutPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <div className="about-footer" style={{ padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ position: "relative", height: 30, width: 120 }}>
-              <Image
-                src={isDark ? "/logo-light.png" : "/logo-light.png"}
-                alt="Enies Hobby logo"
-                fill
-                style={{ objectFit: "contain" }}
-              />
-            </div>
-          <span style={{ fontSize: 10, color: c.textTer }}>
+      <div className="about-footer py-4 px-6 flex items-center justify-between text-[10px] text-text-tertiary">
+        <div className="flex items-center gap-4">
+          <div className="relative h-7.5 w-30">
+            <Image
+              src="/logo-light.png"
+              alt="Enies Hobby logo"
+              fill
+              className="object-contain"
+            />
+          </div>
+          <span>
             Fan project · Not affiliated with Bandai ·{" "}
             <span
               onClick={() => router.push("/disclaimer")}
-              style={{ cursor: "pointer", textDecoration: "underline" }}
+              className="cursor-pointer underline"
             >
               Disclaimer
             </span>
           </span>
         </div>
-        <span style={{ fontSize: 10, color: c.textTer }}>© 2026</span>
+        <span>© 2026</span>
       </div>
     </div>
   );

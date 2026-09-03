@@ -309,9 +309,8 @@ export default function DonCardsPage() {
 
   return (
     <div
-      className="don-wrapper"
+      className="don-wrapper min-h-screen bg-bg-primary text-text-primary ml-17.5 transition-colors duration-300"
       suppressHydrationWarning
-      style={{ minHeight: "100vh", background: colors.bg.primary, transition: "background 0.3s", color: colors.text.primary, marginLeft: 70 }}
     >
       <style>{`
         @keyframes cardFlipIn { 0% { transform: rotateY(180deg); } 100% { transform: rotateY(0deg); } }
@@ -322,107 +321,31 @@ export default function DonCardsPage() {
       <Sidebar />
 
       {/* ── UNIFIED HEADER & TOOLBAR ── */}
-      <header
-        className="don-header-bar"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "14px 24px",
-          borderBottom: `1px solid ${colors.border}`,
-          background: colors.bg.primary,
-          gap: 16,
-        }}
-      >
+      <header className="don-header-bar flex items-center justify-between py-3.5 px-6 border-b border-border-theme bg-bg-primary gap-4 sticky top-0 z-20">
         {/* Left: Title & Count Badge */}
-        <div
-          className="don-header-left"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            flexShrink: 0,
-          }}
-        >
-          <h1
-            style={{
-              fontSize: 22,
-              fontWeight: 900,
-              margin: 0,
-              color: colors.text.primary,
-              letterSpacing: "-0.03em",
-              whiteSpace: "nowrap",
-            }}
-          >
-            DON<span style={{ color: colors.accent }}>!!</span> Cards
+        <div className="don-header-left flex items-center gap-3 shrink-0">
+          <h1 className="text-[22px] font-black m-0 text-text-primary tracking-tight whitespace-nowrap">
+            DON<span className="text-accent-theme">!!</span> Cards
           </h1>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              fontSize: 12,
-              fontWeight: 600,
-              color: colors.text.tertiary,
-              background: colors.bg.tertiary,
-              padding: "3px 9px",
-              borderRadius: 20,
-              border: `1px solid ${colors.border}`,
-              whiteSpace: "nowrap",
-            }}
-          >
+          <div className="inline-flex items-center text-xs font-semibold text-text-tertiary bg-bg-tertiary py-0.75 px-2.25 rounded-full border border-border-theme whitespace-nowrap">
             {loading ? "Loading..." : `${filteredCards.length} ${filteredCards.length === 1 ? "card" : "cards"}`}
           </div>
         </div>
 
         {/* Right: Search & Filter Chips */}
-        <div
-          className="don-header-right"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            flexShrink: 0,
-          }}
-        >
+        <div className="don-header-right flex items-center gap-2.5 shrink-0">
           {/* Search Box */}
-          <div
-            className="don-search-input-wrap"
-            style={{ position: "relative", width: 220 }}
-          >
+          <div className="don-search-input-wrap relative w-55">
             <Search
               size={15}
-              style={{
-                position: "absolute",
-                left: 10,
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: colors.text.tertiary,
-                pointerEvents: "none",
-              }}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none"
             />
             <input
               ref={searchInputRef}
-              className="don-search-input"
+              className="don-search-input w-full py-1.75 pl-8 pr-7 rounded-lg border border-border-theme bg-bg-secondary text-text-primary outline-none text-[13px] transition-all focus:border-accent-theme"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search DON!! (/)"
-              style={{
-                width: "100%",
-                padding: "7px 28px 7px 32px",
-                borderRadius: 8,
-                border: `1px solid ${colors.border}`,
-                background: colors.bg.secondary,
-                color: colors.text.primary,
-                outline: "none",
-                fontSize: 13,
-                transition: "border-color 0.2s, box-shadow 0.2s",
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = colors.accent;
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = colors.border;
-              }}
             />
             {search && (
               <button
@@ -431,21 +354,7 @@ export default function DonCardsPage() {
                   searchInputRef.current?.focus();
                 }}
                 aria-label="Clear search"
-                style={{
-                  position: "absolute",
-                  right: 4,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  width: 24,
-                  height: 24,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: colors.text.tertiary,
-                }}
+                className="absolute right-1 top-1/2 -translate-y-1/2 bg-transparent border-0 cursor-pointer w-6 h-6 flex items-center justify-center text-text-tertiary hover:text-text-primary"
               >
                 <X size={13} />
               </button>
@@ -459,120 +368,56 @@ export default function DonCardsPage() {
             aria-checked={activeFilter === "Gold"}
             aria-label={`Toggle Gold DON!! cards (currently ${activeFilter})`}
             onClick={() => setActiveFilter(prev => prev === "Gold" ? "All" : "Gold")}
-            className="don-capsule-toggle"
-            style={{
-              position: "relative",
-              width: 78,
-              height: 34,
-              borderRadius: 8,
-              background: activeFilter === "Gold"
-                ? isDark
-                  ? "linear-gradient(135deg, #d97706, #b45309)"
-                  : "linear-gradient(135deg, #eab308, #ca8a04)"
-                : colors.bg.tertiary,
-              border: `1px solid ${activeFilter === "Gold" ? (isDark ? "#b45309" : "#ca8a04") : colors.border}`,
-              cursor: "pointer",
-              padding: 0,
-              outline: "none",
-              userSelect: "none",
-              flexShrink: 0,
-              boxShadow: activeFilter === "Gold"
-                ? isDark
-                  ? "0 2px 10px rgba(217, 119, 6, 0.25), inset 0 1px 1px rgba(255,255,255,0.15)"
-                  : "0 2px 8px rgba(202, 138, 4, 0.2), inset 0 1px 1px rgba(255,255,255,0.3)"
-                : isDark
-                ? "inset 0 1px 2px rgba(0,0,0,0.3)"
-                : "inset 0 1px 2px rgba(0,0,0,0.06)",
-              transition: "background 0.22s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1)",
-            }}
+            className={`don-capsule-toggle relative w-19.5 h-8.5 rounded-lg cursor-pointer p-0 outline-none select-none shrink-0 transition-all duration-200 ${
+              activeFilter === "Gold"
+                ? "bg-gradient-to-br from-amber-500 to-amber-600 border border-amber-600 shadow-md"
+                : "bg-bg-tertiary border border-border-theme shadow-inner"
+            }`}
           >
-            {/* Embossed Text: GOLD on Left (Uncovered when ON) */}
+            {/* Embossed Text: GOLD on Left */}
             <span
-              style={{
-                position: "absolute",
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: 48,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: "0.06em",
-                color: "#ffffff",
-                textShadow: "0 1px 2px rgba(0,0,0,0.35)",
-                opacity: activeFilter === "Gold" ? 1 : 0,
-                transform: activeFilter === "Gold" ? "translate3d(0, 0, 0)" : "translate3d(-3px, 0, 0)",
-                transition: "opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1), transform 0.18s cubic-bezier(0.22, 1, 0.36, 1)",
-                pointerEvents: "none",
-              }}
+              className={`absolute left-0 top-0 bottom-0 w-12 flex items-center justify-center text-[11px] font-extrabold tracking-wider text-white drop-shadow-sm pointer-events-none transition-all duration-200 ${
+                activeFilter === "Gold" ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-1"
+              }`}
             >
               GOLD
             </span>
 
-            {/* Embossed Text: ALL on Right (Uncovered when OFF) */}
+            {/* Embossed Text: ALL on Right */}
             <span
-              style={{
-                position: "absolute",
-                right: 0,
-                top: 0,
-                bottom: 0,
-                width: 48,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: "0.06em",
-                color: colors.text.secondary,
-                opacity: activeFilter === "Gold" ? 0 : 1,
-                transform: activeFilter === "Gold" ? "translate3d(3px, 0, 0)" : "translate3d(0, 0, 0)",
-                transition: "opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1), transform 0.18s cubic-bezier(0.22, 1, 0.36, 1)",
-                pointerEvents: "none",
-              }}
+              className={`absolute right-0 top-0 bottom-0 w-12 flex items-center justify-center text-[11px] font-extrabold tracking-wider text-text-secondary pointer-events-none transition-all duration-200 ${
+                activeFilter === "Gold" ? "opacity-0 translate-x-1" : "opacity-100 translate-x-0"
+              }`}
             >
               ALL
             </span>
 
             {/* Floating Rectangular Slider Knob */}
             <div
-              style={{
-                position: "absolute",
-                top: 3,
-                left: 3,
-                width: 26,
-                height: 26,
-                borderRadius: 5,
-                background: "#ffffff",
-                boxShadow: isDark
-                  ? "0 2px 5px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3)"
-                  : "0 2px 5px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.1)",
-                transform: activeFilter === "Gold" ? "translate3d(44px, 0, 0)" : "translate3d(0px, 0, 0)",
-                transition: "transform 0.22s cubic-bezier(0.22, 1, 0.36, 1)",
-                willChange: "transform",
-              }}
+              className={`absolute top-0.75 left-0.75 w-6.5 h-6.5 rounded-[5px] bg-white shadow-md transition-transform duration-200 ease-out will-change-transform ${
+                activeFilter === "Gold" ? "translate-x-[44px]" : "translate-x-0"
+              }`}
             />
           </button>
         </div>
       </header>
 
       {/* GRID */}
-      <main className="don-main" style={{ padding: "12px 24px 64px" }}>
+      <main className="don-main py-3 px-6 pb-16">
         {loading ? (
-          <div className="don-card-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 18, marginTop: 10 }}>
+          <div className="don-card-grid grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4.5 mt-2.5">
             {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className="don-skeleton" style={{ borderRadius: 14, background: colors.bg.tertiary, border: `1px solid ${colors.border}`, aspectRatio: "5 / 7" }} />
+              <div key={i} className="don-skeleton rounded-[14px] bg-bg-tertiary border border-border-theme aspect-[5/7]" />
             ))}
           </div>
         ) : filteredCards.length === 0 ? (
-          <div style={{ textAlign: "center", paddingTop: 96, paddingBottom: 96, color: colors.text.tertiary, display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <img src="/nocard.png" alt="No cards found" style={{ width: 120, height: 120, objectFit: "contain", marginBottom: 20, opacity: isDark ? 0.9 : 1 }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
-            <div style={{ fontWeight: 700, fontSize: 20, color: colors.text.primary }}>No cards found</div>
-            <div style={{ fontSize: 14, marginTop: 6, color: colors.text.tertiary }}>Try a different search</div>
+          <div className="text-center py-24 text-text-tertiary flex flex-col items-center">
+            <img src="/nocard.png" alt="No cards found" className="w-30 h-30 object-contain mb-5 opacity-90" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+            <div className="font-bold text-xl text-text-primary">No cards found</div>
+            <div className="text-sm mt-1.5 text-text-tertiary">Try a different search</div>
           </div>
         ) : (
-          <div className="don-card-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 18, marginTop: 10 }}>
+          <div className="don-card-grid grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4.5 mt-2.5">
             {filteredCards.map((card, i) => {
               const cardKey = getDonCardKey(card);
               const isGold = card.card_name.toLowerCase().includes("(gold)");
@@ -583,43 +428,53 @@ export default function DonCardsPage() {
               return (
                 <div
                   key={`${filterKey}-${i}`}
-                  style={{ cursor: "pointer", perspective: shouldFlip ? "1000px" : "none" }}
+                  className="cursor-pointer"
+                  style={{ perspective: shouldFlip ? "1000px" : "none" }}
                   onClick={() => setSelectedIndex(i)}
                 >
                   <div
-                    style={{ position: "relative", transformStyle: shouldFlip ? "preserve-3d" : "flat", animationName: shouldFlip ? "cardFlipIn" : "none", animationDuration: shouldFlip ? "0.5s" : "0s", animationTimingFunction: "ease", animationFillMode: "forwards", animationDelay: shouldFlip ? `${i * 0.03}s` : "0s", willChange: shouldFlip ? "transform" : "auto" }}
+                    className="relative"
+                    style={{
+                      transformStyle: shouldFlip ? "preserve-3d" : "flat",
+                      animationName: shouldFlip ? "cardFlipIn" : "none",
+                      animationDuration: shouldFlip ? "0.5s" : "0s",
+                      animationTimingFunction: "ease",
+                      animationFillMode: "forwards",
+                      animationDelay: shouldFlip ? `${i * 0.03}s` : "0s",
+                      willChange: shouldFlip ? "transform" : "auto",
+                    }}
                     onAnimationEnd={isLastFlip ? () => setAnimatedKey(filterKey) : undefined}
                   >
                     {shouldFlip && (
-                      <div style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)", position: "absolute", inset: 0, borderRadius: 14, overflow: "hidden" }}>
-                        <img src="/don-back.png" alt="" style={{ width: "100%", height: "100%", display: "block" }} onError={(e) => { e.currentTarget.src = "/card-back.png"; }} />
+                      <div className="absolute inset-0 rounded-[14px] overflow-hidden backface-hidden [-webkit-backface-visibility:hidden] transform-[rotateY(180deg)]">
+                        <img src="/don-back.png" alt="" className="w-full h-full block" onError={(e) => { e.currentTarget.src = "/card-back.png"; }} />
                       </div>
                     )}
-                    <div style={{ backfaceVisibility: shouldFlip ? "hidden" : "visible", WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible", position: "relative" }}>
+                    <div
+                      className="relative"
+                      style={{
+                        backfaceVisibility: shouldFlip ? "hidden" : "visible",
+                        WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible",
+                      }}
+                    >
                       <div
-                        style={{
-                          borderRadius: 14,
-                          overflow: "hidden",
-                          background: colors.bg.secondary,
-                          border: isGold
-                            ? "1px solid #facc15"
-                            : `1px solid ${colors.border}`,
-                          transition: "all 0.25s ease",
-                          boxShadow: isGold
-                            ? "0 0 25px rgba(250,204,21,0.2)"
-                            : isDark
-                            ? "0 10px 30px rgba(0,0,0,0.4)"
-                            : "0 10px 25px rgba(0,0,0,0.08)",
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px) scale(1.02)"; e.currentTarget.style.boxShadow = isGold ? "0 0 40px rgba(250,204,21,0.35)" : "0 20px 40px rgba(0,0,0,0.25)"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0) scale(1)"; e.currentTarget.style.boxShadow = isGold ? "0 0 25px rgba(250,204,21,0.2)" : isDark ? "0 10px 30px rgba(0,0,0,0.4)" : "0 10px 25px rgba(0,0,0,0.08)"; }}
+                        className={`rounded-[14px] overflow-hidden bg-bg-secondary transition-all duration-250 ease-out hover:-translate-y-1.5 hover:scale-[1.02] ${
+                          isGold
+                            ? "border border-amber-400 shadow-[0_0_25px_rgba(250,204,21,0.2)] hover:shadow-[0_0_40px_rgba(250,204,21,0.35)]"
+                            : "border border-border-theme shadow-md hover:shadow-xl"
+                        }`}
                       >
-                        <div style={{ width: "100%", aspectRatio: "5 / 7", background: colors.bg.tertiary, overflow: "hidden" }}>
-                          <img src={card.card_image || "/card-placeholder.png"} alt={card.card_name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }} />
+                        <div className="w-full aspect-[5/7] bg-bg-tertiary overflow-hidden">
+                          <img
+                            src={card.card_image || "/card-placeholder.png"}
+                            alt={card.card_name}
+                            className="w-full h-full object-cover block"
+                            onError={(e) => { e.currentTarget.src = "/card-placeholder.png"; }}
+                          />
                         </div>
                       </div>
                       {isWished && (
-                        <div style={{ position: "absolute", top: 8, left: 8, width: 20, height: 20, borderRadius: "50%", background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.25)", zIndex: 2 }}>
+                        <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center text-white shadow-md z-[2]">
                           <Star size={11} fill="#fff" color="#fff" />
                         </div>
                       )}
@@ -635,18 +490,16 @@ export default function DonCardsPage() {
       {/* ── CARD DETAIL MODAL ── */}
       {selected && (
         <div
-          className="card-modal-outer"
-          style={{ position: "fixed", inset: 0, background: isDark ? "rgba(0,0,0,0.78)" : "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+          className="card-modal-outer fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 dark:bg-black/80 backdrop-blur-sm"
           onClick={closeModal}
         >
-          <div className="card-modal-nav-row" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, width: "100%", maxWidth: 860 }} onClick={(e) => e.stopPropagation()}>
+          <div className="card-modal-nav-row flex items-center justify-center gap-4 w-full max-w-215" onClick={(e) => e.stopPropagation()}>
             {/* Prev */}
             {(!isMobile || isLandscape) && (
               <button
-                className="card-modal-prev"
+                className="card-modal-prev shrink-0 w-11 h-11 rounded-full bg-bg-primary border border-border-theme flex items-center justify-center text-text-primary shadow-xl transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
                 onClick={() => { setSelectedIndex(selectedIndex - 1); setShowBinderPicker(false); setCreatingBinderInline(false); setNewBinderNameInline(""); }}
                 disabled={selectedIndex <= 0}
-                style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: colors.bg.primary, border: `1px solid ${colors.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: colors.text.primary, cursor: selectedIndex > 0 ? "pointer" : "not-allowed", opacity: selectedIndex <= 0 ? 0.3 : 1, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)", transition: "all 0.2s" }}
               >
                 <ChevronLeft size={20} />
               </button>
@@ -654,27 +507,24 @@ export default function DonCardsPage() {
 
             {/* Modal card */}
             <div
-              className="card-modal-container"
+              className="card-modal-container flex-1 bg-bg-primary rounded-[20px] border border-border-theme overflow-hidden max-h-[90vh] flex flex-col shadow-2xl"
               role="dialog"
               aria-modal="true"
               aria-label={getDonCardName(selected.card_name)}
               onTouchStart={handleModalTouchStart}
               onTouchEnd={handleModalTouchEnd}
-              style={{ flex: 1, background: colors.bg.primary, borderRadius: 20, border: `1px solid ${colors.border}`, overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 32px 64px rgba(0,0,0,0.5)" : "0 32px 64px rgba(0,0,0,0.15)" }}
             >
-
               {/* Header */}
-              <div className="card-modal-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: `1px solid ${colors.border}`, flexShrink: 0 }}>
+              <div className="card-modal-header flex justify-between items-center py-4.5 px-6 border-b border-border-theme shrink-0">
                 <div>
-                  <div style={{ fontWeight: 900, fontSize: 20, color: colors.text.primary, letterSpacing: "-0.02em" }}>
+                  <div className="font-black text-xl text-text-primary tracking-tight">
                     {getDonCardName(selected.card_name)}
                   </div>
-                  <div style={{ fontSize: 12, color: colors.text.tertiary, marginTop: 2 }}>
+                  <div className="text-xs text-text-tertiary mt-0.5">
                     {getDonSetName(selected.optcg_don_name)}
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-
+                <div className="flex items-center gap-2">
                   {/* Binder / Wishlist Picker */}
                   {user && (() => {
                     const cardKey = getDonCardKey(selected);
@@ -682,31 +532,18 @@ export default function DonCardsPage() {
                     const inAnyBinder = isInAnyBinder(cardKey);
 
                     return (
-                      <div style={{ position: "relative" }}>
+                      <div className="relative">
                         <button
-                          className="card-modal-btn"
+                          className={`card-modal-btn flex items-center justify-center gap-1.5 py-1.75 px-3 rounded-lg text-xs font-semibold cursor-pointer transition-all border ${
+                            isWished
+                              ? "border-amber-500 bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                              : inAnyBinder
+                              ? "border-green-600 bg-green-600/15 text-green-600 dark:text-green-400"
+                              : "border-border-theme bg-transparent text-text-tertiary hover:border-text-tertiary"
+                          }`}
                           onClick={() => { setShowBinderPicker(p => !p); setCreatingBinderInline(false); setNewBinderNameInline(""); }}
                           title={isWished ? "Wishlist" : inAnyBinder ? "In binder" : "Add to binder"}
                           aria-label={isWished ? "Wishlist" : inAnyBinder ? "In binder" : "Add to binder"}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 6,
-                            padding: isMobile ? "7px 9px" : "7px 12px",
-                            borderRadius: 8,
-                            fontSize: 12,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            transition: "all 0.2s",
-                            border: `1px solid ${isWished ? "#f59e0b" : inAnyBinder ? "#16a34a" : colors.border}`,
-                            background: isWished
-                              ? (isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.08)")
-                              : inAnyBinder
-                              ? (isDark ? "rgba(22,163,74,0.15)" : "rgba(22,163,74,0.08)")
-                              : "transparent",
-                            color: isWished ? "#d97706" : inAnyBinder ? "#16a34a" : colors.text.tertiary,
-                          }}
                         >
                           {isWished ? <Star size={13} fill="currentColor" /> : inAnyBinder ? <Check size={14} /> : <BookmarkPlus size={14} />}
                           {!isMobile && (
@@ -719,139 +556,123 @@ export default function DonCardsPage() {
                         {/* Picker dropdown */}
                         {showBinderPicker && (
                           <div
-                            style={{
-                              position: "absolute",
-                              top: "calc(100% + 8px)",
-                              right: 0,
-                              width: 240,
-                              background: colors.bg.primary,
-                              border: `1px solid ${colors.border}`,
-                              borderRadius: 12,
-                              overflow: "hidden",
-                              boxShadow: isDark ? "0 16px 40px rgba(0,0,0,0.5)" : "0 16px 40px rgba(0,0,0,0.12)",
-                              zIndex: 10,
-                            }}
+                            className="absolute top-[calc(100%+8px)] right-0 w-60 bg-bg-primary border border-border-theme rounded-xl overflow-hidden shadow-2xl z-10 p-2"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div style={{ padding: "8px" }}>
-                              <button
-                                onClick={() => handleToggleWishlist(cardKey)}
-                                style={{
-                                  width: "100%",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 10,
-                                  padding: "9px 10px",
-                                  borderRadius: 8,
-                                  border: "none",
-                                  cursor: "pointer",
-                                  fontSize: 13,
-                                  textAlign: "left" as const,
-                                  transition: "all 0.15s",
-                                  background: isWished ? (isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.08)") : "transparent",
-                                  color: isWished ? "#d97706" : colors.text.primary,
-                                }}
-                                onMouseEnter={(e) => { if (!isWished) e.currentTarget.style.background = colors.bg.secondary; }}
-                                onMouseLeave={(e) => { if (!isWished) e.currentTarget.style.background = "transparent"; }}
-                              >
-                                <div style={{ width: 18, height: 18, borderRadius: "50%", border: `1.5px solid ${isWished ? "#d97706" : colors.border}`, background: isWished ? "#f59e0b" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                  {isWished && <Star size={10} fill="#fff" color="#fff" />}
-                                </div>
-                                Add to wishlist
-                              </button>
-
-                              <div style={{ height: "0.5px", background: colors.border, margin: "6px 0" }} />
-
-                              <div style={{ fontSize: 10, color: colors.text.tertiary, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase" as const, padding: "4px 8px 6px" }}>
-                                My binders
+                            <button
+                              onClick={() => handleToggleWishlist(cardKey)}
+                              className={`w-full flex items-center gap-2.5 py-2.25 px-2.5 rounded-lg border-0 cursor-pointer text-[13px] text-left transition-colors ${
+                                isWished
+                                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                  : "bg-transparent text-text-primary hover:bg-bg-secondary"
+                              }`}
+                            >
+                              <div className={`w-4.5 h-4.5 rounded-full border-[1.5px] flex items-center justify-center shrink-0 ${
+                                isWished ? "border-amber-600 bg-amber-500 text-white" : "border-border-theme bg-transparent"
+                              }`}>
+                                {isWished && <Star size={10} fill="#fff" color="#fff" />}
                               </div>
+                              <span>Add to wishlist</span>
+                            </button>
 
-                              <div style={{ maxHeight: 180, overflowY: "auto" }}>
-                                {binders.length === 0 && !creatingBinderInline && (
-                                  <div style={{ fontSize: 12, color: colors.text.tertiary, padding: "6px 10px" }}>No binders yet.</div>
-                                )}
+                            <div className="h-px bg-border-theme my-1.5" />
 
-                                {binders.map(binder => {
-                                  const inBinder = (binderCardMap[binder.id] ?? []).includes(cardKey);
-                                  return (
-                                    <button
-                                      key={binder.id}
-                                      onClick={() => handleToggleBinderCard(binder.id, cardKey)}
-                                      style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, textAlign: "left" as const, transition: "all 0.15s", background: inBinder ? (isDark ? "rgba(99,102,241,0.15)" : "rgba(99,102,241,0.08)") : "transparent", color: inBinder ? "#6366f1" : colors.text.primary }}
-                                      onMouseEnter={(e) => { if (!inBinder) e.currentTarget.style.background = colors.bg.secondary; }}
-                                      onMouseLeave={(e) => { if (!inBinder) e.currentTarget.style.background = "transparent"; }}
-                                    >
-                                      <BookOpen size={14} style={{ flexShrink: 0 }} />
-                                      <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{binder.name}</span>
-                                      {inBinder && <Check size={12} strokeWidth={3} />}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-
-                              {/* Inline new binder */}
-                              {creatingBinderInline ? (
-                                <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 8, border: `1px solid ${colors.border}`, margin: "4px 0" }}>
-                                  <Plus size={13} style={{ flexShrink: 0, color: colors.text.tertiary }} />
-                                  <input
-                                    autoFocus
-                                    value={newBinderNameInline}
-                                    onChange={(e) => setNewBinderNameInline(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      e.stopPropagation();
-                                      if (e.key === "Enter") handleCreateBinderInline(cardKey);
-                                      if (e.key === "Escape") { setCreatingBinderInline(false); setNewBinderNameInline(""); }
-                                    }}
-                                    placeholder="Binder name..."
-                                    style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, color: colors.text.primary, fontFamily: "inherit", minWidth: 0 }}
-                                  />
-                                  <button
-                                    onClick={() => handleCreateBinderInline(cardKey)}
-                                    disabled={!newBinderNameInline.trim() || creatingBinderLoading}
-                                    style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, border: "none", cursor: newBinderNameInline.trim() ? "pointer" : "not-allowed", background: newBinderNameInline.trim() ? "#16a34a" : colors.bg.tertiary, color: newBinderNameInline.trim() ? "#fff" : colors.text.tertiary, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
-                                  >
-                                    <Check size={12} strokeWidth={3} />
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => setCreatingBinderInline(true)}
-                                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8, border: `1px dashed ${colors.border}`, cursor: "pointer", fontSize: 13, textAlign: "left" as const, transition: "all 0.15s", background: "transparent", color: colors.text.tertiary, marginTop: 4 }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.background = colors.bg.secondary; e.currentTarget.style.borderColor = colors.text.tertiary; e.currentTarget.style.color = colors.text.primary; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = colors.border; e.currentTarget.style.color = colors.text.tertiary; }}
-                                >
-                                  <Plus size={14} style={{ flexShrink: 0 }} />
-                                  New binder
-                                </button>
-                              )}
+                            <div className="text-[10px] text-text-tertiary font-semibold tracking-wider uppercase py-1 px-2">
+                              My binders
                             </div>
+
+                            <div className="max-h-45 overflow-y-auto">
+                              {binders.length === 0 && !creatingBinderInline && (
+                                <div className="text-xs text-text-tertiary py-1.5 px-2.5">No binders yet.</div>
+                              )}
+
+                              {binders.map(binder => {
+                                const inBinder = (binderCardMap[binder.id] ?? []).includes(cardKey);
+                                return (
+                                  <button
+                                    key={binder.id}
+                                    onClick={() => handleToggleBinderCard(binder.id, cardKey)}
+                                    className={`w-full flex items-center gap-2.5 py-2.25 px-2.5 rounded-lg border-0 cursor-pointer text-[13px] text-left transition-colors ${
+                                      inBinder
+                                        ? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400"
+                                        : "bg-transparent text-text-primary hover:bg-bg-secondary"
+                                    }`}
+                                  >
+                                    <BookOpen size={14} className="shrink-0" />
+                                    <span className="flex-1 whitespace-nowrap overflow-hidden text-ellipsis">{binder.name}</span>
+                                    {inBinder && <Check size={12} strokeWidth={3} />}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {/* Inline new binder */}
+                            {creatingBinderInline ? (
+                              <div className="flex items-center gap-1.5 py-1.5 px-2.5 rounded-lg border border-border-theme my-1">
+                                <Plus size={13} className="shrink-0 text-text-tertiary" />
+                                <input
+                                  autoFocus
+                                  value={newBinderNameInline}
+                                  onChange={(e) => setNewBinderNameInline(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    e.stopPropagation();
+                                    if (e.key === "Enter") handleCreateBinderInline(cardKey);
+                                    if (e.key === "Escape") { setCreatingBinderInline(false); setNewBinderNameInline(""); }
+                                  }}
+                                  placeholder="Binder name..."
+                                  className="flex-1 bg-transparent border-0 outline-none text-[13px] text-text-primary font-inherit min-w-0"
+                                />
+                                <button
+                                  onClick={() => handleCreateBinderInline(cardKey)}
+                                  disabled={!newBinderNameInline.trim() || creatingBinderLoading}
+                                  className={`shrink-0 w-5.5 h-5.5 rounded-md border-0 flex items-center justify-center transition-colors ${
+                                    newBinderNameInline.trim()
+                                      ? "bg-green-600 text-white cursor-pointer"
+                                      : "bg-bg-tertiary text-text-tertiary cursor-not-allowed"
+                                  }`}
+                                >
+                                  <Check size={12} strokeWidth={3} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setCreatingBinderInline(true)}
+                                className="w-full flex items-center gap-2.5 py-2.25 px-2.5 rounded-lg border border-dashed border-border-theme cursor-pointer text-[13px] text-left transition-colors bg-transparent text-text-tertiary hover:bg-bg-secondary hover:text-text-primary mt-1"
+                              >
+                                <Plus size={14} className="shrink-0" />
+                                <span>New binder</span>
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
                     );
                   })()}
 
-                  <button onClick={closeModal} style={{ background: "none", border: "none", cursor: "pointer", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <X size={20} color={colors.text.tertiary} />
+                  <button
+                    onClick={closeModal}
+                    className="bg-transparent border-0 cursor-pointer w-11 h-11 flex items-center justify-center text-text-tertiary hover:text-text-primary"
+                  >
+                    <X size={20} />
                   </button>
                 </div>
               </div>
 
-              {/* Body — ModalCardImage replaces plain <img> */}
-              <div className="card-modal-body" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-                <div className="card-modal-image-pane" style={{ width: "100%", maxWidth: 320 }}>
-                <ModalCardImage
-                  key={selected.card_image || selected.card_name || selectedIndex}
-                  src={selected.card_image || "/card-placeholder.png"}
-                  alt={selected.card_name}
-                  isDark={isDark}
-                  backSrc="/don-back.png"
-                />
+              {/* Body */}
+              <div className="card-modal-body flex-1 flex items-center justify-center p-6">
+                <div className="card-modal-image-pane w-full max-w-80">
+                  <ModalCardImage
+                    key={selected.card_image || selected.card_name || selectedIndex}
+                    src={selected.card_image || "/card-placeholder.png"}
+                    alt={selected.card_name}
+                    isDark={isDark}
+                    backSrc="/don-back.png"
+                  />
                 </div>
               </div>
 
               {/* Footer counter */}
-              <div className="card-modal-footer" style={{ borderTop: `1px solid ${colors.border}`, padding: "10px 24px", textAlign: "center", fontSize: 12, color: colors.text.tertiary, flexShrink: 0 }}>
+              <div className="card-modal-footer border-t border-border-theme py-2.5 px-6 text-center text-xs text-text-tertiary shrink-0">
                 {selectedIndex + 1} / {filteredCards.length}
               </div>
             </div>
@@ -859,10 +680,9 @@ export default function DonCardsPage() {
             {/* Next */}
             {(!isMobile || isLandscape) && (
               <button
-                className="card-modal-next"
+                className="card-modal-next shrink-0 w-11 h-11 rounded-full bg-bg-primary border border-border-theme flex items-center justify-center text-text-primary shadow-xl transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
                 onClick={() => { setSelectedIndex(selectedIndex + 1); setShowBinderPicker(false); setCreatingBinderInline(false); setNewBinderNameInline(""); }}
                 disabled={selectedIndex >= filteredCards.length - 1}
-                style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "50%", background: colors.bg.primary, border: `1px solid ${colors.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: colors.text.primary, cursor: selectedIndex < filteredCards.length - 1 ? "pointer" : "not-allowed", opacity: selectedIndex >= filteredCards.length - 1 ? 0.3 : 1, boxShadow: isDark ? "0 20px 25px rgba(0,0,0,0.4)" : "0 10px 15px rgba(0,0,0,0.1)", transition: "all 0.2s" }}
               >
                 <ChevronRight size={20} />
               </button>
@@ -874,28 +694,9 @@ export default function DonCardsPage() {
       {/* SCROLL TOP */}
       {showScrollTop && (
         <button
-          className="don-scroll-top"
+          className="don-scroll-top fixed bottom-8 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-bg-tertiary text-text-primary border border-border-theme cursor-pointer shadow-xl z-40 flex items-center justify-center hover:scale-105 transition-all"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           aria-label="Scroll to top"
-          style={{
-            position: "fixed",
-            bottom: 32,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: 48,
-            height: 48,
-            borderRadius: "50%",
-            background: tc.bg.tertiary,
-            color: colors.text.primary,
-            border: `1px solid ${colors.border}`,
-            cursor: "pointer",
-            boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.4)" : "0 4px 20px rgba(0,0,0,0.2)",
-            zIndex: 40,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "all 0.2s",
-          }}
         >
           <ArrowUp size={20} strokeWidth={2.5} />
         </button>

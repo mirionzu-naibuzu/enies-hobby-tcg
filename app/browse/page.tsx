@@ -715,8 +715,8 @@ export default function Home() {
   // Shared "New binder" inline UI — renders inside whichever picker calls it
   const renderNewBinderRow = (onConfirm: () => void) => (
     creatingBinderInline ? (
-      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 8, border: `1px solid ${colors.border}`, margin: "4px 0" }}>
-        <Plus size={13} style={{ flexShrink: 0, color: colors.text.tertiary }} />
+      <div className="flex items-center gap-1.5 py-1.5 px-2.5 rounded-lg border border-border-theme my-1">
+        <Plus size={13} className="shrink-0 text-text-tertiary" />
         <input
           autoFocus
           value={newBinderNameInline}
@@ -727,12 +727,16 @@ export default function Home() {
             if (e.key === "Escape") resetInlineCreation();
           }}
           placeholder="Binder name..."
-          style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, color: colors.text.primary, fontFamily: "inherit", minWidth: 0 }}
+          className="flex-1 bg-transparent border-0 outline-none text-[13px] text-text-primary font-inherit min-w-0"
         />
         <button
           onClick={onConfirm}
           disabled={!newBinderNameInline.trim() || creatingBinderLoading}
-          style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, border: "none", cursor: newBinderNameInline.trim() ? "pointer" : "not-allowed", background: newBinderNameInline.trim() ? "#16a34a" : colors.bg.tertiary, color: newBinderNameInline.trim() ? "#fff" : colors.text.tertiary, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
+          className={`shrink-0 w-5.5 h-5.5 rounded-md border-0 flex items-center justify-center transition-colors ${
+            newBinderNameInline.trim()
+              ? "bg-green-600 text-white cursor-pointer"
+              : "bg-bg-tertiary text-text-tertiary cursor-not-allowed"
+          }`}
         >
           <Check size={12} strokeWidth={3} />
         </button>
@@ -740,12 +744,10 @@ export default function Home() {
     ) : (
       <button
         onClick={() => setCreatingBinderInline(true)}
-        style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8, border: `1px dashed ${colors.border}`, cursor: "pointer", fontSize: 13, textAlign: "left" as const, transition: "all 0.15s", background: "transparent", color: colors.text.tertiary, marginTop: 4 }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = colors.bg.secondary; e.currentTarget.style.borderColor = colors.text.tertiary; e.currentTarget.style.color = colors.text.primary; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = colors.border; e.currentTarget.style.color = colors.text.tertiary; }}
+        className="w-full flex items-center gap-2.5 py-2.25 px-2.5 rounded-lg border border-dashed border-border-theme cursor-pointer text-[13px] text-left transition-colors bg-transparent text-text-tertiary hover:bg-bg-secondary hover:text-text-primary mt-1"
       >
-        <Plus size={14} style={{ flexShrink: 0 }} />
-        New binder
+        <Plus size={14} className="shrink-0" />
+        <span>New binder</span>
       </button>
     )
   );
@@ -753,91 +755,21 @@ export default function Home() {
   return (
     <div
       suppressHydrationWarning
-      className="browse-wrapper"
-      style={{
-        minHeight: "100vh",
-        background: colors.bg.primary,
-        transition: "background-color 0.3s",
-        color: colors.text.primary,
-        marginLeft: 70,
-        paddingTop: 64,
-      }}
+      className="browse-wrapper min-h-screen bg-bg-primary text-text-primary ml-17.5 pt-16 transition-colors duration-300"
     >
       <Sidebar />
 
       {/* ── FIXED HEADER ── */}
-      <header
-        className="browse-header"
-        style={{
-          background: colors.bg.secondary,
-          borderBottom: `1px solid ${colors.border}`,
-          padding: "12px 24px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          position: "fixed",
-          top: 0,
-          left: 70,
-          right: 0,
-          height: 64,
-          boxSizing: "border-box",
-          zIndex: 30,
-          transition: "all 0.3s",
-        }}
-      >
-        <div
-          className="browse-search-container"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            flex: 1,
-            justifyContent: "center",
-            maxWidth: 800,
-          }}
-        >
-          <div className="browse-search-input-wrap" style={{ position: "relative", width: 320 }}>
-            <Search
-              style={{
-                position: "absolute",
-                left: 12,
-                top: "50%",
-                transform: "translateY(-50%)",
-                width: 16,
-                height: 16,
-                color: colors.text.tertiary,
-              }}
-            />
+      <header className="browse-header bg-bg-secondary border-b border-border-theme px-6 py-3 flex items-center justify-center fixed top-0 left-17.5 right-0 h-16 z-30 transition-colors duration-300">
+        <div className="browse-search-container flex items-center gap-2 flex-1 justify-center max-w-200">
+          <div className="browse-search-input-wrap relative w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
             <input
               ref={searchInputRef}
-              className="browse-search-input"
+              className="browse-search-input w-full pl-9 pr-4 py-2 text-sm border border-border-theme rounded-lg bg-bg-primary text-text-primary outline-none transition-all focus:border-text-primary focus:ring-2 focus:ring-accent-theme/20"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search card (/)"
-              style={{
-                width: "100%",
-                paddingLeft: 36,
-                paddingRight: 16,
-                paddingTop: 8,
-                paddingBottom: 8,
-                fontSize: 14,
-                border: `1px solid ${colors.border}`,
-                borderRadius: 8,
-                background: colors.bg.primary,
-                color: colors.text.primary,
-                outline: "none",
-                transition: "all 0.2s",
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = colors.text.primary;
-                e.currentTarget.style.boxShadow = `0 0 0 3px ${
-                  isDark ? "rgba(243,244,246,0.1)" : "rgba(17,24,39,0.1)"
-                }`;
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = colors.border;
-                e.currentTarget.style.boxShadow = "none";
-              }}
             />
             {search && (
               <button
@@ -846,50 +778,27 @@ export default function Home() {
                   searchInputRef.current?.focus();
                 }}
                 aria-label="Clear search"
-                style={{
-                  position: "absolute",
-                  right: 8,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  width: 32,
-                  height: 32,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent border-0 cursor-pointer w-8 h-8 flex items-center justify-center text-text-tertiary hover:text-text-primary"
               >
-                <X
-                  style={{ width: 14, height: 14, color: colors.text.tertiary }}
-                />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
           <button
             onClick={() => setSortDesc(!sortDesc)}
-            style={{
-              padding: 8,
-              borderRadius: 6,
-              border: "1px solid",
-              background: sortDesc ? colors.bg.tertiary : "transparent",
-              color: sortDesc ? colors.text.tertiary : colors.text.tertiary,
-              cursor: "pointer",
-              fontSize: 14,
-              fontWeight: 600,
-              transition: "all 0.2s",
-            }}
+            className={`p-2 rounded-md border border-border-theme cursor-pointer text-sm font-semibold transition-all ${
+              sortDesc ? "bg-bg-tertiary text-text-primary" : "bg-transparent text-text-tertiary hover:text-text-primary"
+            }`}
             title={sortDesc ? "Descending" : "Ascending"}
           >
             {sortDesc ? (
-              <ArrowDownWideNarrow style={{ width: 16, height: 16 }} />
+              <ArrowDownWideNarrow className="w-4 h-4" />
             ) : (
-              <ArrowUpNarrowWide style={{ width: 16, height: 16 }} />
+              <ArrowUpNarrowWide className="w-4 h-4" />
             )}
           </button>
-          <div style={{ position: "relative" }}>
+          <div className="relative">
             <button
               onClick={() => {
                 if (isSelectMode) {
@@ -899,19 +808,11 @@ export default function Home() {
                 }
               }}
               title={isSelectMode ? "Exit selection" : "Options"}
-              style={{
-                padding: 8,
-                borderRadius: 8,
-                border: `1px solid ${isSelectMode || showSelectMenu ? colors.text.primary : colors.border}`,
-                background: isSelectMode || showSelectMenu ? colors.bg.tertiary : "transparent",
-                color: isSelectMode || showSelectMenu ? colors.text.primary : colors.text.tertiary,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                transition: "all 0.2s",
-              }}
+              className={`p-2 rounded-lg border cursor-pointer flex items-center justify-center shrink-0 transition-all ${
+                isSelectMode || showSelectMenu
+                  ? "border-text-primary bg-bg-tertiary text-text-primary"
+                  : "border-border-theme bg-transparent text-text-tertiary hover:text-text-primary"
+              }`}
             >
               {isSelectMode ? <X size={16} /> : <MoreVertical size={16} />}
             </button>
@@ -919,77 +820,31 @@ export default function Home() {
             {showSelectMenu && !isSelectMode && (
               <>
                 <div
-                  style={{ position: "fixed", inset: 0, zIndex: 40 }}
+                  className="fixed inset-0 z-40"
                   onClick={() => setShowSelectMenu(false)}
                 />
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    right: 0,
-                    marginTop: 8,
-                    background: colors.bg.primary,
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: 12,
-                    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
-                    overflow: "hidden",
-                    zIndex: 50,
-                    minWidth: 160,
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
+                <div className="absolute top-full right-0 mt-2 bg-bg-primary border border-border-theme rounded-xl shadow-2xl overflow-hidden z-50 min-w-40 flex flex-col">
                   <button
                     onClick={() => {
                       enterSelectMode();
                       setShowSelectMenu(false);
                     }}
-                    style={{
-                      padding: "12px 16px",
-                      background: "transparent",
-                      border: "none",
-                      color: colors.text.primary,
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textAlign: "left",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      transition: "background 0.2s",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = colors.bg.tertiary)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    className="p-3.5 bg-transparent border-0 text-text-primary text-sm font-medium text-left cursor-pointer flex items-center gap-3 hover:bg-bg-tertiary transition-colors"
                   >
-                    <CheckSquare size={16} color={colors.text.tertiary} />
-                    Select Cards
+                    <CheckSquare size={16} className="text-text-tertiary" />
+                    <span>Select Cards</span>
                   </button>
-                  <div style={{ height: 1, background: colors.border }} />
+                  <div className="h-px bg-border-theme" />
                   <button
                     onClick={() => {
                       setMultiSelected(new Set(allSelectKeys));
                       setIsSelectMode(true);
                       setShowSelectMenu(false);
                     }}
-                    style={{
-                      padding: "12px 16px",
-                      background: "transparent",
-                      border: "none",
-                      color: colors.text.primary,
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textAlign: "left",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      transition: "background 0.2s",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = colors.bg.tertiary)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    className="p-3.5 bg-transparent border-0 text-text-primary text-sm font-medium text-left cursor-pointer flex items-center gap-3 hover:bg-bg-tertiary transition-colors"
                   >
-                    <CopyCheck size={16} color={colors.text.tertiary} />
-                    Select All
+                    <CopyCheck size={16} className="text-text-tertiary" />
+                    <span>Select All</span>
                   </button>
                 </div>
               </>
@@ -997,51 +852,18 @@ export default function Home() {
           </div>
           {/* Mobile Filter Toggle Button */}
           <button
-            className="browse-filter-toggle"
+            className="browse-filter-toggle relative p-2 rounded-lg border cursor-pointer flex items-center justify-center shrink-0 transition-all"
             onClick={() => setMobileFiltersOpen(prev => !prev)}
             title={mobileFiltersOpen ? "Hide filters" : "Show filters"}
             style={{
-              position: "relative",
-              padding: 8,
-              borderRadius: 8,
-              border: `1px solid ${
-                mobileFiltersOpen || activeFilterCount > 0
-                  ? colors.text.primary
-                  : colors.border
-              }`,
-              background: mobileFiltersOpen || activeFilterCount > 0
-                ? colors.bg.tertiary
-                : "transparent",
-              color: mobileFiltersOpen || activeFilterCount > 0
-                ? colors.text.primary
-                : colors.text.tertiary,
-              cursor: "pointer",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              transition: "all 0.2s",
+              borderColor: mobileFiltersOpen || activeFilterCount > 0 ? tc.text.primary : tc.border,
+              background: mobileFiltersOpen || activeFilterCount > 0 ? tc.bg.tertiary : "transparent",
+              color: mobileFiltersOpen || activeFilterCount > 0 ? tc.text.primary : tc.text.tertiary,
             }}
           >
             <SlidersHorizontal size={16} />
             {activeFilterCount > 0 && (
-              <span
-                style={{
-                  position: "absolute",
-                  top: -4,
-                  right: -4,
-                  width: 16,
-                  height: 16,
-                  borderRadius: "50%",
-                  background: tc.accent,
-                  color: "#fff",
-                  fontSize: 10,
-                  fontWeight: 700,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
-                }}
-              >
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent-theme text-white text-[10px] font-bold flex items-center justify-center shadow-md">
                 {activeFilterCount}
               </span>
             )}
@@ -1060,74 +882,23 @@ export default function Home() {
       {isMobile && mobileFiltersOpen && (
         <>
           <div
-            className="filter-drawer-backdrop"
+            className="filter-drawer-backdrop fixed top-14.5 inset-x-0 bottom-0 bg-black/45 backdrop-blur-[2px] z-25"
             onClick={() => setMobileFiltersOpen(false)}
-            style={{
-              position: "fixed",
-              top: 58,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(0, 0, 0, 0.45)",
-              backdropFilter: "blur(2px)",
-              WebkitBackdropFilter: "blur(2px)",
-              zIndex: 25,
-            }}
           />
-          <div
-            className="browse-mobile-drawer"
-            style={{
-              position: "fixed",
-              top: 58,
-              left: 0,
-              right: 0,
-              zIndex: 30,
-              background: colors.bg.primary,
-              borderBottom: `1px solid ${colors.border}`,
-              boxShadow: "0 16px 36px rgba(0, 0, 0, 0.35)",
-              maxHeight: "calc(100vh - 58px)",
-              overflowY: "auto",
-              WebkitOverflowScrolling: "touch",
-            }}
-          >
+          <div className="browse-mobile-drawer fixed top-14.5 inset-x-0 z-30 bg-bg-primary border-b border-border-theme shadow-2xl max-h-[calc(100vh-58px)] overflow-y-auto">
             <FilterBar sets={sets} filters={filters} onChange={setFilters} isMobileDrawer={true} />
-            <div
-              style={{
-                padding: "8px 16px 14px",
-                background: colors.bg.primary,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
+            <div className="px-4 pt-2 pb-3.5 bg-bg-primary flex items-center justify-between">
               {activeFilterCount > 0 ? (
                 <button
                   onClick={() => setFilters({})}
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: colors.text.tertiary,
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: "4px 8px",
-                  }}
+                  className="text-xs font-semibold text-text-tertiary bg-transparent border-0 cursor-pointer py-1 px-2 hover:text-text-primary"
                 >
                   Reset all
                 </button>
               ) : <div />}
               <button
                 onClick={() => setMobileFiltersOpen(false)}
-                style={{
-                  padding: "6px 18px",
-                  borderRadius: 8,
-                  background: colors.text.primary,
-                  color: colors.bg.primary,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  border: "none",
-                  cursor: "pointer",
-                }}
+                className="py-1.5 px-4.5 rounded-lg bg-text-primary text-bg-primary text-xs font-bold border-0 cursor-pointer hover:opacity-90"
               >
                 Done
               </button>
@@ -1136,25 +907,14 @@ export default function Home() {
         </>
       )}
 
-      <div
-        style={{
-          paddingLeft: 24,
-          paddingRight: 24,
-          paddingTop: 12,
-          paddingBottom: 12,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          borderBottom: `1px solid ${colors.border}`,
-        }}
-      >
-        <span style={{ fontSize: 14, color: colors.text.tertiary }}>
+      <div className="px-6 py-3 flex items-center justify-between border-b border-border-theme">
+        <span className="text-sm text-text-tertiary">
           {loading ? (
             "Loading cards..."
           ) : (
             <>
               Showing{" "}
-              <strong style={{ color: colors.text.primary }}>
+              <strong className="text-text-primary">
                 {filtered.length}
               </strong>{" "}
               {filtered.length === 1 ? "card" : "cards"}
@@ -1167,31 +927,14 @@ export default function Home() {
               setFilters({});
               setSearch("");
             }}
-            style={{
-              fontSize: 12,
-              color: colors.accent,
-              fontWeight: 600,
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = "0.7";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = "1";
-            }}
+            className="text-xs text-accent-theme font-semibold bg-transparent border-0 cursor-pointer flex items-center gap-1 transition-opacity hover:opacity-75"
           >
-            <X style={{ width: 12, height: 12 }} /> Clear filters
+            <X className="w-3 h-3" /> Clear filters
           </button>
         )}
       </div>
 
-      <main className="browse-main" style={{ paddingLeft: 24, paddingRight: 24, paddingBottom: 64 }}>
+      <main className="browse-main px-6 pb-16">
         <style>{`
           @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
           .skeleton-loader { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
@@ -1199,38 +942,16 @@ export default function Home() {
         `}</style>
 
         {loading ? (
-          <div
-            className="browse-skeleton-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(5, 1fr)",
-              gap: 16,
-              marginTop: 16,
-            }}
-          >
+          <div className="browse-skeleton-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-4">
             {Array.from({ length: 18 }).map((_, i) => (
               <div
                 key={i}
-                className="skeleton-loader"
-                style={{
-                  borderRadius: 12,
-                  background: colors.bg.tertiary,
-                  border: `1px solid ${colors.border}`,
-                  height: 256,
-                }}
+                className="skeleton-loader rounded-xl bg-bg-tertiary border border-border-theme h-64"
               />
             ))}
           </div>
         ) : (
-          <div
-            className="browse-card-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-              gap: 16,
-              marginTop: 16,
-            }}
-          >
+          <div className="browse-card-grid grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4 mt-4">
             {filtered.slice(0, visibleCards).map((card, i) => {
               const shouldFlip = isAnimating && i < 10;
               const isLastFlip = i === Math.min(9, filtered.length - 1);
@@ -1242,14 +963,12 @@ export default function Home() {
               return (
                 <div
                   key={`${filterKey}-${card.id}-${i}`}
-                  style={{
-                    perspective: shouldFlip ? "1000px" : "none",
-                    position: "relative",
-                  }}
+                  className="relative"
+                  style={{ perspective: shouldFlip ? "1000px" : "none" }}
                 >
                   <div
+                    className="relative"
                     style={{
-                      position: "relative",
                       transformStyle: shouldFlip ? "preserve-3d" : "flat",
                       animationName: shouldFlip ? "cardFlipIn" : "none",
                       animationDuration: shouldFlip ? "0.5s" : "0s",
@@ -1263,17 +982,7 @@ export default function Home() {
                     }
                   >
                     {shouldFlip && (
-                      <div
-                        style={{
-                          backfaceVisibility: "hidden",
-                          WebkitBackfaceVisibility: "hidden",
-                          transform: "rotateY(180deg)",
-                          position: "absolute",
-                          inset: 0,
-                          borderRadius: 14,
-                          overflow: "hidden",
-                        }}
-                      >
+                      <div className="absolute inset-0 rounded-[14px] overflow-hidden backface-hidden [-webkit-backface-visibility:hidden] transform-[rotateY(180deg)]">
                         <Image
                           src={
                             card.type?.toUpperCase() === "LEADER"
@@ -1283,19 +992,17 @@ export default function Home() {
                           alt=""
                           fill
                           loading="lazy"
-                          style={{ objectFit: "cover", borderRadius: 14 }}
+                          className="object-cover rounded-[14px]"
                         />
                       </div>
                     )}
                     <div
+                      className={`rounded-[14px] transition-all duration-150 ${
+                        isMultiChecked ? "ring-3 ring-indigo-500" : ""
+                      }`}
                       style={{
                         backfaceVisibility: shouldFlip ? "hidden" : "visible",
-                        WebkitBackfaceVisibility: shouldFlip
-                          ? "hidden"
-                          : "visible",
-                        outline: isMultiChecked ? "3px solid #6366f1" : "none",
-                        borderRadius: 14,
-                        transition: "outline 0.15s",
+                        WebkitBackfaceVisibility: shouldFlip ? "hidden" : "visible",
                       }}
                       onClick={() => {
                         if (isSelectMode) toggleMultiSelect(selectKey);
@@ -1306,69 +1013,22 @@ export default function Home() {
                     </div>
                   </div>
                   {isOwned && !isSelectMode && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 10,
-                        left: 10,
-                        width: 22,
-                        height: 22,
-                        borderRadius: "50%",
-                        background: "#16a34a",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 10,
-                        boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-                        pointerEvents: "none",
-                      }}
-                    >
+                    <div className="absolute top-2.5 left-2.5 w-5.5 h-5.5 rounded-full bg-green-600 flex items-center justify-center z-10 shadow-md pointer-events-none">
                       <Check size={12} color="#fff" strokeWidth={3} />
                     </div>
                   )}
                   {isWishlisted && !isSelectMode && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 10,
-                        left: isOwned ? 36 : 10,
-                        width: 22,
-                        height: 22,
-                        borderRadius: "50%",
-                        background: "#f59e0b",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 10,
-                        boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-                        pointerEvents: "none",
-                      }}
-                    >
+                    <div className={`absolute top-2.5 ${isOwned ? "left-9" : "left-2.5"} w-5.5 h-5.5 rounded-full bg-amber-500 flex items-center justify-center z-10 shadow-md pointer-events-none`}>
                       <Star size={12} fill="#fff" color="#fff" />
                     </div>
                   )}
                   {isSelectMode && (
                     <div
-                      style={{
-                        position: "absolute",
-                        top: 10,
-                        right: 10,
-                        width: 22,
-                        height: 22,
-                        borderRadius: 6,
-                        border: `2px solid ${
-                          isMultiChecked ? "#6366f1" : "rgba(255,255,255,0.7)"
-                        }`,
-                        background: isMultiChecked
-                          ? "#6366f1"
-                          : "rgba(0,0,0,0.3)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 10,
-                        transition: "all 0.15s",
-                        pointerEvents: "none",
-                      }}
+                      className={`absolute top-2.5 right-2.5 w-5.5 h-5.5 rounded-md border-2 flex items-center justify-center z-10 transition-all pointer-events-none ${
+                        isMultiChecked
+                          ? "border-indigo-500 bg-indigo-500"
+                          : "border-white/70 bg-black/30"
+                      }`}
                     >
                       {isMultiChecked && (
                         <Check size={13} color="#fff" strokeWidth={3} />
@@ -1379,49 +1039,22 @@ export default function Home() {
               );
             })}
           </div>
-
         )}
 
         {!loading && filtered.length === 0 && (
-          <div
-            style={{
-              textAlign: "center",
-              paddingTop: 96,
-              paddingBottom: 96,
-              color: colors.text.tertiary,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-            }}
-          >
+          <div className="text-center py-24 text-text-tertiary flex flex-col items-center">
             <Image
               src="/nocard.png"
               alt="No cards found"
               width={120}
               height={120}
               priority
-              style={{
-                marginBottom: 20,
-                objectFit: "contain",
-                opacity: isDark ? 0.9 : 1,
-              }}
+              className="mb-5 object-contain opacity-90"
             />
-            <div
-              style={{
-                fontWeight: 700,
-                fontSize: 20,
-                color: colors.text.primary,
-              }}
-            >
+            <div className="font-bold text-xl text-text-primary">
               No cards found
             </div>
-            <div
-              style={{
-                fontSize: 14,
-                marginTop: 6,
-                color: colors.text.tertiary,
-              }}
-            >
+            <div className="text-sm mt-1.5 text-text-tertiary">
               Try adjusting your filters
             </div>
           </div>
@@ -1431,19 +1064,7 @@ export default function Home() {
       {/* ── CARD DETAIL MODAL ── */}
       {selected && (
         <div
-          className="card-modal-outer"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: isDark ? "rgba(0, 0, 0, 0.78)" : "rgba(0, 0, 0, 0.55)",
-            backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",
-            zIndex: 60,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: isMobile ? 12 : 24,
-          }}
+          className="card-modal-outer fixed inset-0 z-60 flex items-center justify-center p-3 md:p-6 bg-black/60 dark:bg-black/80 backdrop-blur-sm"
           onClick={() => {
             setSelectedIndex(-1);
             setShowBinderPicker(false);
@@ -1451,488 +1072,162 @@ export default function Home() {
           }}
         >
           <div
-            className="card-modal-nav-row"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 16,
-              width: "100%",
-              maxWidth: 960,
-            }}
+            className="card-modal-nav-row flex items-center justify-center gap-4 w-full max-w-240"
             onClick={(e) => e.stopPropagation()}
           >
             {(!isMobile || isLandscape) && (
               <button
-                className="card-modal-prev"
+                className="card-modal-prev shrink-0 w-11 h-11 rounded-full bg-bg-primary shadow-xl border border-border-theme flex items-center justify-center text-text-primary transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
                 onClick={() => {
                   setSelectedIndex(selectedIndex - 1);
                   setShowBinderPicker(false);
                   resetInlineCreation();
                 }}
                 disabled={selectedIndex <= 0}
-                style={{
-                  flexShrink: 0,
-                  width: 44,
-                  height: 44,
-                  borderRadius: "50%",
-                  background: colors.bg.primary,
-                  boxShadow: isDark
-                    ? "0 20px 25px rgba(0,0,0,0.4)"
-                    : "0 10px 15px rgba(0,0,0,0.1)",
-                  border: `1px solid ${colors.border}`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: colors.text.primary,
-                  cursor: selectedIndex > 0 ? "pointer" : "not-allowed",
-                  opacity: selectedIndex <= 0 ? 0.3 : 1,
-                  transition: "all 0.2s",
-                }}
               >
-                <ChevronLeft style={{ width: 20, height: 20 }} />
+                <ChevronLeft className="w-5 h-5" />
               </button>
             )}
 
             <div
-              className="card-modal-container"
+              className="card-modal-container flex-1 bg-bg-primary rounded-[20px] shadow-2xl border border-border-theme overflow-hidden max-h-[90vh] flex flex-col"
               onTouchStart={handleModalTouchStart}
-  onTouchEnd={handleModalTouchEnd}
-              style={{
-                flex: 1,
-                background: colors.bg.primary,
-                borderRadius: 20,
-                boxShadow: isDark
-                  ? "0 32px 64px rgba(0,0,0,0.5)"
-                  : "0 32px 64px rgba(0,0,0,0.15)",
-                border: `1px solid ${colors.border}`,
-                overflow: "hidden",
-                maxHeight: "90vh",
-                display: "flex",
-                flexDirection: "column",
-              }}
+              onTouchEnd={handleModalTouchEnd}
             >
-              <div
-                className="card-modal-header"
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "18px 24px",
-                  borderBottom: `1px solid ${colors.border}`,
-                  flexShrink: 0,
-                  gap: 16,
-                }}
-              >
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div
-                    style={{
-                      fontWeight: 900,
-                      fontSize: 22,
-                      color: colors.text.primary,
-                      letterSpacing: "-0.02em",
-                      lineHeight: 1.2,
-                    }}
-                  >
+              <div className="card-modal-header flex justify-between items-center py-4.5 px-6 border-b border-border-theme shrink-0 gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="font-black text-[22px] text-text-primary tracking-tight leading-tight">
                     {selected.name}
                   </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: colors.text.tertiary,
-                      fontFamily: "monospace",
-                      marginTop: 2,
-                    }}
-                  >
+                  <div className="text-xs text-text-tertiary font-mono mt-0.5">
                     {selected.id}
                   </div>
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    flexShrink: 0,
-                  }}
-                >
-                    <div
-                      style={{
-                        position: "relative",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="relative flex items-center gap-2">
+                    {ownedSet.has(getCardKey(selected)) && (
+                      <div className="w-4.5 h-4.5 rounded-full bg-green-600 flex items-center justify-center shrink-0">
+                        <Check size={11} color="#fff" strokeWidth={3} />
+                      </div>
+                    )}
+                    {wishlistSet.has(getCardKey(selected)) && (
+                      <div className="w-4.5 h-4.5 rounded-full bg-amber-500 flex items-center justify-center shrink-0">
+                        <Star size={11} fill="#fff" color="#fff" />
+                      </div>
+                    )}
+                    <button
+                      className="card-modal-btn flex items-center justify-center gap-1.5 py-1.75 px-3 rounded-lg text-xs font-medium cursor-pointer transition-all border border-border-theme bg-transparent text-text-tertiary hover:border-text-secondary hover:text-text-primary"
+                      onClick={() => {
+                        const next = !showBinderPicker;
+                        setShowBinderPicker(next);
+                        if (!next) resetInlineCreation();
                       }}
+                      title="Add to binder"
+                      aria-label="Add to binder"
                     >
-                      {ownedSet.has(getCardKey(selected)) && (
-                        <div
-                          style={{
-                            width: 18,
-                            height: 18,
-                            borderRadius: "50%",
-                            background: "#16a34a",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                          }}
-                        >
-                          <Check size={11} color="#fff" strokeWidth={3} />
-                        </div>
-                      )}
-                      {wishlistSet.has(getCardKey(selected)) && (
-                        <div
-                          style={{
-                            width: 18,
-                            height: 18,
-                            borderRadius: "50%",
-                            background: "#f59e0b",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                          }}
-                        >
-                          <Star size={11} fill="#fff" color="#fff" />
-                        </div>
-                      )}
-                      <button
-                        className="card-modal-btn"
-                        onClick={() => {
-                          const next = !showBinderPicker;
-                          setShowBinderPicker(next);
-                          if (!next) resetInlineCreation();
-                        }}
-                        title="Add to binder"
-                        aria-label="Add to binder"
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 6,
-                          padding: isMobile ? "7px 9px" : "7px 12px",
-                          borderRadius: 8,
-                          fontSize: 12,
-                          fontWeight: 500,
-                          cursor: "pointer",
-                          transition: "all 0.2s",
-                          border: `1px solid ${colors.border}`,
-                          background: "transparent",
-                          color: colors.text.tertiary,
-                        }}
+                      <BookmarkPlus size={15} />
+                      {!isMobile && <span className="card-modal-btn-label">Add to binder</span>}
+                    </button>
+                    {showBinderPicker && (
+                      <div
+                        className="absolute top-[calc(100%+8px)] right-0 w-60 bg-bg-primary border border-border-theme rounded-xl overflow-hidden shadow-2xl z-10 p-2"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <BookmarkPlus size={15} />
-                        {!isMobile && <span className="card-modal-btn-label">Add to binder</span>}
-                      </button>
-                      {showBinderPicker && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: "calc(100% + 8px)",
-                            right: 0,
-                            width: 240,
-                            background: colors.bg.primary,
-                            border: `1px solid ${colors.border}`,
-                            borderRadius: 12,
-                            overflow: "hidden",
-                            boxShadow: isDark
-                              ? "0 16px 40px rgba(0,0,0,0.5)"
-                              : "0 16px 40px rgba(0,0,0,0.12)",
-                            zIndex: 10,
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {/* Collection section */}
-                          <div style={{ padding: "8px 8px 4px" }}>
-                            <div
-                              style={{
-                                fontSize: 10,
-                                color: colors.text.tertiary,
-                                fontWeight: 600,
-                                letterSpacing: "0.07em",
-                                textTransform: "uppercase" as const,
-                                padding: "4px 8px 6px",
-                              }}
-                            >
-                              Collection
-                            </div>
-                            <button
-                              onClick={() =>
-                                handleToggleOwned(getCardKey(selected))
-                              }
-                              style={{
-                                width: "100%",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                padding: "9px 10px",
-                                borderRadius: 8,
-                                border: "none",
-                                cursor: "pointer",
-                                fontSize: 13,
-                                textAlign: "left" as const,
-                                transition: "all 0.15s",
-                                background: ownedSet.has(getCardKey(selected))
-                                  ? isDark
-                                    ? "rgba(22,163,74,0.15)"
-                                    : "rgba(22,163,74,0.08)"
-                                  : "transparent",
-                                color: ownedSet.has(getCardKey(selected))
-                                  ? "#16a34a"
-                                  : colors.text.primary,
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!ownedSet.has(getCardKey(selected)))
-                                  e.currentTarget.style.background =
-                                    colors.bg.secondary;
-                              }}
-                              onMouseLeave={(e) => {
-                                if (!ownedSet.has(getCardKey(selected)))
-                                  e.currentTarget.style.background =
-                                    "transparent";
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: 18,
-                                  height: 18,
-                                  borderRadius: "50%",
-                                  border: `1.5px solid ${
-                                    ownedSet.has(getCardKey(selected))
-                                      ? "#16a34a"
-                                      : colors.border
-                                  }`,
-                                  background: ownedSet.has(getCardKey(selected))
-                                    ? "#16a34a"
-                                    : "transparent",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  flexShrink: 0,
-                                }}
-                              >
-                                {ownedSet.has(getCardKey(selected)) && (
-                                  <Check
-                                    size={10}
-                                    color="#fff"
-                                    strokeWidth={3}
-                                  />
-                                )}
-                              </div>
-                              I own this card
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleToggleWishlist(getCardKey(selected))
-                              }
-                              style={{
-                                width: "100%",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                padding: "9px 10px",
-                                borderRadius: 8,
-                                border: "none",
-                                cursor: "pointer",
-                                fontSize: 13,
-                                textAlign: "left" as const,
-                                transition: "all 0.15s",
-                                background: wishlistSet.has(
-                                  getCardKey(selected)
-                                )
-                                  ? isDark
-                                    ? "rgba(245,158,11,0.15)"
-                                    : "rgba(245,158,11,0.08)"
-                                  : "transparent",
-                                color: wishlistSet.has(getCardKey(selected))
-                                  ? "#d97706"
-                                  : colors.text.primary,
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!wishlistSet.has(getCardKey(selected)))
-                                  e.currentTarget.style.background =
-                                    colors.bg.secondary;
-                              }}
-                              onMouseLeave={(e) => {
-                                if (!wishlistSet.has(getCardKey(selected)))
-                                  e.currentTarget.style.background =
-                                    "transparent";
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: 18,
-                                  height: 18,
-                                  borderRadius: "50%",
-                                  border: `1.5px solid ${
-                                    wishlistSet.has(getCardKey(selected))
-                                      ? "#d97706"
-                                      : colors.border
-                                  }`,
-                                  background: wishlistSet.has(
-                                    getCardKey(selected)
-                                  )
-                                    ? "#f59e0b"
-                                    : "transparent",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  flexShrink: 0,
-                                  fontSize: 10,
-                                }}
-                              >
-                                {wishlistSet.has(getCardKey(selected)) && (
-                                  <Star size={10} fill="#fff" color="#fff" />
-                                )}
-                              </div>
-                              Add to wishlist
-                            </button>
+                        {/* Collection section */}
+                        <div className="pb-1">
+                          <div className="text-[10px] text-text-tertiary font-semibold tracking-wider uppercase py-1 px-2">
+                            Collection
                           </div>
-                          {/* My binders section — always shown when logged in */}
-                          <div
-                            style={{
-                              height: "0.5px",
-                              background: colors.border,
-                              margin: "4px 0",
-                            }}
-                          />
-                          <div style={{ padding: "4px 8px 0" }}>
-                            <div
-                              style={{
-                                fontSize: 10,
-                                color: colors.text.tertiary,
-                                fontWeight: 600,
-                                letterSpacing: "0.07em",
-                                textTransform: "uppercase" as const,
-                                padding: "4px 8px 6px",
-                              }}
-                            >
-                              My binders
-                            </div>
-                            <div style={{ maxHeight: 180, overflowY: "auto" }}>
-                              {binders.map((binder) => {
-                                const inBinder = (
-                                  binderCardMap[binder.id] ?? []
-                                ).includes(getCardKey(selected));
-                                return (
-                                  <button
-                                    key={binder.id}
-                                    onClick={() =>
-                                      handleToggleBinderCard(
-                                        binder.id,
-                                        getCardKey(selected)
-                                      )
-                                    }
-                                    style={{
-                                      width: "100%",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: 10,
-                                      padding: "9px 10px",
-                                      borderRadius: 8,
-                                      border: "none",
-                                      cursor: "pointer",
-                                      fontSize: 13,
-                                      textAlign: "left" as const,
-                                      transition: "all 0.15s",
-                                      background: inBinder
-                                        ? isDark
-                                          ? "rgba(99,102,241,0.15)"
-                                          : "rgba(99,102,241,0.08)"
-                                        : "transparent",
-                                      color: inBinder
-                                        ? "#6366f1"
-                                        : colors.text.primary,
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      if (!inBinder)
-                                        e.currentTarget.style.background =
-                                          colors.bg.secondary;
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      if (!inBinder)
-                                        e.currentTarget.style.background =
-                                          "transparent";
-                                    }}
-                                  >
-                                    <BookOpen
-                                      size={14}
-                                      style={{ flexShrink: 0 }}
-                                    />
-                                    <span
-                                      style={{
-                                        flex: 1,
-                                        whiteSpace: "nowrap",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                      }}
-                                    >
-                                      {binder.name}
-                                    </span>
-                                    {inBinder && (
-                                      <Check size={12} strokeWidth={3} />
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                            <div style={{ padding: "0 0 8px" }}>
-                              {renderNewBinderRow(() =>
-                                handleCreateBinderInline(getCardKey(selected))
+                          <button
+                            onClick={() => handleToggleOwned(getCardKey(selected))}
+                            className={`w-full flex items-center gap-2.5 py-2.25 px-2.5 rounded-lg border-0 cursor-pointer text-[13px] text-left transition-colors ${
+                              ownedSet.has(getCardKey(selected))
+                                ? "bg-green-600/15 text-green-600 dark:text-green-400"
+                                : "bg-transparent text-text-primary hover:bg-bg-secondary"
+                            }`}
+                          >
+                            <div className={`w-4.5 h-4.5 rounded-full border-[1.5px] flex items-center justify-center shrink-0 ${
+                              ownedSet.has(getCardKey(selected))
+                                ? "border-green-600 bg-green-600 text-white"
+                                : "border-border-theme bg-transparent"
+                            }`}>
+                              {ownedSet.has(getCardKey(selected)) && (
+                                <Check size={10} color="#fff" strokeWidth={3} />
                               )}
                             </div>
+                            <span>I own this card</span>
+                          </button>
+                          <button
+                            onClick={() => handleToggleWishlist(getCardKey(selected))}
+                            className={`w-full flex items-center gap-2.5 py-2.25 px-2.5 rounded-lg border-0 cursor-pointer text-[13px] text-left transition-colors ${
+                              wishlistSet.has(getCardKey(selected))
+                                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                : "bg-transparent text-text-primary hover:bg-bg-secondary"
+                            }`}
+                          >
+                            <div className={`w-4.5 h-4.5 rounded-full border-[1.5px] flex items-center justify-center shrink-0 ${
+                              wishlistSet.has(getCardKey(selected))
+                                ? "border-amber-500 bg-amber-500 text-white"
+                                : "border-border-theme bg-transparent"
+                            }`}>
+                              {wishlistSet.has(getCardKey(selected)) && (
+                                <Star size={10} fill="#fff" color="#fff" />
+                              )}
+                            </div>
+                            <span>Add to wishlist</span>
+                          </button>
+                        </div>
+                        {/* My binders section */}
+                        <div className="h-px bg-border-theme my-1" />
+                        <div className="pt-1">
+                          <div className="text-[10px] text-text-tertiary font-semibold tracking-wider uppercase py-1 px-2">
+                            My binders
+                          </div>
+                          <div className="max-h-45 overflow-y-auto">
+                            {binders.map((binder) => {
+                              const inBinder = (binderCardMap[binder.id] ?? []).includes(getCardKey(selected));
+                              return (
+                                <button
+                                  key={binder.id}
+                                  onClick={() => handleToggleBinderCard(binder.id, getCardKey(selected))}
+                                  className={`w-full flex items-center gap-2.5 py-2.25 px-2.5 rounded-lg border-0 cursor-pointer text-[13px] text-left transition-colors ${
+                                    inBinder
+                                      ? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400"
+                                      : "bg-transparent text-text-primary hover:bg-bg-secondary"
+                                  }`}
+                                >
+                                  <BookOpen size={14} className="shrink-0" />
+                                  <span className="flex-1 whitespace-nowrap overflow-hidden text-ellipsis">
+                                    {binder.name}
+                                  </span>
+                                  {inBinder && <Check size={12} strokeWidth={3} />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <div className="pb-1">
+                            {renderNewBinderRow(() => handleCreateBinderInline(getCardKey(selected)))}
                           </div>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
+                  </div>
                   <button
                     onClick={() => {
                       setSelectedIndex(-1);
                       setShowBinderPicker(false);
                       resetInlineCreation();
                     }}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: 4,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
+                    className="bg-transparent border-0 cursor-pointer p-1 flex items-center justify-center text-text-tertiary hover:text-text-primary"
                   >
-                    <X
-                      style={{
-                        width: 20,
-                        height: 20,
-                        color: colors.text.tertiary,
-                      }}
-                    />
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
 
-              <div
-                className="card-modal-body"
-                style={{
-                  display: "flex",
-                  flex: 1,
-                  overflow: "hidden",
-                  minHeight: 0,
-                }}
-              >
-                <div
-                  className="card-modal-image-pane"
-                  style={{
-                    width: "48%",
-                    flexShrink: 0,
-                    background: tc.bg.primary,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "24px 20px 24px 28px",
-                  }}
-                >
-                  <div style={{ width: "100%", maxWidth: 360, margin: "0 auto" }}>
+              <div className="card-modal-body flex flex-col md:flex-row flex-1 overflow-hidden min-h-0">
+                <div className="card-modal-image-pane w-full md:w-[48%] shrink-0 bg-bg-primary flex items-center justify-center p-6 md:pl-7 md:pr-5">
+                  <div className="w-full max-w-90 mx-auto">
                     <ModalCardImage
                       key={selected.images?.large ?? selected.images?.small ?? selected.id}
                       src={selected.images?.large || selected.images?.small || "/card-placeholder.png"}
@@ -1942,26 +1237,8 @@ export default function Home() {
                     />
                   </div>
                 </div>
-                <div
-                  className="card-modal-details-pane"
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    overflowY: "auto",
-                    padding: "24px 28px 24px 16px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 14,
-                  }}
-                >
-                  <div
-                    className="card-modal-detail-grid"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: 10,
-                    }}
-                  >
+                <div className="card-modal-details-pane flex-1 min-w-0 overflow-y-auto p-6 md:pl-4 md:pr-7 flex flex-col gap-3.5">
+                  <div className="card-modal-detail-grid grid grid-cols-2 gap-2.5">
                     {[
                       ["Type", selected.type],
                       ["Rarity", selected.rarity?.replace(/^PR$/i, "P")],
@@ -1977,42 +1254,18 @@ export default function Home() {
                       .map(([label, value]) => (
                         <div
                           key={String(label)}
-                          style={{
-                            background: colors.bg.secondary,
-                            borderRadius: 10,
-                            padding: "10px 14px",
-                            border: `1px solid ${colors.border}`,
-                            minWidth: 0,
-                            gridColumn: label === "Set" ? "1 / -1" : undefined,
-                          }}
+                          className={`bg-bg-secondary rounded-[10px] p-2.5 md:px-3.5 border border-border-theme min-w-0 ${
+                            label === "Set" ? "col-span-2" : ""
+                          }`}
                         >
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: colors.text.tertiary,
-                              marginBottom: 3,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.05em",
-                              fontWeight: 700,
-                            }}
-                          >
+                          <div className="text-[11px] text-text-tertiary mb-0.75 uppercase tracking-wider font-bold">
                             {label}
                           </div>
-                          <div
-                            style={{
-                              fontWeight: 600,
-                              fontSize: 14,
-                              color: colors.text.primary,
-                              lineHeight: 1.4,
-                              wordBreak: "break-word",
-                              overflowWrap: "break-word",
-                              whiteSpace: "normal",
-                            }}
-                          >
+                          <div className="font-semibold text-sm text-text-primary leading-snug wrap-break-word whitespace-normal">
                             {label === "Family" && typeof value === "string" && value.includes("/") ? (
-                              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                              <div className="flex flex-col gap-0.5">
                                 {value.split("/").map((part, idx) => (
-                                  <div key={idx} style={{ lineHeight: 1.35 }}>
+                                  <div key={idx} className="leading-tight">
                                     {part.trim()}
                                   </div>
                                 ))}
@@ -2025,71 +1278,21 @@ export default function Home() {
                       ))}
                   </div>
                   {selected.ability && (
-                    <div
-                      style={{
-                        background: colors.bg.secondary,
-                        borderRadius: 10,
-                        padding: "12px 14px",
-                        border: `1px solid ${colors.border}`,
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: colors.text.tertiary,
-                          marginBottom: 6,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.05em",
-                          fontWeight: 700,
-                        }}
-                      >
+                    <div className="bg-bg-secondary rounded-[10px] p-3 md:px-3.5 border border-border-theme">
+                      <div className="text-[11px] text-text-tertiary mb-1.5 uppercase tracking-wider font-bold">
                         Effect
                       </div>
-                      <div
-                        style={{
-                          fontSize: 14,
-                          color: colors.text.primary,
-                          lineHeight: 1.7,
-                        }}
-                      >
+                      <div className="text-sm text-text-primary leading-relaxed">
                         {selected.ability}
                       </div>
                     </div>
                   )}
                   {selected.trigger && selected.trigger !== "" && (
-                    <div
-                      style={{
-                        background: isDark
-                          ? "rgba(217,119,6,0.1)"
-                          : "rgba(251,191,36,0.08)",
-                        borderRadius: 10,
-                        padding: "12px 14px",
-                        border: `1px solid ${
-                          isDark
-                            ? "rgba(251,191,36,0.2)"
-                            : "rgba(217,119,6,0.2)"
-                        }`,
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: isDark ? "#fbbf24" : "#d97706",
-                          marginBottom: 6,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.05em",
-                          fontWeight: 700,
-                        }}
-                      >
+                    <div className="bg-amber-500/10 rounded-[10px] p-3 md:px-3.5 border border-amber-500/25">
+                      <div className="text-[11px] text-amber-600 dark:text-amber-400 mb-1.5 uppercase tracking-wider font-bold">
                         Trigger
                       </div>
-                      <div
-                        style={{
-                          fontSize: 14,
-                          color: colors.text.primary,
-                          lineHeight: 1.7,
-                        }}
-                      >
+                      <div className="text-sm text-text-primary leading-relaxed">
                         {selected.trigger}
                       </div>
                     </div>
@@ -2097,53 +1300,22 @@ export default function Home() {
                 </div>
               </div>
 
-              <div
-                className="card-modal-footer"
-                style={{
-                  borderTop: `1px solid ${colors.border}`,
-                  padding: "10px 24px",
-                  textAlign: "center",
-                  fontSize: 12,
-                  color: colors.text.tertiary,
-                  flexShrink: 0,
-                }}
-              >
+              <div className="card-modal-footer border-t border-border-theme py-2.5 px-6 text-center text-xs text-text-tertiary shrink-0">
                 {selectedIndex + 1} / {filtered.length}
               </div>
             </div>
 
             {(!isMobile || isLandscape) && (
               <button
-                className="card-modal-next"
+                className="card-modal-next shrink-0 w-11 h-11 rounded-full bg-bg-primary shadow-xl border border-border-theme flex items-center justify-center text-text-primary transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
                 onClick={() => {
                   setSelectedIndex(selectedIndex + 1);
                   setShowBinderPicker(false);
                   resetInlineCreation();
                 }}
                 disabled={selectedIndex >= filtered.length - 1}
-                style={{
-                  flexShrink: 0,
-                  width: 44,
-                  height: 44,
-                  borderRadius: "50%",
-                  background: colors.bg.primary,
-                  boxShadow: isDark
-                    ? "0 20px 25px rgba(0,0,0,0.4)"
-                    : "0 10px 15px rgba(0,0,0,0.1)",
-                  border: `1px solid ${colors.border}`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: colors.text.primary,
-                  cursor:
-                    selectedIndex < filtered.length - 1
-                      ? "pointer"
-                      : "not-allowed",
-                  opacity: selectedIndex >= filtered.length - 1 ? 0.3 : 1,
-                  transition: "all 0.2s",
-                }}
               >
-                <ChevronRight style={{ width: 20, height: 20 }} />
+                <ChevronRight className="w-5 h-5" />
               </button>
             )}
           </div>
@@ -2152,61 +1324,22 @@ export default function Home() {
 
       {/* ── BULK PROGRESS BAR ── */}
       {bulkProgress && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 100,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 60,
-            background: colors.bg.primary,
-            border: `1px solid ${colors.border}`,
-            borderRadius: 12,
-            padding: "10px 16px",
-            boxShadow: isDark
-              ? "0 8px 32px rgba(0,0,0,0.5)"
-              : "0 8px 32px rgba(0,0,0,0.15)",
-            minWidth: 220,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 6,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: colors.text.primary,
-              }}
-            >
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-60 bg-bg-primary border border-border-theme rounded-xl py-2.5 px-4 shadow-2xl min-w-55">
+          <div className="flex justify-between items-center mb-1.5">
+            <span className="text-xs font-semibold text-text-primary">
               Processing...
             </span>
-            <span style={{ fontSize: 12, color: colors.text.tertiary }}>
+            <span className="text-xs text-text-tertiary">
               {bulkProgress.done} / {bulkProgress.total}
             </span>
           </div>
-          <div
-            style={{
-              height: 6,
-              borderRadius: 999,
-              background: colors.bg.tertiary,
-              overflow: "hidden",
-            }}
-          >
+          <div className="h-1.5 rounded-full bg-bg-tertiary overflow-hidden">
             <div
+              className="h-full rounded-full bg-green-600 transition-all duration-150 ease-out"
               style={{
-                height: "100%",
-                borderRadius: 999,
-                background: "#16a34a",
                 width: `${Math.round(
                   (bulkProgress.done / bulkProgress.total) * 100
                 )}%`,
-                transition: "width 0.15s ease",
               }}
             />
           </div>
@@ -2216,31 +1349,8 @@ export default function Home() {
       {/* ── SCROLL TO TOP ── */}
       {showScrollTop && !isSelectMode && (
         <button
-          className="browse-scroll-top"
+          className="browse-scroll-top fixed bottom-8 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-bg-tertiary text-text-primary border border-border-theme cursor-pointer text-[22px] font-bold shadow-xl z-20 flex items-center justify-center transition-all hover:scale-105"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          style={{
-            position: "fixed",
-            bottom: 32,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: 56,
-            height: 56,
-            borderRadius: "50%",
-            background: tc.bg.tertiary,
-            color: colors.text.primary,
-            border: `1px solid ${colors.border}`,
-            cursor: "pointer",
-            fontSize: 22,
-            fontWeight: 700,
-            boxShadow: isDark
-              ? "0 4px 20px rgba(0,0,0,0.4)"
-              : "0 4px 20px rgba(0,0,0,0.3)",
-            zIndex: 20,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "all 0.2s",
-          }}
         >
           ↑
         </button>
@@ -2248,79 +1358,24 @@ export default function Home() {
 
       {/* ── MULTI-SELECT BOTTOM BAR ── */}
       {isSelectMode && (
-        <div
-          className="browse-multi-select-bar"
-          style={{
-            position: "fixed",
-            bottom: isNarrow ? 16 : 24,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 25,
-            display: "flex",
-            alignItems: "center",
-            gap: isNarrow ? 4 : 8,
-            padding: isNarrow ? "5px 6px" : "10px 14px",
-            borderRadius: isNarrow ? 12 : 14,
-            background: colors.bg.primary,
-            border: `1px solid ${colors.border}`,
-            boxShadow: isDark
-              ? "0 12px 36px rgba(0,0,0,0.6)"
-              : "0 12px 36px rgba(0,0,0,0.18)",
-            maxWidth: "calc(100vw - 16px)",
-            width: "max-content",
-          }}
-        >
-          <span
-            style={{
-              fontSize: isNarrow ? 11 : 13,
-              fontWeight: 700,
-              color: colors.text.primary,
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-              paddingLeft: isNarrow ? 4 : 2,
-              paddingRight: isNarrow ? 2 : 4,
-            }}
-          >
+        <div className={`browse-multi-select-bar fixed ${isNarrow ? "bottom-4" : "bottom-6"} left-1/2 -translate-x-1/2 z-25 flex items-center ${isNarrow ? "gap-1 p-1.5 rounded-xl" : "gap-2 py-2.5 px-3.5 rounded-2xl"} bg-bg-primary border border-border-theme shadow-2xl max-w-[calc(100vw-16px)] w-max`}>
+          <span className={`font-bold text-text-primary whitespace-nowrap shrink-0 ${isNarrow ? "text-[11px] px-1" : "text-[13px] px-1"}`}>
             {multiSelected.size} {isNarrow ? "sel." : "selected"}
           </span>
-          <div
-            style={{
-              width: 1,
-              height: isNarrow ? 14 : 18,
-              background: colors.border,
-              flexShrink: 0,
-            }}
-          />
+          <div className={`w-px ${isNarrow ? "h-3.5" : "h-4.5"} bg-border-theme shrink-0`} />
           <button
             onClick={handleMultiMarkOwned}
             disabled={multiSelected.size === 0}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: isNarrow ? 4 : 6,
-              padding: isNarrow ? "6px 8px" : "8px 14px",
-              borderRadius: 8,
-              fontSize: isNarrow ? 11 : 13,
-              fontWeight: 600,
-              whiteSpace: "nowrap",
-              cursor: multiSelected.size > 0 ? "pointer" : "not-allowed",
-              border: "1px solid #16a34a",
-              background: isDark
-                ? "rgba(22,163,74,0.15)"
-                : "rgba(22,163,74,0.08)",
-              color: "#16a34a",
-              opacity: multiSelected.size === 0 ? 0.5 : 1,
-              transition: "all 0.2s",
-              flexShrink: 0,
-              minHeight: 44,
-              minWidth: 44,
-              justifyContent: "center",
-            }}
+            className={`flex items-center gap-1.5 ${isNarrow ? "py-1.5 px-2 text-[11px]" : "py-2 px-3.5 text-[13px]"} rounded-lg font-semibold whitespace-nowrap transition-all shrink-0 min-h-11 min-w-11 justify-center border border-green-600 ${
+              multiSelected.size > 0
+                ? "bg-green-600/15 text-green-600 dark:text-green-400 cursor-pointer"
+                : "opacity-50 cursor-not-allowed text-green-600"
+            }`}
           >
-            <Check size={isNarrow ? 12 : 14} style={{ flexShrink: 0 }} />
+            <Check size={isNarrow ? 12 : 14} className="shrink-0" />
             <span>{isNarrow ? "Owned" : "Mark Owned"}</span>
           </button>
-          <div style={{ position: "relative", flexShrink: 0 }}>
+          <div className="relative shrink-0">
             <button
               onClick={() => {
                 const next = !showMultiBinderPicker;
@@ -2328,76 +1383,25 @@ export default function Home() {
                 if (!next) resetInlineCreation();
               }}
               disabled={multiSelected.size === 0}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: isNarrow ? 4 : 6,
-                padding: isNarrow ? "6px 8px" : "8px 14px",
-                borderRadius: 8,
-                fontSize: isNarrow ? 11 : 13,
-                fontWeight: 600,
-                whiteSpace: "nowrap",
-                cursor: multiSelected.size > 0 ? "pointer" : "not-allowed",
-                border: `1px solid ${colors.border}`,
-                background: "transparent",
-                color: colors.text.primary,
-                opacity: multiSelected.size === 0 ? 0.5 : 1,
-                transition: "all 0.2s",
-                minHeight: 44,
-                minWidth: 44,
-                justifyContent: "center",
-              }}
+              className={`flex items-center gap-1.5 ${isNarrow ? "py-1.5 px-2 text-[11px]" : "py-2 px-3.5 text-[13px]"} rounded-lg font-semibold whitespace-nowrap transition-all border border-border-theme bg-transparent text-text-primary min-h-11 min-w-11 justify-center ${
+                multiSelected.size > 0 ? "cursor-pointer hover:bg-bg-secondary" : "opacity-50 cursor-not-allowed"
+              }`}
             >
-              <BookOpen size={isNarrow ? 12 : 14} style={{ flexShrink: 0 }} />
+              <BookOpen size={isNarrow ? 12 : 14} className="shrink-0" />
               <span>{isNarrow ? "Binder" : "Add to Binder"}</span>
             </button>
             {showMultiBinderPicker && (
               <div
-                style={{
-                  position: "absolute",
-                  bottom: "calc(100% + 8px)",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  width: 240,
-                  background: colors.bg.primary,
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  boxShadow: isDark
-                    ? "0 16px 40px rgba(0,0,0,0.5)"
-                    : "0 16px 40px rgba(0,0,0,0.12)",
-                  zIndex: 10,
-                }}
+                className="absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 w-60 bg-bg-primary border border-border-theme rounded-xl overflow-hidden shadow-2xl z-10 p-2"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div style={{ padding: "8px 8px 4px" }}>
-                  <div
-                    style={{
-                      fontSize: 10,
-                      color: colors.text.tertiary,
-                      fontWeight: 600,
-                      letterSpacing: "0.07em",
-                      textTransform: "uppercase" as const,
-                      padding: "4px 8px 6px",
-                    }}
-                  >
+                <div className="pb-1">
+                  <div className="text-[10px] text-text-tertiary font-semibold tracking-wider uppercase py-1 px-2">
                     Add {multiSelected.size} to Binder
                   </div>
-                  <div
-                    style={{
-                      maxHeight: 160,
-                      overflowY: "auto",
-                    }}
-                  >
+                  <div className="max-h-40 overflow-y-auto">
                     {binders.length === 0 && (
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: colors.text.tertiary,
-                          padding: "8px 10px",
-                          textAlign: "center",
-                        }}
-                      >
+                      <div className="text-xs text-text-tertiary py-2 px-2.5 text-center">
                         No binders yet
                       </div>
                     )}
@@ -2405,49 +1409,16 @@ export default function Home() {
                       <button
                         key={binder.id}
                         onClick={() => handleMultiAddToBinder(binder.id)}
-                        style={{
-                          width: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          padding: "9px 10px",
-                          borderRadius: 8,
-                          border: "none",
-                          cursor: "pointer",
-                          fontSize: 13,
-                          textAlign: "left" as const,
-                          transition: "all 0.15s",
-                          background: "transparent",
-                          color: colors.text.primary,
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background =
-                            colors.bg.secondary)
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.background = "transparent")
-                        }
+                        className="w-full flex items-center gap-2.5 py-2.25 px-2.5 rounded-lg border-0 cursor-pointer text-[13px] text-left transition-colors bg-transparent text-text-primary hover:bg-bg-secondary"
                       >
-                        <BookOpen
-                          size={14}
-                          style={{
-                            color: colors.text.tertiary,
-                            flexShrink: 0,
-                          }}
-                        />
-                        <span
-                          style={{
-                            flex: 1,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
+                        <BookOpen size={14} className="text-text-tertiary shrink-0" />
+                        <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                           {binder.name}
                         </span>
                       </button>
                     ))}
                   </div>
-                  <div style={{ padding: "0 0 8px" }}>
+                  <div className="pb-1">
                     {renderNewBinderRow(handleMultiCreateBinder)}
                   </div>
                 </div>
@@ -2462,27 +1433,11 @@ export default function Home() {
                 setMultiSelected(new Set(allSelectKeys));
               }
             }}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: isNarrow ? 4 : 6,
-              padding: isNarrow ? "6px 8px" : "8px 14px",
-              borderRadius: 8,
-              fontSize: isNarrow ? 11 : 13,
-              fontWeight: 600,
-              whiteSpace: "nowrap",
-              cursor: "pointer",
-              border: `1px solid ${colors.border}`,
-              background: allSelected ? colors.bg.tertiary : "transparent",
-              color: colors.text.primary,
-              transition: "all 0.2s",
-              flexShrink: 0,
-              minHeight: 44,
-              minWidth: 44,
-              justifyContent: "center",
-            }}
+            className={`flex items-center gap-1.5 ${isNarrow ? "py-1.5 px-2 text-[11px]" : "py-2 px-3.5 text-[13px]"} rounded-lg font-semibold whitespace-nowrap cursor-pointer border border-border-theme transition-all shrink-0 min-h-11 min-w-11 justify-center ${
+              allSelected ? "bg-bg-tertiary text-text-primary" : "bg-transparent text-text-primary hover:bg-bg-secondary"
+            }`}
           >
-            <CheckSquare size={isNarrow ? 12 : 14} style={{ flexShrink: 0 }} />
+            <CheckSquare size={isNarrow ? 12 : 14} className="shrink-0" />
             <span>
               {allSelected
                 ? isNarrow
@@ -2496,23 +1451,7 @@ export default function Home() {
           <button
             onClick={exitSelectMode}
             title="Cancel selection"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: isNarrow ? 28 : 32,
-              height: isNarrow ? 28 : 32,
-              borderRadius: 8,
-              cursor: "pointer",
-              border: `1px solid ${colors.border}`,
-              background: "transparent",
-              color: colors.text.tertiary,
-              transition: "all 0.2s",
-              flexShrink: 0,
-              padding: 0,
-              minHeight: 44,
-              minWidth: 44,
-            }}
+            className={`flex items-center justify-center ${isNarrow ? "w-7 h-7" : "w-8 h-8"} rounded-lg cursor-pointer border border-border-theme bg-transparent text-text-tertiary hover:text-text-primary transition-all shrink-0 p-0 min-h-11 min-w-11`}
           >
             <X size={isNarrow ? 13 : 15} />
           </button>

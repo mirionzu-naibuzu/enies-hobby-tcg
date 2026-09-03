@@ -41,36 +41,25 @@ export default function ModalCardImage({
   }, [src, fallbackSrc]);
 
   return (
-    <div style={{ width: "100%", aspectRatio: "63/88", perspective: "1000px" }}>
+    <div className="w-full aspect-[63/88] [perspective:1000px]">
       <div
-        style={{
-          position: "relative",
-          width: "100%",
-          height: "100%",
-          transformStyle: "preserve-3d",
-          transition: "transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)",
-          transform: flipped ? "rotateY(0deg)" : "rotateY(180deg)",
-          borderRadius: 17,
-          boxShadow: isDark ? "0 12px 40px rgba(0,0,0,0.6)" : "0 12px 40px rgba(0,0,0,0.2)",
-        }}
+        className={`relative w-full h-full [transform-style:preserve-3d] transition-transform duration-[450ms] ease-[cubic-bezier(0.4,0,0.2,1)] rounded-[17px] ${
+          flipped ? "[transform:rotateY(0deg)]" : "[transform:rotateY(180deg)]"
+        } ${
+          isDark ? "shadow-[0_12px_40px_rgba(0,0,0,0.6)]" : "shadow-[0_12px_40px_rgba(0,0,0,0.2)]"
+        }`}
       >
         {/* Front */}
         <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backfaceVisibility: "hidden",
-            WebkitBackfaceVisibility: "hidden",
-            borderRadius: 17,
-            overflow: "hidden",
-            background: isDark ? "#1f2937" : "#f3f4f6",
-          }}
+          className={`absolute inset-0 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] rounded-[17px] overflow-hidden ${
+            isDark ? "bg-gray-800" : "bg-gray-100"
+          }`}
         >
           <img
             src={displaySrc}
             alt={alt}
             decoding="async"
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            className="w-full h-full object-cover block"
             onError={() => {
               onUnavailable?.();
               if (displaySrc !== fallbackSrc) {
@@ -81,21 +70,11 @@ export default function ModalCardImage({
         </div>
 
         {/* Back */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backfaceVisibility: "hidden",
-            WebkitBackfaceVisibility: "hidden",
-            transform: "rotateY(180deg)",
-            borderRadius: 17,
-            overflow: "hidden",
-          }}
-        >
+        <div className="absolute inset-0 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)] rounded-[17px] overflow-hidden">
           <img
             src={backSrc}
             alt=""
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            className="w-full h-full object-cover block"
           />
         </div>
       </div>

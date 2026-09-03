@@ -44,37 +44,13 @@ function CardItem({ card, onClick }: Props) {
   return (
     <div
       onClick={() => onClick(card)}
-      style={{
-        cursor: "pointer",
-        borderRadius: 14,
-        overflow: "hidden",
-        background: tc.bg.secondary,
-        border: `1px solid ${colorStyle.border}`,
-        transition: "all 0.2s",
-        transform: "translateY(0)",
-      }}
-      onMouseEnter={(e) => {
-        const element = e.currentTarget as HTMLDivElement;
-        element.style.transform = "translateY(-4px)";
-        element.style.boxShadow = isDark
-          ? "0 20px 25px rgba(0,0,0,0.4)"
-          : "0 20px 25px rgba(0,0,0,0.1)";
-      }}
-      onMouseLeave={(e) => {
-        const element = e.currentTarget as HTMLDivElement;
-        element.style.transform = "translateY(0)";
-        element.style.boxShadow = "none";
-      }}
+      className="cursor-pointer rounded-[14px] overflow-hidden bg-bg-secondary border transition-all duration-200 hover:-translate-y-1 hover:shadow-xl group"
+      style={{ borderColor: colorStyle.border }}
     >
       {/* Image area */}
       <div
-        style={{
-          position: "relative",
-          width: "100%",
-          aspectRatio: "5 / 7",
-          overflow: "hidden",
-          background: bgGradient,
-        }}
+        className="relative w-full aspect-[5/7] overflow-hidden"
+        style={{ background: bgGradient }}
       >
         {/* Image */}
         <img
@@ -83,13 +59,9 @@ function CardItem({ card, onClick }: Props) {
           loading="lazy"
           decoding="async"
           onLoad={() => setImageLoaded(true)}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            opacity: imageLoaded ? 1 : 0,
-            transition: "opacity 0.25s ease-in-out",
-          }}
+          className={`w-full h-full object-cover transition-opacity duration-250 ease-in-out ${
+            imageLoaded ? "opacity-100" : "opacity-0"
+          }`}
           onError={(e) => {
             e.currentTarget.src = "/card-placeholder.png";
             setImageLoaded(true);
