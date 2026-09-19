@@ -3488,25 +3488,25 @@ body {
 @keyframes toastIn {
   0% {
     opacity: 0;
-    transform: translate(-50%, -12px) scale(0.95);
+    transform: translateY(-12px) scale(0.95);
   }
   100% {
     opacity: 1;
-    transform: translate(-50%, 0) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
 @keyframes impeccableToastIn {
   0% {
     opacity: 0;
-    transform: translate(-50%, -10px) scale(0.94);
+    transform: translateY(-10px) scale(0.94);
   }
   60% {
     opacity: 1;
-    transform: translate(-50%, 1px) scale(1.01);
+    transform: translateY(1px) scale(1.01);
   }
   100% {
     opacity: 1;
-    transform: translate(-50%, 0) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
